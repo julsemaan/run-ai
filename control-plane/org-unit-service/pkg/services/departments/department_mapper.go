@@ -141,11 +141,11 @@ func mapBasicDepartment(department models.Department, nodePools map[string]opena
 }
 
 func departmentApiResourcesFromModel(department models.Department, nodePoolsMetadata map[string]openapi.NodepoolMinimal) []api.Resources {
-	return services.ApiResourcesFromModel(department.OrgUnitData.Resources, nodePoolsMetadata)
+	return services.ApiResourcesFromModel(department.OrgUnitData.Resources, services.QuotaNodePoolsMetadata(department.TenantId, department.ClusterId.String(), "department", department.ID, nodePoolsMetadata))
 }
 
 func departmentApiResourcesFromModelSync(department models.Department, nodePoolsMetadata map[string]openapi.NodepoolMinimal) []api.ResourcesSync {
-	return services.ApiResourcesFromModelSync(department.OrgUnitData.Resources, nodePoolsMetadata)
+	return services.ApiResourcesFromModelSync(department.OrgUnitData.Resources, services.QuotaNodePoolsMetadata(department.TenantId, department.ClusterId.String(), "department", department.ID, nodePoolsMetadata))
 }
 
 func mapChildrenToResponse(children []models.Child) *[]api.DepartmentProjectChild {

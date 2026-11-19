@@ -98,48 +98,62 @@ var _ = Describe("Resources DAO SQL", func() {
 	Describe("ResetResources", func() {
 		It("succeeds", func() {
 			mocker := setupSQLMock()
+			mocker.ExpectTransaction().Begin()
 			mocker.ExpectExec(sqlResetProjectQuotas).Returns(2)
+			mocker.ExpectTransaction().Commit()
 
 			err := ResetResources(context.Background(), testTenantID, testClusterID().String(), "", []string{testNodePoolID}, api.RESOURCESRESETACTION_QUOTAS_TO_DEFAULT, true)
 			Expect(err).NotTo(HaveOccurred())
 		})
 		It("invalid action", func() {
-			setupSQLMock()
+			mocker := setupSQLMock()
+			mocker.ExpectTransaction().Begin()
+			mocker.ExpectTransaction().Rollback()
 			err := ResetResources(context.Background(), testTenantID, testClusterID().String(), "", []string{testNodePoolID}, "not-an-action", true)
 			Expect(err).To(MatchError("invalid reset resources action: not-an-action"))
 		})
 		It("departments", func() {
 			mocker := setupSQLMock()
+			mocker.ExpectTransaction().Begin()
 			mocker.ExpectExec(`UPDATE resources SET gpu_deserved = 0, gpu_limit = NULL, cpu_deserved = NULL, cpu_limit = NULL, memory_deserved = NULL, memory_limit = NULL, updated_at=now() FROM department WHERE department.org_unit_data_id = resources.org_unit_data_id AND ((gpu_deserved <> 0 OR gpu_limit <> -1 OR cpu_deserved <> -1 OR cpu_limit <> -1 OR memory_deserved <> -1 OR memory_limit <> -1) AND resources.node_pool_id IN (?)) AND department.tenant_id = ? AND department.cluster_id = ? AND department.deleted_at is NULL and resources.deleted_at is NULL;`).Returns(1)
 
+			mocker.ExpectTransaction().Commit()
 			err := ResetResources(context.Background(), testTenantID, testClusterID().String(), "", []string{testNodePoolID}, api.RESOURCESRESETACTION_QUOTAS_TO_DEFAULT, false)
 			Expect(err).NotTo(HaveOccurred())
 		})
 		It("with department filter", func() {
 			mocker := setupSQLMock()
+			mocker.ExpectTransaction().Begin()
 			mocker.ExpectExec(`UPDATE resources SET gpu_deserved = 0, gpu_limit = NULL, cpu_deserved = NULL, cpu_limit = NULL, memory_deserved = NULL, memory_limit = NULL, updated_at=now() FROM project WHERE project.org_unit_data_id = resources.org_unit_data_id AND ((gpu_deserved <> 0 OR gpu_limit <> -1 OR cpu_deserved <> -1 OR cpu_limit <> -1 OR memory_deserved <> -1 OR memory_limit <> -1) AND resources.node_pool_id IN (?) AND project.parent_id = ?) AND project.tenant_id = ? AND project.cluster_id = ? AND project.deleted_at is NULL and resources.deleted_at is NULL;`).Returns(1)
 
+			mocker.ExpectTransaction().Commit()
 			err := ResetResources(context.Background(), testTenantID, testClusterID().String(), "11", []string{testNodePoolID}, api.RESOURCESRESETACTION_QUOTAS_TO_DEFAULT, true)
 			Expect(err).NotTo(HaveOccurred())
 		})
 		It("ranks to default", func() {
 			mocker := setupSQLMock()
+			mocker.ExpectTransaction().Begin()
 			mocker.ExpectExec(`UPDATE resources SET priority = 'MediumLow', updated_at=now() FROM project WHERE project.org_unit_data_id = resources.org_unit_data_id AND ((resources.priority <> 'MediumLow') AND resources.node_pool_id IN (?)) AND project.tenant_id = ? AND project.cluster_id = ? AND project.deleted_at is NULL and resources.deleted_at is NULL;`).Returns(1)
 
+			mocker.ExpectTransaction().Commit()
 			err := ResetResources(context.Background(), testTenantID, testClusterID().String(), "", []string{testNodePoolID}, api.RESOURCESRESETACTION_RANKS_TO_DEFAULT, true)
 			Expect(err).NotTo(HaveOccurred())
 		})
 		It("weights to default", func() {
 			mocker := setupSQLMock()
+			mocker.ExpectTransaction().Begin()
 			mocker.ExpectExec(`UPDATE resources SET gpu_over_quota_weight = 2.000000, cpu_over_quota_weight = CASE WHEN cpu_over_quota_weight IS NOT NULL THEN 2.000000 ELSE NULL END, memory_over_quota_weight = CASE WHEN memory_over_quota_weight IS NOT NULL THEN 2.000000 ELSE NULL END, updated_at=now() FROM project WHERE project.org_unit_data_id = resources.org_unit_data_id AND ((gpu_over_quota_weight IS DISTINCT FROM 2.000000 OR cpu_over_quota_weight <> 2.000000 OR memory_over_quota_weight <> 2.000000) AND resources.node_pool_id IN (?)) AND project.tenant_id = ? AND project.cluster_id = ? AND project.deleted_at is NULL and resources.deleted_at is NULL;`).Returns(1)
 
+			mocker.ExpectTransaction().Commit()
 			err := ResetResources(context.Background(), testTenantID, testClusterID().String(), "", []string{testNodePoolID}, api.RESOURCESRESETACTION_WEIGHTS_TO_DEFAULT, true)
 			Expect(err).NotTo(HaveOccurred())
 		})
 		It("weights to deserved", func() {
 			mocker := setupSQLMock()
+			mocker.ExpectTransaction().Begin()
 			mocker.ExpectExec(`UPDATE resources SET gpu_over_quota_weight = gpu_deserved, cpu_over_quota_weight = cpu_deserved, memory_over_quota_weight = memory_deserved, updated_at=now() FROM project WHERE project.org_unit_data_id = resources.org_unit_data_id AND ((gpu_over_quota_weight IS DISTINCT FROM gpu_deserved OR cpu_over_quota_weight IS DISTINCT FROM cpu_deserved OR memory_over_quota_weight IS DISTINCT FROM memory_deserved) AND resources.node_pool_id IN (?)) AND project.tenant_id = ? AND project.cluster_id = ? AND project.deleted_at is NULL and resources.deleted_at is NULL;`).Returns(1)
 
+			mocker.ExpectTransaction().Commit()
 			err := ResetResources(context.Background(), testTenantID, testClusterID().String(), "", []string{testNodePoolID}, api.RESOURCESRESETACTION_WEIGHTS_TO_DESERVED, true)
 			Expect(err).NotTo(HaveOccurred())
 		})

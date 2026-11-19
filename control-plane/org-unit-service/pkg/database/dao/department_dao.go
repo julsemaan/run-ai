@@ -105,6 +105,9 @@ func UpdateDepartmentWithChildren(ctx context.Context, department *models.Depart
 	committed := false
 	defer orm.FinalizeTransaction(tx, &committed)
 
+	if err := guardQuotaUpdate(tx, department.TenantId, department.ClusterId.String(), "department", department.ID, department.OrgUnitData.Resources); err != nil {
+		return nil, err
+	}
 	err := tx.Actual().Model(&models.OrgUnitData{BaseModel: dbmodels.BaseModel{ID: department.OrgUnitDataID}}).Association(TrainNodeType).Clear()
 	if err != nil {
 		logging.WithCtx(runaictx.LoggerHook(ctx)).Errorf("Failed to update department: %v", err)

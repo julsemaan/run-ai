@@ -501,6 +501,7 @@ func (s *ProjectApiService) UpdateProject(ctx context.Context, projectId string,
 		return errResponse, nil
 	}
 
+	nodePools = services.QuotaNodePoolsMetadata(project.TenantId, project.ClusterId.String(), "project", project.ID, nodePools)
 	apiErr := s.validateUpdateRequest(ctx, updateProjectRequest, nodePools)
 	if apiErr != nil {
 		return services.HandleApiError(*apiErr), nil
@@ -596,6 +597,7 @@ func (s *ProjectApiService) UpdateProjectResources(ctx context.Context, projectI
 		return errResponse, nil
 	}
 
+	nodePools = services.QuotaNodePoolsMetadata(project.TenantId, project.ClusterId.String(), "project", project.ID, nodePools)
 	err = services.ValidateResourcesUpdateRequest(ctx, resources, nodePools)
 	if err != nil {
 		errResponse := services.HandleError(err, http.StatusBadRequest, "update project resources validation failed")
@@ -658,6 +660,9 @@ func (s *ProjectApiService) UpdateProjectStatus(ctx context.Context, projectStat
 	}
 
 	if projectStatusUpdateRequest.Status.Phase == api.PROJECTPHASE_DELETED {
+		if projectStatusUpdateRequest.QuotaSnapshot != nil {
+			return services.HandleError(dao.ErrQuotaSnapshot, http.StatusConflict, "Cannot import quotas for a deleted project"), nil
+		}
 		err = s.projectDeletionService.DeleteProjectSyncFromCluster(ctx, projectUid, *tenantId)
 		if err != nil {
 			errResponse := services.HandleError(err, http.StatusBadRequest, "failed to delete project")
@@ -675,6 +680,19 @@ func (s *ProjectApiService) UpdateProjectStatus(ctx context.Context, projectStat
 
 	if project.Phase != nil && *project.Phase == string(api.PROJECTPHASE_DELETING) && projectStatusUpdateRequest.Status.Phase != api.PROJECTPHASE_DELETING {
 		return api.Response(http.StatusBadRequest, fmt.Sprintf("Can not update phase of a deleting project to phase %s", projectStatusUpdateRequest.Status.Phase)), nil
+	}
+
+	if projectStatusUpdateRequest.QuotaSnapshot != nil {
+		if project.ClusterId != clusterUuid {
+			return services.HandleError(dao.ErrQuotaSnapshot, http.StatusForbidden, "Snapshot cluster does not match the project"), nil
+		}
+		nodePools, err := services.GetNodePoolsMetadataMap(ctx, s.clusterClient, clusterUuid.String())
+		if err != nil {
+			return services.HandleError(err, http.StatusServiceUnavailable, "Failed to retrieve node pools"), nil
+		}
+		if err := services.ImportQuotaSnapshot(ctx, *tenantId, clusterUuid.String(), "project", projectUid, *projectStatusUpdateRequest.QuotaSnapshot, project.OrgUnitData.Resources, nodePools); err != nil {
+			return services.HandleError(err, http.StatusConflict, err.Error()), nil
+		}
 	}
 
 	projectStatus, resourcesStatuses := MapApiStatusToModel(projectStatusUpdateRequest.Status, project)
@@ -854,6 +872,7 @@ func (s *ProjectApiService) patchProjectResources(
 		return nil, "", apiErr
 	}
 
+	nodePools = services.QuotaNodePoolsMetadata(project.TenantId, project.ClusterId.String(), "project", project.ID, nodePools)
 	err = services.ValidateResourcesPatchRequest(ctx, resources, nodePools)
 	if err != nil {
 		return nil, "", api.NewError(http.StatusBadRequest, fmt.Sprintf("patch project resources validation failed: %s", err.Error()), err)
@@ -877,6 +896,9 @@ func (s *ProjectApiService) patchProjectResources(
 
 	_, err = dao.UpdateProject(ctx, project, false, false)
 	if err != nil {
+		if errors.Is(err, dao.ErrKubernetesQuota) {
+			return nil, "", api.NewError(http.StatusConflict, err.Error(), err)
+		}
 		return nil, "", api.NewError(http.StatusInternalServerError, "Failed to update project", err)
 	}
 
@@ -997,6 +1019,10 @@ func (s *ProjectApiService) GetSyncProjects(ctx context.Context, clusterId strin
 		permittedScopes = nil
 	}
 
+	updatedAfter, err = services.QuotaSyncUpdatedAfter(*tenantId, clusterId, updatedAfter)
+	if err != nil {
+		return services.HandleError(err, http.StatusServiceUnavailable, "Invalid quota enrollment"), nil
+	}
 	projects, err := dao.GetSyncProjects(ctx, *tenantId, clusterUuid, updatedAfter, offset, limit, permittedScopes)
 	if err != nil {
 		errResponse := services.HandleDbError(ctx, err, "Failed to get project")
@@ -1023,6 +1049,10 @@ func (s *ProjectApiService) GetSyncProjects(ctx context.Context, clusterId strin
 	apiProjects := make([]api.ProjectSync, len(projects))
 	for index, project := range projects {
 		apiProjects[index] = MapModelToSyncResponse(*project, nodePoolsMetadata, accessRulesPerId[strconv.FormatInt(project.ID, 10)])
+		apiProjects[index].QuotaOwnership, err = services.QuotaOwnership(ctx, *tenantId, clusterId, "project", project.ID)
+		if err != nil {
+			return services.HandleError(err, http.StatusConflict, err.Error()), nil
+		}
 	}
 
 	response := api.GetSyncProjects200Response{

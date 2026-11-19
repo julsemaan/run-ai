@@ -354,6 +354,9 @@ func PatchDepartmentNodePoolResources(ctx context.Context,
 	committed := false
 	defer orm.FinalizeTransaction(tx, &committed)
 
+	if err := guardQuotaPatch(tx, tenantId, clusterId, departmentId, nodePoolId, updates); err != nil {
+		return err
+	}
 	// Update the concrete resources row for the specific node pool.
 	if _, err := tx.Table(models.Resources{}.TableName()).Where("id = ?", resourcesId).Where("node_pool_id = ?", nodePoolId).Updates(updates); err != nil {
 		logging.WithCtx(runaictx.LoggerHook(ctx)).Errorf("Failed to patch node pool resources: %v", err)
