@@ -12,6 +12,7 @@ import (
 
 	orgUnitApi "github.com/dsx-ai-factory/run-ai/control-plane/org-unit-service/pkg/client/generated"
 	"github.com/dsx-ai-factory/run-ai/runai-cluster/cluster/agent/pkg/common"
+	"github.com/dsx-ai-factory/run-ai/runai-cluster/cluster/agent/pkg/quotaownership"
 	"github.com/dsx-ai-factory/run-ai/runai-cluster/cluster/common/topology"
 	"github.com/dsx-ai-factory/run-ai/runai-cluster/cluster/sdk/apis/resourcing"
 	"github.com/dsx-ai-factory/run-ai/runai-cluster/cluster/sdk/apis/run/v1alpha1"
@@ -431,6 +432,9 @@ func (h *CommonHandler) syncDeletedObjects(existingObjectNames map[string]bool) 
 }
 
 func (h *CommonHandler) handleNonExisting(objectToReconcile client.Object) error {
+	if quotaownership.IsOrgUnit(objectToReconcile) && objectToReconcile.GetAnnotations()[quotaownership.Annotation] != "" {
+		return fmt.Errorf("cannot enroll missing object %s", objectToReconcile.GetName())
+	}
 	log.Info().Msgf("Creating %s <%s/%s>", h.objectTypeStr(), objectToReconcile.GetNamespace(), objectToReconcile.GetName())
 
 	if h.expectedObjectGetter != nil {
@@ -453,7 +457,11 @@ func (h *CommonHandler) handleNonExisting(objectToReconcile client.Object) error
 }
 
 func (h *CommonHandler) handleExisting(objectToReconcile, existingObject client.Object, conflictLabel string) error {
-	if h.objectInspector.IsUpToDate(objectToReconcile, existingObject) {
+	effective, err := quotaownership.Desired(objectToReconcile, existingObject)
+	if err != nil {
+		return err
+	}
+	if h.objectInspector.IsUpToDate(effective, existingObject) {
 		log.Debug().Msgf("%s <%s> in cluster is up to date", h.objectTypeStr(), existingObject.GetName())
 		return nil
 	}
@@ -468,7 +476,7 @@ func (h *CommonHandler) handleExisting(objectToReconcile, existingObject client.
 
 	// Retry the update operation with exponential backoff in case of conflicts
 	log.Info().Msgf("Updating %s <%s/%s/>", h.objectTypeStr(), objectToReconcile.GetNamespace(), objectToReconcile.GetName())
-	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		// Refetch the latest version of the object to ensure we have the most recent resourceVersion
 		latestObject, getErr := h.getObjectByGVK(
 			objectToReconcile.GetName(),
@@ -482,7 +490,11 @@ func (h *CommonHandler) handleExisting(objectToReconcile, existingObject client.
 		// deep copy will run over the entire object, this will copy attributes that needed to be kept from the existing object.
 		existingPreCopy(objectToReconcile, latestObject)
 
-		h.objectInspector.DeepCopySpec(objectToReconcile, latestObject)
+		effective, err := quotaownership.Desired(objectToReconcile, latestObject)
+		if err != nil {
+			return err
+		}
+		h.objectInspector.DeepCopySpec(effective, latestObject)
 
 		// Try to update with the latest version
 		return h.runaiClient.Update(context.Background(), latestObject)
@@ -654,7 +666,13 @@ func (h *CommonHandler) getObjectByGVK(name, namespace string, gvk schema.GroupV
 			return nil, createErr
 		}
 
-		err = h.cachedClient.Get(context.Background(), namespacedName, existingObject)
+		reader := h.cachedClient
+		// Quota reconciliation must never restore values from an informer cache.
+		switch existingObject.(type) {
+		case *kaiorg.Project, *kaiorg.Department:
+			reader = h.runaiClient
+		}
+		err = reader.Get(context.Background(), namespacedName, existingObject)
 		object = existingObject
 	}
 
