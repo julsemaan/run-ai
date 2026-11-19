@@ -7,9 +7,8 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"time"
+	"sync"
 
 	"github.com/dsx-ai-factory/run-ai/runai-cluster/cluster/cluster-sync/pkg/constants"
 	"github.com/dsx-ai-factory/run-ai/runai-cluster/cluster/cluster-sync/pkg/handlers/parsers"
@@ -18,7 +17,6 @@ import (
 	"go.uber.org/zap"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	_ "k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -27,9 +25,10 @@ import (
 )
 
 type DepartmentHandler struct {
-	resourceName  constants.ClusterResource
-	backendClient *runaiBackendClient.BackendClient
-	cachedClient  client.Client
+	resourceName     constants.ClusterResource
+	backendClient    *runaiBackendClient.BackendClient
+	cachedClient     client.Client
+	EnqueueQuotaSync func(client.ObjectKey)
 }
 
 func NewDepartmentHandler(runaiBackendClient *runaiBackendClient.BackendClient, cachedClient client.Client) *DepartmentHandler {
@@ -42,7 +41,7 @@ func NewDepartmentHandler(runaiBackendClient *runaiBackendClient.BackendClient, 
 
 func (departmentHandler *DepartmentHandler) HandleUpdateItem(key client.ObjectKey) error {
 	department := &kaiv1alpha1.Department{}
-	err := departmentHandler.cachedClient.Get(context.Background(), key, department)
+	err := getQuotaOrgUnit(departmentHandler.cachedClient, key, department)
 	if err != nil {
 		return err
 	}
@@ -56,6 +55,9 @@ func (departmentHandler *DepartmentHandler) HandleAddUpdate(department *kaiv1alp
 	if updateStatusErr == nil {
 		err := departmentHandler.updateSyncStatus(department, syncTime)
 		if err != nil {
+			if _, enrolled := department.Annotations[parsers.QuotaOwnershipAnnotation]; enrolled {
+				return fmt.Errorf("record department %s synchronization: %w", department.Name, err)
+			}
 			zap.S().Warnf("Failed to update last sync time in department %s, err: %v", department.Name, err)
 		}
 	}
@@ -66,25 +68,19 @@ func (departmentHandler *DepartmentHandler) HandleAddUpdate(department *kaiv1alp
 // On the new kai.resources Department CRD the sync timestamp is no longer a status
 // field; it is kept as an annotation managed exclusively by cluster-sync.
 func (departmentHandler *DepartmentHandler) updateSyncStatus(department *kaiv1alpha1.Department, syncTime metav1.Time) error {
-	patchBytes, err := json.Marshal(map[string]any{"metadata": map[string]any{
-		"annotations": map[string]string{
-			parsers.LastSyncTimestampAnnotation: syncTime.UTC().Format(time.RFC3339),
-		}}})
-	if err != nil {
-		return err
-	}
-
-	patch := client.RawPatch(types.MergePatchType, patchBytes)
-	err = departmentHandler.cachedClient.Patch(context.Background(), department, patch)
-	if err != nil {
-		return err
-	}
-	return nil
+	return recordOrgUnitSync(departmentHandler.cachedClient, department, syncTime)
 }
 
 func (departmentHandler *DepartmentHandler) updateStatus(department *kaiv1alpha1.Department) error {
 	defer metrics.GetMetricsExporter().MeasureExecutionTime(departmentHandler.resourceName, constants.UpdateOperation)()
 	toUpdate := parsers.ParseKaiDepartmentToUpdateStatusRequest(department)
+	snapshot, err := quotaSnapshot(department)
+	if err != nil {
+		return err
+	}
+	if snapshot != nil {
+		toUpdate.SetQuotaSnapshot(*snapshot)
+	}
 	res, err := departmentHandler.backendClient.OrgUnitClient.UpdateDepartmentsStatus(
 		departmentHandler.backendClient.Context(),
 		department.Labels[clusterconstants.SyncedDepartmentIdLabel],
@@ -93,7 +89,24 @@ func (departmentHandler *DepartmentHandler) updateStatus(department *kaiv1alpha1
 	if res != nil {
 		_ = res.Body.Close()
 	}
+	if snapshot != nil {
+		return quotaHTTPError(department, res, err)
+	}
 	return departmentHandler.backendClient.HandleHttpResponse(res, err, fmt.Sprintf("Updated status of department %s", department.Name))
+}
+
+func (departmentHandler *DepartmentHandler) HandleSyncEvent(waitGroup *sync.WaitGroup) {
+	defer waitGroup.Done()
+	departments := &kaiv1alpha1.DepartmentList{}
+	if err := departmentHandler.cachedClient.List(context.Background(), departments); err != nil {
+		zap.S().Errorf("List departments for quota resync: %v", err)
+		return
+	}
+	for _, department := range departments.Items {
+		if _, enrolled := department.Annotations[parsers.QuotaOwnershipAnnotation]; enrolled && departmentHandler.EnqueueQuotaSync != nil {
+			departmentHandler.EnqueueQuotaSync(client.ObjectKeyFromObject(&department))
+		}
+	}
 }
 
 func (departmentHandler *DepartmentHandler) HandleDelete(department *kaiv1alpha1.Department) {

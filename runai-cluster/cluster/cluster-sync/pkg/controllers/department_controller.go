@@ -6,10 +6,12 @@
 package controllers
 
 import (
+	"reflect"
+
 	backendclient "github.com/dsx-ai-factory/run-ai/runai-cluster/cluster/cluster-sync/pkg/backend-client"
 	"github.com/dsx-ai-factory/run-ai/runai-cluster/cluster/cluster-sync/pkg/cachedclient"
-	"github.com/dsx-ai-factory/run-ai/runai-cluster/cluster/cluster-sync/pkg/constants"
 	"github.com/dsx-ai-factory/run-ai/runai-cluster/cluster/cluster-sync/pkg/handlers"
+	"github.com/dsx-ai-factory/run-ai/runai-cluster/cluster/cluster-sync/pkg/handlers/parsers"
 	commonconstants "github.com/dsx-ai-factory/run-ai/runai-cluster/cluster/common/constants"
 	kaiv1alpha1 "github.com/kai-scheduler/kai-resource-management-api/kai/v1alpha1"
 	"go.uber.org/zap"
@@ -20,13 +22,14 @@ func AddDepartmentHandlerToCache(backendClient *backendclient.BackendClient, cac
 	departmentHandler := handlers.NewDepartmentHandler(backendClient, cachedClient)
 
 	rateLimitedController := cachedClient.NewRateLimitedController(cachedclient.DepartmentRL, departmentHandler)
+	departmentHandler.EnqueueQuotaSync = rateLimitedController.AddRateLimited
+	backendClient.RegisterSyncHandler(departmentHandler)
 
 	departmentInformer := cachedClient.GetInformer(cachedclient.DepartmentType)
 	_, err := departmentInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(object any) {
 			department := object.(*kaiv1alpha1.Department)
-			genericControllerErrorHandler(departmentHandler.HandleAddUpdate(department),
-				constants.AddOperation, constants.DepartmentResourceName, department)
+			rateLimitedController.AddRateLimited(objectKeyFromObject(department))
 		},
 		UpdateFunc: func(oldObject any, newObject any) {
 			if oldObject == nil {
@@ -57,8 +60,12 @@ func AddDepartmentHandlerToCache(backendClient *backendclient.BackendClient, cac
 }
 
 func shouldUpdateDepartment(old, new *kaiv1alpha1.Department) bool {
-	// TODO: currently we only check if the updatedAt was changed, we should change it to updateAt and status change once we will have phase (updating/creating/deleting indicates change in the crd)
 	oldUpdatedAt := old.Annotations[commonconstants.UpdatedAtAnnotation]
 	newUpdatedAt := new.Annotations[commonconstants.UpdatedAtAnnotation]
+	oldOwnership, oldEnrolled := old.Annotations[parsers.QuotaOwnershipAnnotation]
+	newOwnership, newEnrolled := new.Annotations[parsers.QuotaOwnershipAnnotation]
+	if oldEnrolled || newEnrolled {
+		return old.UID != new.UID || old.Generation != new.Generation || oldOwnership != newOwnership || oldEnrolled != newEnrolled || oldUpdatedAt != newUpdatedAt || !reflect.DeepEqual(old.Status, new.Status)
+	}
 	return oldUpdatedAt == "" || newUpdatedAt == "" || oldUpdatedAt != newUpdatedAt
 }
