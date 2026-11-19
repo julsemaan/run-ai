@@ -4,6 +4,7 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
+**QuotaSnapshot** | Pointer to [**NullableQuotaSnapshot**](QuotaSnapshot.md) |  | [optional] 
 **Id** | **string** |  | 
 **ClusterId** | **string** | The id of the cluster. | 
 **Status** | [**ProjectStatus**](ProjectStatus.md) |  | 
@@ -27,6 +28,41 @@ NewProjectStatusUpdateRequestWithDefaults instantiates a new ProjectStatusUpdate
 This constructor will only assign default values to properties that have it defined,
 but it doesn't guarantee that properties required by API are set
 
+### GetQuotaSnapshot
+
+`func (o *ProjectStatusUpdateRequest) GetQuotaSnapshot() QuotaSnapshot`
+
+GetQuotaSnapshot returns the QuotaSnapshot field if non-nil, zero value otherwise.
+
+### GetQuotaSnapshotOk
+
+`func (o *ProjectStatusUpdateRequest) GetQuotaSnapshotOk() (*QuotaSnapshot, bool)`
+
+GetQuotaSnapshotOk returns a tuple with the QuotaSnapshot field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetQuotaSnapshot
+
+`func (o *ProjectStatusUpdateRequest) SetQuotaSnapshot(v QuotaSnapshot)`
+
+SetQuotaSnapshot sets QuotaSnapshot field to given value.
+
+### HasQuotaSnapshot
+
+`func (o *ProjectStatusUpdateRequest) HasQuotaSnapshot() bool`
+
+HasQuotaSnapshot returns a boolean if a field has been set.
+
+### SetQuotaSnapshotNil
+
+`func (o *ProjectStatusUpdateRequest) SetQuotaSnapshotNil(b bool)`
+
+ SetQuotaSnapshotNil sets the value for QuotaSnapshot to be an explicit nil
+
+### UnsetQuotaSnapshot
+`func (o *ProjectStatusUpdateRequest) UnsetQuotaSnapshot()`
+
+UnsetQuotaSnapshot ensures that no value is present for QuotaSnapshot, not even an explicit nil
 ### GetId
 
 `func (o *ProjectStatusUpdateRequest) GetId() string`

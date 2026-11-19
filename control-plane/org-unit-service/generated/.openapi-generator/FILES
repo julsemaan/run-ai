@@ -185,6 +185,11 @@ pkg/api/model_project_v1_status_request.go
 pkg/api/model_projects_metrics_v1_response.go
 pkg/api/model_projects_metrics_v1_response_data_inner.go
 pkg/api/model_projects_resources_reset_request.go
+pkg/api/model_quota_ownership.go
+pkg/api/model_quota_ownership_pool.go
+pkg/api/model_quota_snapshot.go
+pkg/api/model_quota_snapshot_pool.go
+pkg/api/model_quota_snapshot_resource.go
 pkg/api/model_quota_status.go
 pkg/api/model_quota_status_node_pool.go
 pkg/api/model_quota_status_resource.go

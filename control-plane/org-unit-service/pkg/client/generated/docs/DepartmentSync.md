@@ -4,6 +4,7 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
+**QuotaOwnership** | Pointer to [**NullableQuotaOwnership**](QuotaOwnership.md) |  | [optional] 
 **Id** | **string** |  | 
 **Name** | Pointer to **string** |  | [optional] 
 **ClusterId** | Pointer to **string** | The id of the cluster. | [optional] 
@@ -31,6 +32,41 @@ NewDepartmentSyncWithDefaults instantiates a new DepartmentSync object
 This constructor will only assign default values to properties that have it defined,
 but it doesn't guarantee that properties required by API are set
 
+### GetQuotaOwnership
+
+`func (o *DepartmentSync) GetQuotaOwnership() QuotaOwnership`
+
+GetQuotaOwnership returns the QuotaOwnership field if non-nil, zero value otherwise.
+
+### GetQuotaOwnershipOk
+
+`func (o *DepartmentSync) GetQuotaOwnershipOk() (*QuotaOwnership, bool)`
+
+GetQuotaOwnershipOk returns a tuple with the QuotaOwnership field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetQuotaOwnership
+
+`func (o *DepartmentSync) SetQuotaOwnership(v QuotaOwnership)`
+
+SetQuotaOwnership sets QuotaOwnership field to given value.
+
+### HasQuotaOwnership
+
+`func (o *DepartmentSync) HasQuotaOwnership() bool`
+
+HasQuotaOwnership returns a boolean if a field has been set.
+
+### SetQuotaOwnershipNil
+
+`func (o *DepartmentSync) SetQuotaOwnershipNil(b bool)`
+
+ SetQuotaOwnershipNil sets the value for QuotaOwnership to be an explicit nil
+
+### UnsetQuotaOwnership
+`func (o *DepartmentSync) UnsetQuotaOwnership()`
+
+UnsetQuotaOwnership ensures that no value is present for QuotaOwnership, not even an explicit nil
 ### GetId
 
 `func (o *DepartmentSync) GetId() string`

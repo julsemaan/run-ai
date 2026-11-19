@@ -5,6 +5,8 @@ required:
   - clusterId
   - status
 properties:
+  quotaSnapshot:
+    $ref: '../QuotaSnapshot.yaml'
   id:
     type: string
     example: 33

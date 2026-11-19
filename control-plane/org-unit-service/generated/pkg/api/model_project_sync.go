@@ -27,6 +27,11 @@ var dummyProjectSync = runaihttp.AssertPattern
 type ProjectSync struct {
 
 	//////////////////////////////////// RUNAI START (19) ///////////////////////////////////////////
+	//QuotaOwnership *QuotaOwnership `json:"quotaOwnership,omitempty"`
+	QuotaOwnership *QuotaOwnership `json:"quotaOwnership,omitempty" gorm:"serializer:json; type:jsonb;"`
+	//////////////////////////////////// RUNAI END ///////////////////////////////////////////
+
+	//////////////////////////////////// RUNAI START (19) ///////////////////////////////////////////
 	//Id string `json:"id"`
 	Id string `json:"id" gorm:"not null;"`
 	//////////////////////////////////// RUNAI END ///////////////////////////////////////////
@@ -124,6 +129,11 @@ func AssertProjectSyncRequired(obj ProjectSync) error {
 		}
 	}
 
+	if obj.QuotaOwnership != nil {
+		if err := AssertQuotaOwnershipRequired(*obj.QuotaOwnership); err != nil {
+			return err
+		}
+	}
 	if obj.Parent != nil {
 		if err := AssertDepartmentProjectParentRequired(*obj.Parent); err != nil {
 			return err
@@ -155,6 +165,16 @@ func AssertProjectSyncRequired(obj ProjectSync) error {
 
 // AssertProjectSyncConstraints checks if the values respects the defined constraints
 func AssertProjectSyncConstraints(obj ProjectSync) error {
+	//////////////////////// RUNAI START (18.2) //////////////////////////
+	//////////////////////// RUNAI END //////////////////////////
+	//////////////////////// RUNAI START (2.1) //////////////////////////
+
+	//////////////////////// RUNAI END //////////////////////////
+	if obj.QuotaOwnership != nil {
+		if err := AssertQuotaOwnershipConstraints(*obj.QuotaOwnership); err != nil {
+			return err
+		}
+	}
 	//////////////////////// RUNAI START (18.2) //////////////////////////
 	//////////////////////// RUNAI END //////////////////////////
 	//////////////////////// RUNAI START (2.1) //////////////////////////
