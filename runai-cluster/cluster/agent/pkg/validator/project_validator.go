@@ -20,7 +20,7 @@ import (
 
 // ProjectValidator validates project and department resources.
 //
-// +kubebuilder:webhook:path=/validate-project,mutating=false,failurePolicy=fail,sideEffects=None,groups=run.ai;scheduling.run.ai,resources=projects;departments,verbs=create;update;delete,versions=*,name=vproject-validator.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/validate-project,mutating=false,failurePolicy=fail,sideEffects=None,groups=run.ai;scheduling.run.ai;kai.resources,resources=projects;departments,verbs=create;update;delete,versions=*,name=vproject-validator.kb.io,admissionReviewVersions=v1
 //
 //nolint:lll // kubebuilder annotation
 type ProjectValidator struct {

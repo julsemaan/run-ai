@@ -12,6 +12,19 @@ import (
 	"testing"
 )
 
+func TestOwnershipRemovalDoesNotRevertUnmirroredQuota(t *testing.T) {
+	o := api.QuotaOwnership{Epoch: "epoch", KubernetesUid: "uid", Pools: []api.QuotaOwnershipPool{{NodePoolId: "1", NodePoolName: "pool", QueueName: "queue"}}}
+	encoded, _ := json.Marshal(o)
+	live := &kai.Project{ObjectMeta: metav1.ObjectMeta{Name: "project", UID: "uid", Annotations: map[string]string{Annotation: string(encoded)}}}
+	live.Spec.Queues = []kai.QueueConfig{{Name: "queue", Nodepool: "pool", Resources: &kai.QueueResourcesConfig{GPU: kai.SystemResource{Deserved: 2}}}}
+	backend := live.DeepCopy()
+	delete(backend.Annotations, Annotation)
+	backend.Spec.Queues[0].Resources.GPU.Deserved = 1
+	if _, err := Desired(backend, live); err == nil {
+		t.Fatal("missing backend enrollment must not overwrite newer Kubernetes quota")
+	}
+}
+
 func TestPreserve(t *testing.T) {
 	o := api.QuotaOwnership{Epoch: "epoch", KubernetesUid: "uid", Pools: []api.QuotaOwnershipPool{{NodePoolId: "1", NodePoolName: "pool", QueueName: "queue"}}}
 	encoded, _ := json.Marshal(o)
