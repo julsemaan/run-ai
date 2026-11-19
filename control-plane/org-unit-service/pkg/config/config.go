@@ -20,7 +20,8 @@ func Init() error {
 		return err
 	}
 
-	return nil
+	_, err := QuotaEnrollments()
+	return err
 }
 
 func registerConfigs() error {
@@ -52,7 +53,8 @@ func registerConfigs() error {
 }
 
 type General struct {
-	LogLevel string `mapstructure:"log_level"`
+	LogLevel            string `mapstructure:"log_level"`
+	QuotaPocEnrollments string `mapstructure:"quota_poc_enrollments"`
 }
 
 func (c *General) SetDefaults() {

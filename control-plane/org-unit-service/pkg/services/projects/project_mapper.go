@@ -254,7 +254,7 @@ func MapModelToResponse(ctx context.Context, project models.Project, nodePoolsMe
 	if len(orgUnitData.Resources) == 0 {
 		logging.WithCtx(runaictx.LoggerHook(ctx)).Errorf("Project %v resources is empty", project.ID)
 	}
-	resources := services.ApiResourcesFromModel(orgUnitData.Resources, nodePoolsMetadata)
+	resources := services.ApiResourcesFromModel(orgUnitData.Resources, services.QuotaNodePoolsMetadata(project.TenantId, project.ClusterId.String(), "project", project.ID, nodePoolsMetadata))
 	response := api.Project{
 		Id:                    strconv.FormatInt(project.ID, 10),
 		CreatedAt:             project.CreatedAt,
@@ -314,7 +314,7 @@ func MapModelToResponse(ctx context.Context, project models.Project, nodePoolsMe
 
 func MapModelToSyncResponse(project models.Project, nodePoolsMetadata map[string]cluster_openapi.NodepoolMinimal, accessRules *[]openapi.AccessRule) api.ProjectSync {
 	orgUnitData := project.OrgUnitData
-	resources := services.ApiResourcesFromModelSync(orgUnitData.Resources, nodePoolsMetadata)
+	resources := services.ApiResourcesFromModelSync(orgUnitData.Resources, services.QuotaNodePoolsMetadata(project.TenantId, project.ClusterId.String(), "project", project.ID, nodePoolsMetadata))
 	response := api.ProjectSync{
 		Id:                    strconv.FormatInt(project.ID, 10),
 		CreatedAt:             project.CreatedAt,

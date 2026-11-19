@@ -10,6 +10,7 @@ import (
 	"github.com/dsx-ai-factory/run-ai/control-plane/org-unit-service/generated/pkg/api"
 	"github.com/dsx-ai-factory/run-ai/control-plane/org-unit-service/pkg/database/models"
 	"k8s.io/utils/ptr"
+	"strconv"
 )
 
 func mapModelNodePoolResources(nodePoolResources models.ResourcesPerNodePool, nodePoolId string, nodePoolsMetadata map[string]cluster_openapi.NodepoolMinimal) (api.ResourcesPerNodePool, error) {
@@ -53,6 +54,9 @@ func mapModelNodePoolResources(nodePoolResources models.ResourcesPerNodePool, no
 }
 
 func MapModelProjectNodePoolResourcesToApi(nodePoolResources models.ProjectNodePoolResources, nodePoolsMetadata map[string]cluster_openapi.NodepoolMinimal) *api.ProjectNodePoolResources {
+	if id, err := strconv.ParseInt(nodePoolResources.OrgUnitId, 10, 64); err == nil {
+		nodePoolsMetadata = QuotaNodePoolsMetadata(nodePoolResources.TenantId, nodePoolResources.ClusterId.String(), "project", id, nodePoolsMetadata)
+	}
 	resources, _ := mapModelNodePoolResources(nodePoolResources.ResourcesPerNodePool, nodePoolResources.NodePoolId, nodePoolsMetadata)
 	response := &api.ProjectNodePoolResources{
 		Id:           nodePoolResources.ID.String(),
@@ -90,6 +94,9 @@ func resourcesStatusToQuotaStatus(status models.ResourcesStatus) api.QuotaStatus
 }
 
 func MapModelDepartmentNodePoolResourcesToApi(nodePoolResources models.DepartmentNodePoolResources, nodePoolsMetadata map[string]cluster_openapi.NodepoolMinimal) *api.DepartmentNodePoolResources {
+	if id, err := strconv.ParseInt(nodePoolResources.OrgUnitId, 10, 64); err == nil {
+		nodePoolsMetadata = QuotaNodePoolsMetadata(nodePoolResources.TenantId, nodePoolResources.ClusterId.String(), "department", id, nodePoolsMetadata)
+	}
 	resources, _ := mapModelNodePoolResources(nodePoolResources.ResourcesPerNodePool, nodePoolResources.NodePoolId, nodePoolsMetadata)
 	response := &api.DepartmentNodePoolResources{
 		Id:           nodePoolResources.ID.String(),

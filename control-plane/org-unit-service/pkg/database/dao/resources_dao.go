@@ -8,6 +8,7 @@ package dao
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 
 	openapi "github.com/dsx-ai-factory/run-ai/control-plane/cluster-service/pkg/client/generated"
@@ -66,6 +67,9 @@ func DeleteResources(ctx context.Context, resources []models.Resources) error {
 	tx := runaidb.DB().WithContext(ctx).Begin()
 	committed := false
 	defer orm.FinalizeTransaction(tx, &committed)
+	if err := guardQuotaMembership(tx, resources); err != nil {
+		return err
+	}
 	if _, err := tx.Delete(resources); err != nil {
 		logging.WithCtx(runaictx.LoggerHook(ctx)).Errorf("Failed to delete resources: %v", err)
 		return err
@@ -85,6 +89,13 @@ func AddResources(ctx context.Context, resources []*models.Resources) error {
 	committed := false
 	defer orm.FinalizeTransaction(tx, &committed)
 
+	values := make([]models.Resources, len(resources))
+	for i, r := range resources {
+		values[i] = *r
+	}
+	if err := guardQuotaMembership(tx, values); err != nil {
+		return err
+	}
 	if _, err := tx.Create(resources); err != nil {
 		logging.WithCtx(runaictx.LoggerHook(ctx)).Errorf("Failed to create resources: %v", err)
 		return err
@@ -100,11 +111,16 @@ func AddResources(ctx context.Context, resources []*models.Resources) error {
 }
 
 func DisableCpuQuota(ctx context.Context, tenantId string, clusters []openapi.ClustersMinimalData) error {
+	clusters = append([]openapi.ClustersMinimalData(nil), clusters...)
+	sort.Slice(clusters, func(i, j int) bool { return clusters[i].Uuid < clusters[j].Uuid })
 	tx := runaidb.DB().WithContext(ctx).Begin()
 	committed := false
 	defer orm.FinalizeTransaction(tx, &committed)
 
 	for _, cluster := range clusters {
+		if err := guardQuotaDisableCpu(tx, tenantId, cluster.Uuid); err != nil {
+			return err
+		}
 		if _, err := tx.Exec(getDisableCpuQuotaResourcesQuery(true), tenantId, cluster.Uuid); err != nil {
 			logging.WithCtx(runaictx.LoggerHook(ctx)).Errorf("Failed to update cpu resources for projects in tenant %s and cluster %s. err: %+v", tenantId, cluster.Uuid, err)
 			return err
@@ -216,18 +232,27 @@ func getResetResourcesResourcesQuery(projects bool, action ResetResourcesAction,
 }
 
 func ResetResources(ctx context.Context, tenantId, clusterId, departmentId string, nodepoolIds []string, action api.ResourcesResetAction, projects bool) error {
-	tx := runaidb.DB().WithContext(ctx)
+	tx := runaidb.DB().WithContext(ctx).Begin()
+	committed := false
+	defer orm.FinalizeTransaction(tx, &committed)
 
 	err := resetResourcesInternal(ctx, tx, tenantId, clusterId, departmentId, nodepoolIds, ResetResourcesAction(action), projects)
 	if err != nil {
 		return err
 	}
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	committed = true
 
 	InvalidateAllCache(ctx, tenantId, clusterId)
 	return nil
 }
 
 func resetResourcesInternal(ctx context.Context, tx orm.DB, tenantId, clusterId, departmentId string, nodepoolIds []string, action ResetResourcesAction, projects bool) error {
+	if err := guardQuotaReset(tx, tenantId, clusterId, departmentId, nodepoolIds, action, projects); err != nil {
+		return err
+	}
 	// tenant_id and cluster_id are part of the query in the helper func
 	// nodepool_id and parent_id - we need to add as extra conditions here
 

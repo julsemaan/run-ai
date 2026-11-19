@@ -88,7 +88,10 @@ func HandleDbError(ctx context.Context, err error, message string) api.ImplRespo
 func HandleDbErrorWithDetails(ctx context.Context, err error, message string, details string) api.ImplResponse {
 	dbErr := api.NewError(http.StatusInternalServerError, message, err)
 	logging.WithCtx(runaictx.LoggerHook(ctx)).Errorf("DB failed: %s, %v", message, err)
-	if errors.Is(err, orm.ErrDuplicatedKey) {
+	if errors.Is(err, dao.ErrKubernetesQuota) || errors.Is(err, dao.ErrQuotaSnapshot) {
+		dbErr.Code = http.StatusConflict
+		dbErr.Message = err.Error()
+	} else if errors.Is(err, orm.ErrDuplicatedKey) {
 		dbErr.Code = http.StatusConflict
 	} else if errors.Is(err, orm.ErrRecordNotFound) {
 		dbErr.Code = http.StatusNotFound

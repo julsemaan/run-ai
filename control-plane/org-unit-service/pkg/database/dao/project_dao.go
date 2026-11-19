@@ -514,6 +514,9 @@ func UpdateProject(ctx context.Context, project *models.Project, clearTrainNodeT
 }
 
 func UpdateProjectTx(ctx context.Context, tx orm.DB, project *models.Project, clearTrainNodeTypes bool, clearWorkspaceNodeTypes bool) error {
+	if err := guardQuotaUpdate(tx, project.TenantId, project.ClusterId.String(), "project", project.ID, project.OrgUnitData.Resources); err != nil {
+		return err
+	}
 	if clearTrainNodeTypes {
 		err := tx.Actual().Model(&models.OrgUnitData{BaseModel: dbmodels.BaseModel{ID: project.OrgUnitDataID}}).Association(TrainNodeType).Clear()
 		if err != nil {

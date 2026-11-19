@@ -190,6 +190,8 @@ func prepareAndValidatePatchResourcesForDepartment(
 	stagedGroup := []dbProjectWithPatchRequests{}
 	// Prepare per-project data using already-fetched projects
 	for _, projectPatches := range patchGroup.patches {
+		project := projectPatches.dbProject
+		nodePools := services.QuotaNodePoolsMetadata(project.TenantId, project.ClusterId.String(), "project", project.ID, nodePools)
 		stagedGroupPatches := []api.NodePoolResourcesPatchRequest{}
 
 		requestedPatchNodePoolResourcesPerProject := []api.ResourcesNullable{}
@@ -207,7 +209,6 @@ func prepareAndValidatePatchResourcesForDepartment(
 			stagedGroupPatches = append(stagedGroupPatches, patchRequest)
 		}
 
-		project := projectPatches.dbProject
 		originalResources := services.CopyResources(project.OrgUnitData.Resources)
 		patchedResources, err := services.MapNodePoolPatchResourcesRequestToModel(ctx, requestedPatchNodePoolResourcesPerProject, project.OrgUnitData.Resources, nodePools, stagedGroupPatches)
 		if err != nil {
@@ -356,6 +357,9 @@ func commitProjectPatchesForDepartmentAtomic(
 		err := dao.UpdateProjectTx(ctx, tx, staged.dbProject, false, false)
 		if err != nil {
 			tx.Rollback()
+			if err == dao.ErrKubernetesQuota {
+				return nil, api.NewError(http.StatusConflict, err.Error(), err)
+			}
 			return nil, api.NewError(http.StatusInternalServerError, "Failed to update project", err)
 		}
 	}

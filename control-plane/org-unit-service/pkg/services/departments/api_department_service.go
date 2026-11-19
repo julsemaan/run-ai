@@ -460,6 +460,7 @@ func (s *DepartmentApiService) UpdateDepartment(ctx context.Context, departmentI
 		return errResponse, nil
 	}
 
+	nodePools = services.QuotaNodePoolsMetadata(department.TenantId, department.ClusterId.String(), "department", department.ID, nodePools)
 	apiErr := s.validateUpdateRequest(ctx, departmentUpdateRequest, nodePools)
 	if apiErr != nil {
 		return services.HandleApiError(*apiErr), nil
@@ -563,6 +564,7 @@ func (s *DepartmentApiService) UpdateDepartmentResources(ctx context.Context, de
 		return errResponse, nil
 	}
 
+	nodePools = services.QuotaNodePoolsMetadata(department.TenantId, department.ClusterId.String(), "department", department.ID, nodePools)
 	err = services.ValidateResourcesUpdateRequest(ctx, resources, nodePools)
 	if err != nil {
 		errResponse := services.HandleError(err, http.StatusBadRequest, "update department resources validation failed")
@@ -678,6 +680,7 @@ func (s *DepartmentApiService) patchDepartmentResources(
 		return nil, "", apiErr
 	}
 
+	nodePools = services.QuotaNodePoolsMetadata(department.TenantId, department.ClusterId.String(), "department", department.ID, nodePools)
 	err = services.ValidateResourcesPatchRequest(ctx, resources, nodePools)
 	if err != nil {
 		return nil, "", api.NewError(http.StatusBadRequest, fmt.Sprintf("patch department resources validation failed: %s", err.Error()), err)
@@ -706,6 +709,9 @@ func (s *DepartmentApiService) patchDepartmentResources(
 
 	_, err = dao.UpdateDepartment(ctx, department)
 	if err != nil {
+		if err == dao.ErrKubernetesQuota {
+			return nil, "", api.NewError(http.StatusConflict, err.Error(), err)
+		}
 		return nil, "", api.NewError(http.StatusInternalServerError, "failed to update department", err)
 	}
 
@@ -738,6 +744,7 @@ func (s *DepartmentApiService) patchDepartmentNodePoolResources(
 		return nil, "", apiErr
 	}
 
+	nodePools = services.QuotaNodePoolsMetadata(tenantId, departmentNodePoolResources.ClusterId.String(), "department", departmentUid, nodePools)
 	err = services.ValidateNodePoolResourcesPatchRequest(ctx, patchRequest, nodePools)
 	if err != nil {
 		return nil, "", api.NewError(http.StatusBadRequest, fmt.Sprintf("patch department resources validation failed: %s", err.Error()), err)
@@ -762,6 +769,9 @@ func (s *DepartmentApiService) patchDepartmentNodePoolResources(
 	}
 	err = dao.PatchDepartmentNodePoolResources(ctx, tenantId, departmentNodePoolResources.ClusterId.String(), departmentId, patchRequest.NodePoolId, departmentNodePoolResources.ID.String(), subjectId, patchUpdates)
 	if err != nil {
+		if err == dao.ErrKubernetesQuota {
+			return nil, "", api.NewError(http.StatusConflict, err.Error(), err)
+		}
 		return nil, "", api.NewError(http.StatusInternalServerError, "failed to patch department node pool resources", err)
 	}
 
@@ -1010,6 +1020,10 @@ func (s *DepartmentApiService) GetSyncDepartments(ctx context.Context, clusterId
 		permittedScopes = nil
 	}
 
+	updatedAfter, err = services.QuotaSyncUpdatedAfter(*tenantId, clusterId, updatedAfter)
+	if err != nil {
+		return services.HandleError(err, http.StatusServiceUnavailable, "Invalid quota enrollment"), nil
+	}
 	departments, err := dao.GetSyncDepartments(ctx, *tenantId, clusterUuid, updatedAfter, offset, limit, permittedScopes)
 	if err != nil {
 		errResponse := services.HandleDbError(ctx, err, "get departments sync failed")
@@ -1029,6 +1043,10 @@ func (s *DepartmentApiService) GetSyncDepartments(ctx context.Context, clusterId
 
 	for index, department := range *departments {
 		apiDepartments[index] = MapModelToSyncResponse(department, nodePoolsMetadata)
+		apiDepartments[index].QuotaOwnership, err = services.QuotaOwnership(ctx, *tenantId, clusterId, "department", department.ID)
+		if err != nil {
+			return services.HandleError(err, http.StatusConflict, err.Error()), nil
+		}
 	}
 
 	response := api.GetSyncDepartments200Response{
@@ -1055,6 +1073,23 @@ func (s *DepartmentApiService) UpdateDepartmentStatus(ctx context.Context, depar
 		return services.HandleError(err, http.StatusBadRequest, "Failed to parse tenant id"), nil
 	}
 
+	if request.QuotaSnapshot != nil {
+		id, err := strconv.ParseInt(departmentId, 10, 64)
+		if err != nil {
+			return services.HandleError(err, http.StatusBadRequest, "Invalid department ID"), nil
+		}
+		department, err := dao.GetDepartmentByIdAndCluster(ctx, id, *tenantId, clusterUuid, models.SlimVerbosity)
+		if err != nil {
+			return services.HandleDbError(ctx, err, "Snapshot department not found in cluster"), nil
+		}
+		nodePools, err := services.GetNodePoolsMetadataMap(ctx, s.clusterClient, clusterUuid.String())
+		if err != nil {
+			return services.HandleError(err, http.StatusServiceUnavailable, "Failed to retrieve node pools"), nil
+		}
+		if err := services.ImportQuotaSnapshot(ctx, *tenantId, clusterUuid.String(), "department", id, *request.QuotaSnapshot, department.OrgUnitData.Resources, nodePools); err != nil {
+			return services.HandleError(err, http.StatusConflict, err.Error()), nil
+		}
+	}
 	err = dao.UpdateDepartmentStatus(ctx, clusterUuid, *tenantId, departmentId, request.Status.LastUpdatedTime)
 	if err != nil {
 		errResponse := services.HandleDbError(ctx, err, "update department status failed")
