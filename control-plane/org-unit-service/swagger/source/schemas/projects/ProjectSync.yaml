@@ -6,6 +6,8 @@ required:
   - createdAt
   - updatedAt
 properties:
+  quotaOwnership:
+    $ref: '../QuotaOwnership.yaml'
   id:
     type: string
     example: 33

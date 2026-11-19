@@ -9060,6 +9060,122 @@ components:
       - CPU_ALLOCATION_NON_PREEMPTIBLE
       - MEMORY_ALLOCATION_NON_PREEMPTIBLE
       type: string
+    QuotaSnapshotResource:
+      description: All three numeric leaves are mandatory and must be non-null. Minus
+        one means unlimited for deserved or limit. Weight must be nonnegative.
+      example:
+        overQuotaWeight: 0.5962133916683182
+        limit: -0.8534187019497055
+        deserved: -0.3972543816929597
+      properties:
+        deserved:
+          format: double
+          minimum: -1
+          nullable: true
+          type: number
+        limit:
+          format: double
+          minimum: -1
+          nullable: true
+          type: number
+        overQuotaWeight:
+          format: double
+          minimum: 0
+          nullable: true
+          type: number
+      required:
+      - deserved
+      - limit
+      - overQuotaWeight
+      type: object
+    QuotaSnapshotPool:
+      example:
+        nodePoolId: nodePoolId
+        memory:
+          overQuotaWeight: 0.5962133916683182
+          limit: -0.8534187019497055
+          deserved: -0.3972543816929597
+        cpu:
+          overQuotaWeight: 0.5962133916683182
+          limit: -0.8534187019497055
+          deserved: -0.3972543816929597
+        gpu:
+          overQuotaWeight: 0.5962133916683182
+          limit: -0.8534187019497055
+          deserved: -0.3972543816929597
+      properties:
+        nodePoolId:
+          minLength: 1
+          type: string
+        gpu:
+          $ref: '#/components/schemas/QuotaSnapshotResource'
+        cpu:
+          $ref: '#/components/schemas/QuotaSnapshotResource'
+        memory:
+          $ref: '#/components/schemas/QuotaSnapshotResource'
+      required:
+      - cpu
+      - gpu
+      - memory
+      - nodePoolId
+      type: object
+    QuotaSnapshot:
+      description: "Complete enrolled-pool quotas from Kubernetes. Generation is metadata.generation,\
+        \ CPU is millicores and memory is decimal megabytes. No defaults are applied."
+      example:
+        generation: 1
+        pools:
+        - nodePoolId: nodePoolId
+          memory:
+            overQuotaWeight: 0.5962133916683182
+            limit: -0.8534187019497055
+            deserved: -0.3972543816929597
+          cpu:
+            overQuotaWeight: 0.5962133916683182
+            limit: -0.8534187019497055
+            deserved: -0.3972543816929597
+          gpu:
+            overQuotaWeight: 0.5962133916683182
+            limit: -0.8534187019497055
+            deserved: -0.3972543816929597
+        - nodePoolId: nodePoolId
+          memory:
+            overQuotaWeight: 0.5962133916683182
+            limit: -0.8534187019497055
+            deserved: -0.3972543816929597
+          cpu:
+            overQuotaWeight: 0.5962133916683182
+            limit: -0.8534187019497055
+            deserved: -0.3972543816929597
+          gpu:
+            overQuotaWeight: 0.5962133916683182
+            limit: -0.8534187019497055
+            deserved: -0.3972543816929597
+        epoch: epoch
+        kubernetesUid: kubernetesUid
+      nullable: true
+      properties:
+        epoch:
+          minLength: 1
+          type: string
+        kubernetesUid:
+          minLength: 1
+          type: string
+        generation:
+          format: int64
+          minimum: 1
+          type: integer
+        pools:
+          items:
+            $ref: '#/components/schemas/QuotaSnapshotPool'
+          minItems: 1
+          type: array
+      required:
+      - epoch
+      - generation
+      - kubernetesUid
+      - pools
+      type: object
     DepartmentStatus:
       example:
         lastUpdatedTime: 2000-01-23T04:56:07.000+00:00
@@ -9072,10 +9188,43 @@ components:
     DepartmentStatusUpdateRequest:
       description: status update fields
       example:
+        quotaSnapshot:
+          generation: 1
+          pools:
+          - nodePoolId: nodePoolId
+            memory:
+              overQuotaWeight: 0.5962133916683182
+              limit: -0.8534187019497055
+              deserved: -0.3972543816929597
+            cpu:
+              overQuotaWeight: 0.5962133916683182
+              limit: -0.8534187019497055
+              deserved: -0.3972543816929597
+            gpu:
+              overQuotaWeight: 0.5962133916683182
+              limit: -0.8534187019497055
+              deserved: -0.3972543816929597
+          - nodePoolId: nodePoolId
+            memory:
+              overQuotaWeight: 0.5962133916683182
+              limit: -0.8534187019497055
+              deserved: -0.3972543816929597
+            cpu:
+              overQuotaWeight: 0.5962133916683182
+              limit: -0.8534187019497055
+              deserved: -0.3972543816929597
+            gpu:
+              overQuotaWeight: 0.5962133916683182
+              limit: -0.8534187019497055
+              deserved: -0.3972543816929597
+          epoch: epoch
+          kubernetesUid: kubernetesUid
         clusterId: 71f69d83-ba66-4822-adf5-55ce55efd210
         status:
           lastUpdatedTime: 2000-01-23T04:56:07.000+00:00
       properties:
+        quotaSnapshot:
+          $ref: '#/components/schemas/QuotaSnapshot'
         clusterId:
           description: The id of the cluster.
           example: 71f69d83-ba66-4822-adf5-55ce55efd210
@@ -9773,6 +9922,37 @@ components:
     ProjectStatusUpdateRequest:
       description: status update fields
       example:
+        quotaSnapshot:
+          generation: 1
+          pools:
+          - nodePoolId: nodePoolId
+            memory:
+              overQuotaWeight: 0.5962133916683182
+              limit: -0.8534187019497055
+              deserved: -0.3972543816929597
+            cpu:
+              overQuotaWeight: 0.5962133916683182
+              limit: -0.8534187019497055
+              deserved: -0.3972543816929597
+            gpu:
+              overQuotaWeight: 0.5962133916683182
+              limit: -0.8534187019497055
+              deserved: -0.3972543816929597
+          - nodePoolId: nodePoolId
+            memory:
+              overQuotaWeight: 0.5962133916683182
+              limit: -0.8534187019497055
+              deserved: -0.3972543816929597
+            cpu:
+              overQuotaWeight: 0.5962133916683182
+              limit: -0.8534187019497055
+              deserved: -0.3972543816929597
+            gpu:
+              overQuotaWeight: 0.5962133916683182
+              limit: -0.8534187019497055
+              deserved: -0.3972543816929597
+          epoch: epoch
+          kubernetesUid: kubernetesUid
         id: "33"
         clusterId: 71f69d83-ba66-4822-adf5-55ce55efd210
         status:
@@ -9825,6 +10005,8 @@ components:
               cpu: 1000
               gpu: 0
       properties:
+        quotaSnapshot:
+          $ref: '#/components/schemas/QuotaSnapshot'
         id:
           example: "33"
           type: string
@@ -9881,6 +10063,57 @@ components:
           example: d73a738f-fab3-430a-8fa3-5241493d7128
           format: uuid
           type: string
+    QuotaOwnershipPool:
+      example:
+        nodePoolId: nodePoolId
+        queueName: queueName
+        nodePoolName: nodePoolName
+      properties:
+        nodePoolId:
+          minLength: 1
+          type: string
+        nodePoolName:
+          minLength: 1
+          type: string
+        queueName:
+          minLength: 1
+          type: string
+      required:
+      - nodePoolId
+      - nodePoolName
+      - queueName
+      type: object
+    QuotaOwnership:
+      description: Trusted active Kubernetes quota enrollment. Absent for API-managed
+        objects and prepared enrollments.
+      example:
+        pools:
+        - nodePoolId: nodePoolId
+          queueName: queueName
+          nodePoolName: nodePoolName
+        - nodePoolId: nodePoolId
+          queueName: queueName
+          nodePoolName: nodePoolName
+        epoch: epoch
+        kubernetesUid: kubernetesUid
+      nullable: true
+      properties:
+        epoch:
+          minLength: 1
+          type: string
+        kubernetesUid:
+          minLength: 1
+          type: string
+        pools:
+          items:
+            $ref: '#/components/schemas/QuotaOwnershipPool'
+          minItems: 1
+          type: array
+      required:
+      - epoch
+      - kubernetesUid
+      - pools
+      type: object
     ResourcesSync:
       example:
         nodePool:
@@ -9927,6 +10160,16 @@ components:
           name: organization1
           id: 9f55253e-11ed-47c7-acef-fc4054768dbc
         enforceRunaiScheduler: true
+        quotaOwnership:
+          pools:
+          - nodePoolId: nodePoolId
+            queueName: queueName
+            nodePoolName: nodePoolName
+          - nodePoolId: nodePoolId
+            queueName: queueName
+            nodePoolName: nodePoolName
+          epoch: epoch
+          kubernetesUid: kubernetesUid
         resources:
         - nodePool:
             name: default
@@ -10008,6 +10251,8 @@ components:
           - training
         updatedAt: 2000-01-23T04:56:07.000+00:00
       properties:
+        quotaOwnership:
+          $ref: '#/components/schemas/QuotaOwnership'
         id:
           example: "33"
           type: string
@@ -10081,6 +10326,16 @@ components:
       example:
         createdAt: 2000-01-23T04:56:07.000+00:00
         deletedAt: 2000-01-23T04:56:07.000+00:00
+        quotaOwnership:
+          pools:
+          - nodePoolId: nodePoolId
+            queueName: queueName
+            nodePoolName: nodePoolName
+          - nodePoolId: nodePoolId
+            queueName: queueName
+            nodePoolName: nodePoolName
+          epoch: epoch
+          kubernetesUid: kubernetesUid
         name: organization1
         resources:
         - nodePool:
@@ -10121,6 +10376,8 @@ components:
         clusterId: 71f69d83-ba66-4822-adf5-55ce55efd210
         updatedAt: 2000-01-23T04:56:07.000+00:00
       properties:
+        quotaOwnership:
+          $ref: '#/components/schemas/QuotaOwnership'
         id:
           example: "50"
           type: string
@@ -13048,6 +13305,16 @@ components:
             name: organization1
             id: 9f55253e-11ed-47c7-acef-fc4054768dbc
           enforceRunaiScheduler: true
+          quotaOwnership:
+            pools:
+            - nodePoolId: nodePoolId
+              queueName: queueName
+              nodePoolName: nodePoolName
+            - nodePoolId: nodePoolId
+              queueName: queueName
+              nodePoolName: nodePoolName
+            epoch: epoch
+            kubernetesUid: kubernetesUid
           resources:
           - nodePool:
               name: default
@@ -13133,6 +13400,16 @@ components:
             name: organization1
             id: 9f55253e-11ed-47c7-acef-fc4054768dbc
           enforceRunaiScheduler: true
+          quotaOwnership:
+            pools:
+            - nodePoolId: nodePoolId
+              queueName: queueName
+              nodePoolName: nodePoolName
+            - nodePoolId: nodePoolId
+              queueName: queueName
+              nodePoolName: nodePoolName
+            epoch: epoch
+            kubernetesUid: kubernetesUid
           resources:
           - nodePool:
               name: default
@@ -13243,6 +13520,16 @@ components:
         departments:
         - createdAt: 2000-01-23T04:56:07.000+00:00
           deletedAt: 2000-01-23T04:56:07.000+00:00
+          quotaOwnership:
+            pools:
+            - nodePoolId: nodePoolId
+              queueName: queueName
+              nodePoolName: nodePoolName
+            - nodePoolId: nodePoolId
+              queueName: queueName
+              nodePoolName: nodePoolName
+            epoch: epoch
+            kubernetesUid: kubernetesUid
           name: organization1
           resources:
           - nodePool:
@@ -13284,6 +13571,16 @@ components:
           updatedAt: 2000-01-23T04:56:07.000+00:00
         - createdAt: 2000-01-23T04:56:07.000+00:00
           deletedAt: 2000-01-23T04:56:07.000+00:00
+          quotaOwnership:
+            pools:
+            - nodePoolId: nodePoolId
+              queueName: queueName
+              nodePoolName: nodePoolName
+            - nodePoolId: nodePoolId
+              queueName: queueName
+              nodePoolName: nodePoolName
+            epoch: epoch
+            kubernetesUid: kubernetesUid
           name: organization1
           resources:
           - nodePool:

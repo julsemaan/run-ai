@@ -1,0 +1,12 @@
+type: object
+required: [nodePoolId, gpu, cpu, memory]
+properties:
+  nodePoolId:
+    type: string
+    minLength: 1
+  gpu:
+    $ref: './QuotaSnapshotResource.yaml'
+  cpu:
+    $ref: './QuotaSnapshotResource.yaml'
+  memory:
+    $ref: './QuotaSnapshotResource.yaml'

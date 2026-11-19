@@ -4,6 +4,7 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
+**QuotaSnapshot** | Pointer to [**NullableQuotaSnapshot**](QuotaSnapshot.md) |  | [optional] 
 **ClusterId** | Pointer to **string** | The id of the cluster. | [optional] 
 **Status** | [**DepartmentStatus**](DepartmentStatus.md) |  | 
 
@@ -26,6 +27,41 @@ NewDepartmentStatusUpdateRequestWithDefaults instantiates a new DepartmentStatus
 This constructor will only assign default values to properties that have it defined,
 but it doesn't guarantee that properties required by API are set
 
+### GetQuotaSnapshot
+
+`func (o *DepartmentStatusUpdateRequest) GetQuotaSnapshot() QuotaSnapshot`
+
+GetQuotaSnapshot returns the QuotaSnapshot field if non-nil, zero value otherwise.
+
+### GetQuotaSnapshotOk
+
+`func (o *DepartmentStatusUpdateRequest) GetQuotaSnapshotOk() (*QuotaSnapshot, bool)`
+
+GetQuotaSnapshotOk returns a tuple with the QuotaSnapshot field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetQuotaSnapshot
+
+`func (o *DepartmentStatusUpdateRequest) SetQuotaSnapshot(v QuotaSnapshot)`
+
+SetQuotaSnapshot sets QuotaSnapshot field to given value.
+
+### HasQuotaSnapshot
+
+`func (o *DepartmentStatusUpdateRequest) HasQuotaSnapshot() bool`
+
+HasQuotaSnapshot returns a boolean if a field has been set.
+
+### SetQuotaSnapshotNil
+
+`func (o *DepartmentStatusUpdateRequest) SetQuotaSnapshotNil(b bool)`
+
+ SetQuotaSnapshotNil sets the value for QuotaSnapshot to be an explicit nil
+
+### UnsetQuotaSnapshot
+`func (o *DepartmentStatusUpdateRequest) UnsetQuotaSnapshot()`
+
+UnsetQuotaSnapshot ensures that no value is present for QuotaSnapshot, not even an explicit nil
 ### GetClusterId
 
 `func (o *DepartmentStatusUpdateRequest) GetClusterId() string`

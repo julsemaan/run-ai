@@ -23,6 +23,11 @@ var dummyDepartmentStatusUpdateRequest = runaihttp.AssertPattern
 // DepartmentStatusUpdateRequest - status update fields
 type DepartmentStatusUpdateRequest struct {
 
+	//////////////////////////////////// RUNAI START (19) ///////////////////////////////////////////
+	//QuotaSnapshot *QuotaSnapshot `json:"quotaSnapshot,omitempty"`
+	QuotaSnapshot *QuotaSnapshot `json:"quotaSnapshot,omitempty" gorm:"serializer:json; type:jsonb;"`
+	//////////////////////////////////// RUNAI END ///////////////////////////////////////////
+
 	// The id of the cluster.
 	//////////////////////////////////// RUNAI START (19) ///////////////////////////////////////////
 	//ClusterId string `json:"clusterId,omitempty"`
@@ -46,6 +51,11 @@ func AssertDepartmentStatusUpdateRequestRequired(obj DepartmentStatusUpdateReque
 		}
 	}
 
+	if obj.QuotaSnapshot != nil {
+		if err := AssertQuotaSnapshotRequired(*obj.QuotaSnapshot); err != nil {
+			return err
+		}
+	}
 	if err := AssertDepartmentStatusRequired(obj.Status); err != nil {
 		return err
 	}
@@ -54,6 +64,16 @@ func AssertDepartmentStatusUpdateRequestRequired(obj DepartmentStatusUpdateReque
 
 // AssertDepartmentStatusUpdateRequestConstraints checks if the values respects the defined constraints
 func AssertDepartmentStatusUpdateRequestConstraints(obj DepartmentStatusUpdateRequest) error {
+	//////////////////////// RUNAI START (18.2) //////////////////////////
+	//////////////////////// RUNAI END //////////////////////////
+	//////////////////////// RUNAI START (2.1) //////////////////////////
+
+	//////////////////////// RUNAI END //////////////////////////
+	if obj.QuotaSnapshot != nil {
+		if err := AssertQuotaSnapshotConstraints(*obj.QuotaSnapshot); err != nil {
+			return err
+		}
+	}
 	//////////////////////// RUNAI START (18.2) //////////////////////////
 	//////////////////////// RUNAI END //////////////////////////
 	//////////////////////// RUNAI START (2.1) //////////////////////////

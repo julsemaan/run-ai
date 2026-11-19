@@ -1,0 +1,19 @@
+type: object
+description: All three numeric leaves are mandatory and must be non-null. Minus one means unlimited for deserved or limit. Weight must be nonnegative.
+required: [deserved, limit, overQuotaWeight]
+properties:
+  deserved:
+    type: number
+    format: double
+    nullable: true
+    minimum: -1
+  limit:
+    type: number
+    format: double
+    nullable: true
+    minimum: -1
+  overQuotaWeight:
+    type: number
+    format: double
+    nullable: true
+    minimum: 0

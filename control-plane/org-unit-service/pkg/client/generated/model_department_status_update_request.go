@@ -24,6 +24,7 @@ var _ MappedNullable = &DepartmentStatusUpdateRequest{}
 
 // DepartmentStatusUpdateRequest status update fields
 type DepartmentStatusUpdateRequest struct {
+	QuotaSnapshot NullableQuotaSnapshot `json:"quotaSnapshot,omitempty"`
 	// The id of the cluster.
 	ClusterId *string          `json:"clusterId,omitempty"`
 	Status    DepartmentStatus `json:"status"`
@@ -47,6 +48,49 @@ func NewDepartmentStatusUpdateRequest(status DepartmentStatus) *DepartmentStatus
 func NewDepartmentStatusUpdateRequestWithDefaults() *DepartmentStatusUpdateRequest {
 	this := DepartmentStatusUpdateRequest{}
 	return &this
+}
+
+// GetQuotaSnapshot returns the QuotaSnapshot field value if set, zero value otherwise (both if not set or set to explicit null).
+func (o *DepartmentStatusUpdateRequest) GetQuotaSnapshot() QuotaSnapshot {
+	if o == nil || IsNil(o.QuotaSnapshot.Get()) {
+		var ret QuotaSnapshot
+		return ret
+	}
+	return *o.QuotaSnapshot.Get()
+}
+
+// GetQuotaSnapshotOk returns a tuple with the QuotaSnapshot field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+// NOTE: If the value is an explicit nil, `nil, true` will be returned
+func (o *DepartmentStatusUpdateRequest) GetQuotaSnapshotOk() (*QuotaSnapshot, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return o.QuotaSnapshot.Get(), o.QuotaSnapshot.IsSet()
+}
+
+// HasQuotaSnapshot returns a boolean if a field has been set.
+func (o *DepartmentStatusUpdateRequest) HasQuotaSnapshot() bool {
+	if o != nil && o.QuotaSnapshot.IsSet() {
+		return true
+	}
+
+	return false
+}
+
+// SetQuotaSnapshot gets a reference to the given NullableQuotaSnapshot and assigns it to the QuotaSnapshot field.
+func (o *DepartmentStatusUpdateRequest) SetQuotaSnapshot(v QuotaSnapshot) {
+	o.QuotaSnapshot.Set(&v)
+}
+
+// SetQuotaSnapshotNil sets the value for QuotaSnapshot to be an explicit nil
+func (o *DepartmentStatusUpdateRequest) SetQuotaSnapshotNil() {
+	o.QuotaSnapshot.Set(nil)
+}
+
+// UnsetQuotaSnapshot ensures that no value is present for QuotaSnapshot, not even an explicit nil
+func (o *DepartmentStatusUpdateRequest) UnsetQuotaSnapshot() {
+	o.QuotaSnapshot.Unset()
 }
 
 // GetClusterId returns the ClusterId field value if set, zero value otherwise.
@@ -115,6 +159,9 @@ func (o DepartmentStatusUpdateRequest) MarshalJSON() ([]byte, error) {
 
 func (o DepartmentStatusUpdateRequest) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
+	if o.QuotaSnapshot.IsSet() {
+		toSerialize["quotaSnapshot"] = o.QuotaSnapshot.Get()
+	}
 	if !IsNil(o.ClusterId) {
 		toSerialize["clusterId"] = o.ClusterId
 	}

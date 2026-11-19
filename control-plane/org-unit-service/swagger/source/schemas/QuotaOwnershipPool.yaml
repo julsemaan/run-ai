@@ -1,0 +1,12 @@
+type: object
+required: [nodePoolId, nodePoolName, queueName]
+properties:
+  nodePoolId:
+    type: string
+    minLength: 1
+  nodePoolName:
+    type: string
+    minLength: 1
+  queueName:
+    type: string
+    minLength: 1

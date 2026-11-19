@@ -25,8 +25,9 @@ var _ MappedNullable = &ProjectSync{}
 
 // ProjectSync struct for ProjectSync
 type ProjectSync struct {
-	Id   string `json:"id"`
-	Name string `json:"name"`
+	QuotaOwnership NullableQuotaOwnership `json:"quotaOwnership,omitempty"`
+	Id             string                 `json:"id"`
+	Name           string                 `json:"name"`
 	// The id of the cluster.
 	ClusterId *string `json:"clusterId,omitempty"`
 	// the project's namespace only if requested
@@ -71,6 +72,49 @@ func NewProjectSync(id string, name string, createdAt time.Time, updatedAt time.
 func NewProjectSyncWithDefaults() *ProjectSync {
 	this := ProjectSync{}
 	return &this
+}
+
+// GetQuotaOwnership returns the QuotaOwnership field value if set, zero value otherwise (both if not set or set to explicit null).
+func (o *ProjectSync) GetQuotaOwnership() QuotaOwnership {
+	if o == nil || IsNil(o.QuotaOwnership.Get()) {
+		var ret QuotaOwnership
+		return ret
+	}
+	return *o.QuotaOwnership.Get()
+}
+
+// GetQuotaOwnershipOk returns a tuple with the QuotaOwnership field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+// NOTE: If the value is an explicit nil, `nil, true` will be returned
+func (o *ProjectSync) GetQuotaOwnershipOk() (*QuotaOwnership, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return o.QuotaOwnership.Get(), o.QuotaOwnership.IsSet()
+}
+
+// HasQuotaOwnership returns a boolean if a field has been set.
+func (o *ProjectSync) HasQuotaOwnership() bool {
+	if o != nil && o.QuotaOwnership.IsSet() {
+		return true
+	}
+
+	return false
+}
+
+// SetQuotaOwnership gets a reference to the given NullableQuotaOwnership and assigns it to the QuotaOwnership field.
+func (o *ProjectSync) SetQuotaOwnership(v QuotaOwnership) {
+	o.QuotaOwnership.Set(&v)
+}
+
+// SetQuotaOwnershipNil sets the value for QuotaOwnership to be an explicit nil
+func (o *ProjectSync) SetQuotaOwnershipNil() {
+	o.QuotaOwnership.Set(nil)
+}
+
+// UnsetQuotaOwnership ensures that no value is present for QuotaOwnership, not even an explicit nil
+func (o *ProjectSync) UnsetQuotaOwnership() {
+	o.QuotaOwnership.Unset()
 }
 
 // GetId returns the Id field value
@@ -576,6 +620,9 @@ func (o ProjectSync) MarshalJSON() ([]byte, error) {
 
 func (o ProjectSync) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
+	if o.QuotaOwnership.IsSet() {
+		toSerialize["quotaOwnership"] = o.QuotaOwnership.Get()
+	}
 	toSerialize["id"] = o.Id
 	toSerialize["name"] = o.Name
 	if !IsNil(o.ClusterId) {

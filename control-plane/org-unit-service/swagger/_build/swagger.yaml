@@ -4503,6 +4503,71 @@ components:
         - GPU_ALLOCATION_NON_PREEMPTIBLE
         - CPU_ALLOCATION_NON_PREEMPTIBLE
         - MEMORY_ALLOCATION_NON_PREEMPTIBLE
+    QuotaSnapshotResource:
+      type: object
+      description: All three numeric leaves are mandatory and must be non-null. Minus one means unlimited for deserved or limit. Weight must be nonnegative.
+      required:
+        - deserved
+        - limit
+        - overQuotaWeight
+      properties:
+        deserved:
+          type: number
+          format: double
+          nullable: true
+          minimum: -1
+        limit:
+          type: number
+          format: double
+          nullable: true
+          minimum: -1
+        overQuotaWeight:
+          type: number
+          format: double
+          nullable: true
+          minimum: 0
+    QuotaSnapshotPool:
+      type: object
+      required:
+        - nodePoolId
+        - gpu
+        - cpu
+        - memory
+      properties:
+        nodePoolId:
+          type: string
+          minLength: 1
+        gpu:
+          $ref: '#/components/schemas/QuotaSnapshotResource'
+        cpu:
+          $ref: '#/components/schemas/QuotaSnapshotResource'
+        memory:
+          $ref: '#/components/schemas/QuotaSnapshotResource'
+    QuotaSnapshot:
+      type: object
+      nullable: true
+      description: Complete enrolled-pool quotas from Kubernetes. Generation is metadata.generation, CPU is millicores and memory is decimal megabytes. No defaults are applied.
+      required:
+        - epoch
+        - kubernetesUid
+        - generation
+        - pools
+      properties:
+        epoch:
+          type: string
+          minLength: 1
+        kubernetesUid:
+          type: string
+          minLength: 1
+        generation:
+          type: integer
+          format: int64
+          minimum: 1
+        pools:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/QuotaSnapshotPool'
     DepartmentStatus:
       type: object
       properties:
@@ -4516,6 +4581,8 @@ components:
       required:
         - status
       properties:
+        quotaSnapshot:
+          $ref: '#/components/schemas/QuotaSnapshot'
         clusterId:
           $ref: '#/components/schemas/ClusterId'
         status:
@@ -4815,6 +4882,8 @@ components:
         - clusterId
         - status
       properties:
+        quotaSnapshot:
+          $ref: '#/components/schemas/QuotaSnapshot'
         id:
           type: string
           example: 33
@@ -4850,6 +4919,42 @@ components:
           type: string
           format: uuid
           example: d73a738f-fab3-430a-8fa3-5241493d7128
+    QuotaOwnershipPool:
+      type: object
+      required:
+        - nodePoolId
+        - nodePoolName
+        - queueName
+      properties:
+        nodePoolId:
+          type: string
+          minLength: 1
+        nodePoolName:
+          type: string
+          minLength: 1
+        queueName:
+          type: string
+          minLength: 1
+    QuotaOwnership:
+      type: object
+      nullable: true
+      description: Trusted active Kubernetes quota enrollment. Absent for API-managed objects and prepared enrollments.
+      required:
+        - epoch
+        - kubernetesUid
+        - pools
+      properties:
+        epoch:
+          type: string
+          minLength: 1
+        kubernetesUid:
+          type: string
+          minLength: 1
+        pools:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/QuotaOwnershipPool'
     ResourcesSync:
       required:
         - gpu
@@ -4906,6 +5011,8 @@ components:
         - createdAt
         - updatedAt
       properties:
+        quotaOwnership:
+          $ref: '#/components/schemas/QuotaOwnership'
         id:
           type: string
           example: 33
@@ -4988,6 +5095,8 @@ components:
         - createdAt
         - updatedAt
       properties:
+        quotaOwnership:
+          $ref: '#/components/schemas/QuotaOwnership'
         id:
           type: string
           example: 50

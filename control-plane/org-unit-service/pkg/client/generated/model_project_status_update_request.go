@@ -24,7 +24,8 @@ var _ MappedNullable = &ProjectStatusUpdateRequest{}
 
 // ProjectStatusUpdateRequest status update fields
 type ProjectStatusUpdateRequest struct {
-	Id string `json:"id"`
+	QuotaSnapshot NullableQuotaSnapshot `json:"quotaSnapshot,omitempty"`
+	Id            string                `json:"id"`
 	// The id of the cluster.
 	ClusterId string        `json:"clusterId"`
 	Status    ProjectStatus `json:"status"`
@@ -50,6 +51,49 @@ func NewProjectStatusUpdateRequest(id string, clusterId string, status ProjectSt
 func NewProjectStatusUpdateRequestWithDefaults() *ProjectStatusUpdateRequest {
 	this := ProjectStatusUpdateRequest{}
 	return &this
+}
+
+// GetQuotaSnapshot returns the QuotaSnapshot field value if set, zero value otherwise (both if not set or set to explicit null).
+func (o *ProjectStatusUpdateRequest) GetQuotaSnapshot() QuotaSnapshot {
+	if o == nil || IsNil(o.QuotaSnapshot.Get()) {
+		var ret QuotaSnapshot
+		return ret
+	}
+	return *o.QuotaSnapshot.Get()
+}
+
+// GetQuotaSnapshotOk returns a tuple with the QuotaSnapshot field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+// NOTE: If the value is an explicit nil, `nil, true` will be returned
+func (o *ProjectStatusUpdateRequest) GetQuotaSnapshotOk() (*QuotaSnapshot, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return o.QuotaSnapshot.Get(), o.QuotaSnapshot.IsSet()
+}
+
+// HasQuotaSnapshot returns a boolean if a field has been set.
+func (o *ProjectStatusUpdateRequest) HasQuotaSnapshot() bool {
+	if o != nil && o.QuotaSnapshot.IsSet() {
+		return true
+	}
+
+	return false
+}
+
+// SetQuotaSnapshot gets a reference to the given NullableQuotaSnapshot and assigns it to the QuotaSnapshot field.
+func (o *ProjectStatusUpdateRequest) SetQuotaSnapshot(v QuotaSnapshot) {
+	o.QuotaSnapshot.Set(&v)
+}
+
+// SetQuotaSnapshotNil sets the value for QuotaSnapshot to be an explicit nil
+func (o *ProjectStatusUpdateRequest) SetQuotaSnapshotNil() {
+	o.QuotaSnapshot.Set(nil)
+}
+
+// UnsetQuotaSnapshot ensures that no value is present for QuotaSnapshot, not even an explicit nil
+func (o *ProjectStatusUpdateRequest) UnsetQuotaSnapshot() {
+	o.QuotaSnapshot.Unset()
 }
 
 // GetId returns the Id field value
@@ -134,6 +178,9 @@ func (o ProjectStatusUpdateRequest) MarshalJSON() ([]byte, error) {
 
 func (o ProjectStatusUpdateRequest) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
+	if o.QuotaSnapshot.IsSet() {
+		toSerialize["quotaSnapshot"] = o.QuotaSnapshot.Get()
+	}
 	toSerialize["id"] = o.Id
 	toSerialize["clusterId"] = o.ClusterId
 	toSerialize["status"] = o.Status
