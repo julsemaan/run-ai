@@ -25,6 +25,7 @@ import (
 	runaiBackendClient "github.com/dsx-ai-factory/run-ai/runai-cluster/cluster/agent/pkg/backend-client"
 	"github.com/dsx-ai-factory/run-ai/runai-cluster/cluster/agent/pkg/config"
 	"github.com/dsx-ai-factory/run-ai/runai-cluster/cluster/agent/pkg/metrics"
+	"github.com/dsx-ai-factory/run-ai/runai-cluster/cluster/agent/pkg/quotaownership"
 	v2 "github.com/dsx-ai-factory/run-ai/runai-cluster/cluster/sdk/apis/run/v2"
 	schedv2alpha2 "github.com/dsx-ai-factory/run-ai/runai-cluster/cluster/sdk/apis/scheduling/v2alpha2"
 	kaiorg "github.com/kai-scheduler/kai-resource-management-api/kai/v1alpha1"
@@ -191,6 +192,9 @@ func convertOrgUnitToKaiProject(backendProject orgUnitApi.ProjectSync) (*kaiorg.
 	// Product-specific fields that are not part of the generic KAI spec are carried as
 	// annotations (scheduling rules, deprecated node-affinity, force-delete).
 	project.Annotations = buildKaiProjectAnnotations(backendProject)
+	if err := quotaownership.Set(project, backendProject.QuotaOwnership.Get()); err != nil {
+		return nil, err
+	}
 
 	if backendProject.Deletion.IsSet() && backendProject.Deletion.Get() != nil {
 		deletionType := kaiorg.DeletionType(backendProject.Deletion.Get().Type)
@@ -204,6 +208,7 @@ func convertOrgUnitToKaiProject(backendProject orgUnitApi.ProjectSync) (*kaiorg.
 // They are the single source of truth for both writing (buildKaiProjectAnnotations) and
 // drift detection (KaiProjectObjectInspector).
 var kaiProjectManagedAnnotations = []string{
+	quotaownership.Annotation,
 	constants.InteractiveJobTimeLimitSecondsAnnotation,
 	constants.InteractiveJobMaxIdleDurationSecondsAnnotation,
 	constants.InteractivePreemptibleJobMaxIdleDurationSecondsAnnotation,

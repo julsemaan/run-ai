@@ -11,6 +11,7 @@ import (
 
 	orgUnitApi "github.com/dsx-ai-factory/run-ai/control-plane/org-unit-service/pkg/client/generated"
 	"github.com/dsx-ai-factory/run-ai/runai-cluster/cluster/agent/pkg/metrics"
+	"github.com/dsx-ai-factory/run-ai/runai-cluster/cluster/agent/pkg/quotaownership"
 	"github.com/hashicorp/go-multierror"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -156,6 +157,9 @@ func convertOrgUnitToKaiDepartment(backendDepartment orgUnitApi.DepartmentSync) 
 		constants.UpdatedAtAnnotation: backendDepartment.UpdatedAt.UTC().Format(time.RFC3339),
 	}
 
+	if err := quotaownership.Set(department, backendDepartment.QuotaOwnership.Get()); err != nil {
+		return nil, err
+	}
 	return department, nil
 }
 
@@ -163,6 +167,7 @@ func convertOrgUnitToKaiDepartment(backendDepartment orgUnitApi.DepartmentSync) 
 // Department. They are the single source of truth for both writing
 // (convertOrgUnitToKaiDepartment) and drift detection (KaiDepartmentObjectInspector).
 var kaiDepartmentManagedAnnotations = []string{
+	quotaownership.Annotation,
 	constants.UpdatedAtAnnotation,
 }
 

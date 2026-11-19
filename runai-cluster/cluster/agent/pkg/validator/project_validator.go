@@ -26,6 +26,7 @@ import (
 type ProjectValidator struct {
 	garbageCollectorReader  client.Reader
 	serviceAccountValidator *validator.ServiceAccountValidator
+	k8sClient               client.Client
 }
 
 // postUpgradeServiceAccount is the post-upgrade hook's identity; it deletes the
@@ -37,6 +38,7 @@ const postUpgradeServiceAccount = "system:serviceaccount:" + runaiv1.DefaultName
 func NewProjectValidator(k8sClient client.Client, garbageCollectorReader client.Reader, allowedServiceAccounts []string) *ProjectValidator {
 	pv := &ProjectValidator{
 		garbageCollectorReader: garbageCollectorReader,
+		k8sClient:              k8sClient,
 	}
 	allowedServiceAccounts = append(slices.Clone(allowedServiceAccounts), postUpgradeServiceAccount)
 	pv.serviceAccountValidator = validator.NewServiceAccountValidator(k8sClient, allowedServiceAccounts, pv.initValidator())
@@ -54,6 +56,19 @@ func (pv *ProjectValidator) initValidator() []validator.ValidatingFunction {
 }
 
 func (pv *ProjectValidator) Handle(ctx context.Context, req admission.Request) admission.Response {
+	// Only the agent may publish or remove backend ownership, including on CREATE.
+	if ownershipAnnotation(req.OldObject.Raw) != ownershipAnnotation(req.Object.Raw) && req.Operation != "DELETE" {
+		uid, err := pv.getRunaiAgentUID(ctx, pv.k8sClient)
+		if err != nil {
+			return admission.Errored(http.StatusInternalServerError, err)
+		}
+		if uid == "" || req.UserInfo.UID != uid {
+			return admission.Denied("quota ownership is managed by the agent")
+		}
+	}
+	if quotaOnly(req) {
+		return admission.Allowed("")
+	}
 	// Orphan deletion completes through a garbage-collector UPDATE, after the
 	// agent's DELETE has already been authorized.
 	allowedCleanup, err := pv.allowOrphanFinalizerRemoval(ctx, req)
