@@ -55,3 +55,28 @@ func TestSharedCleanup(t *testing.T) {
 		t.Errorf("Expected 0 active tests, got %d", activeTests)
 	}
 }
+
+func TestLocalPostgresConfig(t *testing.T) {
+	t.Setenv("ORGUNIT_TEST_POSTGRES_PORT", "")
+	conf, err := localPostgresConfig()
+	if conf != nil || err != nil {
+		t.Fatal("unset override must preserve testcontainers default")
+	}
+	t.Setenv("ORGUNIT_TEST_POSTGRES_PORT", "invalid")
+	if _, err = localPostgresConfig(); err == nil {
+		t.Fatal("invalid port accepted")
+	}
+	t.Setenv("ORGUNIT_TEST_POSTGRES_PORT", "25432")
+	t.Setenv("ORGUNIT_TEST_POSTGRES_PASSWORD", "")
+	if _, err = localPostgresConfig(); err == nil {
+		t.Fatal("missing password accepted")
+	}
+	t.Setenv("ORGUNIT_TEST_POSTGRES_PASSWORD", "test-only")
+	conf, err = localPostgresConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if conf.Connection.Host != "127.0.0.1" || conf.Connection.Name != "quota_poc_test" || conf.Connection.User != "quota_poc_test" || conf.Connection.Port != 25432 || !*conf.Migration.Auto {
+		t.Fatalf("unexpected local test configuration: host=%s name=%s", conf.Connection.Host, conf.Connection.Name)
+	}
+}
