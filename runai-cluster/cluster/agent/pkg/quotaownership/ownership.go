@@ -88,7 +88,15 @@ func Find(queues []kai.QueueConfig, name, pool string) (*kai.QueueConfig, error)
 // Desired uses only backend-provided ownership, never the live annotation, to select preserved leaves.
 func Desired(backend, latest client.Object) (client.Object, error) {
 	value := backend.GetAnnotations()[Annotation]
-	if !IsOrgUnit(backend) || value == "" {
+	if !IsOrgUnit(backend) {
+		return backend, nil
+	}
+	if value == "" {
+		// Enrollment removal is not a handoff. Keep live ownership until the
+		// disposable object is deleted, even if its latest quota is not mirrored.
+		if _, err := Parse(latest.GetAnnotations()[Annotation], string(latest.GetUID())); err == nil {
+			return nil, fmt.Errorf("backend enrollment missing for Kubernetes-owned object %s", latest.GetName())
+		}
 		return backend, nil
 	}
 	o, err := Parse(value, string(latest.GetUID()))
