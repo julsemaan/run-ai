@@ -28,11 +28,14 @@ func AddProjectHandlerToCache(backendClient *backendclient.BackendClient, cached
 	backendClient.RegisterSyncHandler(projectHandler)
 
 	rateLimitedController := cachedClient.NewRateLimitedController(cachedclient.ProjectRL, projectHandler)
+	projectHandler.EnqueueQuotaSync = rateLimitedController.AddRateLimited
 
 	projectInformer := cachedClient.GetInformer(cachedclient.ProjectType)
 	_, err := projectInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(object any) {
-			genericControllerErrorHandler(projectHandler.HandleAddUpdate(object.(*kaiv1alpha1.Project)), constants.AddOperation, constants.ProjectResourceName, object.(*kaiv1alpha1.Project))
+			// Queue initial list events too, so restart uploads use the same retries
+			// and latest-object reads as subsequent quota patches.
+			rateLimitedController.AddRateLimited(objectKeyFromObject(object.(*kaiv1alpha1.Project)))
 		},
 		UpdateFunc: func(oldObject any, newObject any) {
 			newObj := newObject.(*kaiv1alpha1.Project)
@@ -66,7 +69,13 @@ func AddProjectHandlerToCache(backendClient *backendclient.BackendClient, cached
 func shouldUpdate(old, new *kaiv1alpha1.Project) bool {
 	oldUpdatedAt := old.Annotations[commonconstants.UpdatedAtAnnotation]
 	newUpdatedAt := new.Annotations[commonconstants.UpdatedAtAnnotation]
-	if oldUpdatedAt == "" || newUpdatedAt == "" || oldUpdatedAt != newUpdatedAt {
+	oldOwnership, oldEnrolled := old.Annotations[parsers.QuotaOwnershipAnnotation]
+	newOwnership, newEnrolled := new.Annotations[parsers.QuotaOwnershipAnnotation]
+	if oldEnrolled || newEnrolled {
+		if old.UID != new.UID || old.Generation != new.Generation || oldOwnership != newOwnership || oldEnrolled != newEnrolled || oldUpdatedAt != newUpdatedAt {
+			return true
+		}
+	} else if oldUpdatedAt == "" || newUpdatedAt == "" || oldUpdatedAt != newUpdatedAt {
 		return true
 	}
 

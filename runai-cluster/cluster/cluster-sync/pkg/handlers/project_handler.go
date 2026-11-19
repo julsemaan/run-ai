@@ -7,10 +7,8 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"sync"
-	"time"
 
 	openapi "github.com/dsx-ai-factory/run-ai/control-plane/org-unit-service/pkg/client/generated"
 	runaiBackendClient "github.com/dsx-ai-factory/run-ai/runai-cluster/cluster/cluster-sync/pkg/backend-client"
@@ -21,15 +19,15 @@ import (
 	kaiv1alpha1 "github.com/kai-scheduler/kai-resource-management-api/kai/v1alpha1"
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	_ "k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type ProjectHandler struct {
-	resourceName  constants.ClusterResource
-	backendClient *runaiBackendClient.BackendClient
-	cachedClient  client.Client
+	resourceName     constants.ClusterResource
+	backendClient    *runaiBackendClient.BackendClient
+	cachedClient     client.Client
+	EnqueueQuotaSync func(client.ObjectKey)
 }
 
 func NewProjectHandler(runaiBackendClient *runaiBackendClient.BackendClient, cachedClient client.Client) *ProjectHandler {
@@ -42,7 +40,7 @@ func NewProjectHandler(runaiBackendClient *runaiBackendClient.BackendClient, cac
 
 func (projectHandler *ProjectHandler) HandleUpdateItem(key client.ObjectKey) error {
 	project := &kaiv1alpha1.Project{}
-	err := projectHandler.cachedClient.Get(context.Background(), key, project)
+	err := getQuotaOrgUnit(projectHandler.cachedClient, key, project)
 	if err != nil {
 		return err
 	}
@@ -55,6 +53,9 @@ func (projectHandler *ProjectHandler) HandleAddUpdate(project *kaiv1alpha1.Proje
 	if updateStatusErr == nil {
 		err := projectHandler.updateProjectSyncStatus(project, syncTime)
 		if err != nil {
+			if _, enrolled := project.Annotations[parsers.QuotaOwnershipAnnotation]; enrolled {
+				return fmt.Errorf("record project %s synchronization: %w", project.Name, err)
+			}
 			zap.S().Warnf("Failed to update last sync time in project %s, err: %v", project.Name, err)
 		}
 	}
@@ -72,6 +73,9 @@ func (projectHandler *ProjectHandler) HandleSyncEvent(waitGroup *sync.WaitGroup)
 		return
 	}
 	for _, project := range projects.Items {
+		if _, enrolled := project.Annotations[parsers.QuotaOwnershipAnnotation]; enrolled && projectHandler.EnqueueQuotaSync != nil {
+			projectHandler.EnqueueQuotaSync(client.ObjectKeyFromObject(&project))
+		}
 		projectsInCluster = append(projectsInCluster, openapi.ProjectInSyncRequest{Id: project.Labels[parsers.ProjectIdLabel]})
 	}
 	{
@@ -95,32 +99,28 @@ func (projectHandler *ProjectHandler) HandleSyncEvent(waitGroup *sync.WaitGroup)
 // On the new kai.resources Project CRD the sync timestamp is no longer a status field;
 // it is kept as an annotation managed exclusively by cluster-sync.
 func (projectHandler *ProjectHandler) updateProjectSyncStatus(project *kaiv1alpha1.Project, syncTime metav1.Time) error {
-	patchBytes, err := json.Marshal(map[string]any{"metadata": map[string]any{
-		"annotations": map[string]string{
-			parsers.LastSyncTimestampAnnotation: syncTime.UTC().Format(time.RFC3339),
-		},
-	}})
-	if err != nil {
-		return err
-	}
-
-	patch := client.RawPatch(types.MergePatchType, patchBytes)
-	err = projectHandler.cachedClient.Patch(context.Background(), project, patch)
-	if err != nil {
-		return err
-	}
-	return nil
+	return recordOrgUnitSync(projectHandler.cachedClient, project, syncTime)
 }
 
 func (projectHandler *ProjectHandler) updateProjectStatus(project *kaiv1alpha1.Project) error {
 	defer metrics.GetMetricsExporter().MeasureExecutionTime(projectHandler.resourceName, constants.UpdateOperation)()
 	toUpdate := parsers.ParseKaiProjectToUpdateStatusRequest(project)
+	snapshot, err := quotaSnapshot(project)
+	if err != nil {
+		return err
+	}
+	if snapshot != nil {
+		toUpdate.SetQuotaSnapshot(*snapshot)
+	}
 	res, err := projectHandler.backendClient.OrgUnitClient.UpdateProjectsStatus(
 		projectHandler.backendClient.Context(),
 		toUpdate,
 	)
 	if res != nil {
 		_ = res.Body.Close()
+	}
+	if snapshot != nil {
+		return quotaHTTPError(project, res, err)
 	}
 	return projectHandler.backendClient.HandleHttpResponse(res, err, fmt.Sprintf("Updated status of project %s", project.Name))
 }
