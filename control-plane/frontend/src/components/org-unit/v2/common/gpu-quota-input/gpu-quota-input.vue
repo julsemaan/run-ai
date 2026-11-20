@@ -9,6 +9,7 @@
     :disable="readOnly"
     :state="state"
     :message="message"
+    :read-only-message="readOnlyMessage"
     :loading="loading"
     label="GPUs"
     :rules="rules"
@@ -29,6 +30,7 @@ import { EQuotaEntity } from "@/models/resource.model";
 
 export interface Props {
   readOnly?: boolean;
+  readOnlyMessage?: string;
   modelValue: number | null;
   state?: EQuotaInputState;
   message?: string;

@@ -38,6 +38,9 @@
         </div>
       </div>
     </div>
+    <div v-if="readOnlyMessage" class="q-mt-xs q-field__messages quota-message text-orange-6">
+      {{ readOnlyMessage }}
+    </div>
     <slot v-if="localIsOverQuotaEnabled"></slot>
   </section>
 </template>
@@ -50,6 +53,7 @@ import { EQuotaEntity } from "@/models/resource.model";
 
 export interface Props {
   readOnly?: boolean;
+  readOnlyMessage?: string;
   limit: number | null;
   isOverQuotaEnabled: boolean;
   deserved: number;

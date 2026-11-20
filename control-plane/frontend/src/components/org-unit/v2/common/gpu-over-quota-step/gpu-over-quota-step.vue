@@ -20,6 +20,7 @@
       @update:model-value="handleTabChange"
     >
       <org-unit-over-quota-settings
+        :read-only-message="readOnlyMessage"
         :read-only="readOnly"
         v-model:limit="limit"
         v-model:is-over-quota-enabled="isOverQuotaEnabled"
@@ -77,6 +78,7 @@ export interface Props {
   parentOrgUnit?: Department | null; // Parent department (only for projects)
   clusterId: string;
   readOnly?: boolean;
+  readOnlyMessage?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {

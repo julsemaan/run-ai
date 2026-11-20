@@ -9,6 +9,8 @@ import { Quasar } from "quasar";
 import ProjectForm from "../project/project-edit-form-v2/project-edit-form-v2.vue";
 import DepartmentForm from "../department/department-edit-form-v2/department-edit-form-v2.vue";
 import QuotaInput from "./quota-input/quota-input.vue";
+import GpuQuotaCard from "./gpu-quota-card/gpu-quota-card.vue";
+import OverQuotaSettings from "./org-unit-over-quota-settings/org-unit-over-quota-settings.vue";
 import { RunaiTableRow } from "@/components/common/runai-table/runai-table-row";
 import WeightCell from "@/components/common/runai-table/runai-custom-table-columns/org-unit-editable-weight-col.vue";
 import { EditableCellPopup } from "@/components/common/runai-table/runai-custom-table-columns/editable-cell-popup";
@@ -90,6 +92,45 @@ const mountForm = (
 };
 
 describe("native quota ownership locks", () => {
+  it("passes the read-only warning through the GPU card to the disabled input", () => {
+    const readOnlyMessage = "Quotas are managed by Kubernetes.";
+    const wrapper = mount(GpuQuotaCard, {
+      props: { orgUnitName: "Project", gpuQuota: 1, totalQuota: 4, unassigned: 3, readOnly: true, readOnlyMessage },
+      global: { plugins: [Quasar], stubs: { OrgUnitQuotaDistributionChart: true } },
+    });
+    mounted.push(wrapper);
+    const input = wrapper.findComponent(QuotaInput);
+    expect(input.props("readOnlyMessage")).toBe(readOnlyMessage);
+    expect(input.find("input").element.disabled).toBe(true);
+    expect(input.find(".quota-message.text-orange-6").isVisible()).toBe(true);
+    expect(input.find("input").attributes("read-only-message")).toBeUndefined();
+  });
+
+  it.each([true, false])(
+    "shows the read-only reason beneath the disabled over-quota controls, enabled=%s",
+    (enabled) => {
+      const readOnlyMessage = "Quotas are managed by Kubernetes.";
+      const wrapper = mount(OverQuotaSettings, {
+        props: {
+          limit: 4,
+          deserved: 1,
+          isOverQuotaEnabled: enabled,
+          isSingleNodePool: true,
+          readOnly: true,
+          readOnlyMessage,
+        },
+        global: { plugins: [Quasar] },
+      });
+      mounted.push(wrapper);
+      const warning = wrapper.find(".q-field__messages.quota-message.text-orange-6");
+      expect(warning.text()).toBe(readOnlyMessage);
+      expect(warning.isVisible()).toBe(true);
+      expect(wrapper.findComponent({ name: "QToggle" }).props("disable")).toBe(true);
+      expect(
+        wrapper.find(".row.no-wrap").element.compareDocumentPosition(warning.element) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    },
+  );
   it.each(["project", "department"] as const)(
     "locks %s quota steps and guards emitted mutation events",
     async (kind) => {
@@ -115,8 +156,9 @@ describe("native quota ownership locks", () => {
   );
   it.each(["project", "department"] as const)("keeps %s source visible and nonquota scheduling editable", (kind) => {
     const wrapper = mountForm(kind, EStepNames.SchedulingRules);
-    expect(wrapper.findComponent({ name: "OrgUnitQuotaSource" }).exists()).toBe(true);
     expect(wrapper.findComponent({ name: "SchedulingRulesStep" }).props("readOnly") ?? false).toBe(false);
+    const sourceWrapper = mountForm(kind, EStepNames.QuotaSource);
+    expect(sourceWrapper.findComponent({ name: "OrgUnitQuotaSource" }).exists()).toBe(true);
   });
   it.each(["project", "department"] as const)(
     "retains Close/Continue navigation for a locked single-pool %s",
@@ -130,7 +172,7 @@ describe("native quota ownership locks", () => {
   );
 
   it("shows source without mutation control for a user without Update", () => {
-    const wrapper = mountForm("department", EStepNames.ScopeName, false, false);
+    const wrapper = mountForm("department", EStepNames.QuotaSource, false, false);
     expect(wrapper.findComponent({ name: "OrgUnitQuotaSource" }).props("canUpdate")).toBe(false);
   });
   it("disables a locked peer checkbox without removing the selection column", async () => {

@@ -69,6 +69,19 @@ describe("CpuQuotaStep", () => {
     });
   };
 
+  it("shows the read-only reason below both disabled CPU and memory inputs", () => {
+    const readOnlyMessage = "Quotas are managed by Kubernetes.";
+    const wrapper = createWrapper({ readOnly: true, readOnlyMessage });
+    const inputs = wrapper.findAllComponents({ name: "QuotaInput" });
+    expect(inputs).toHaveLength(2);
+    for (const input of inputs) {
+      expect(input.find("input").element.disabled).toBe(true);
+      expect(input.find(".quota-message.text-orange-6").text()).toBe(readOnlyMessage);
+      expect(input.find("input").attributes("read-only-message")).toBeUndefined();
+    }
+    wrapper.unmount();
+  });
+
   it("renders correctly", () => {
     const wrapper = createWrapper();
     expect(wrapper.findComponent(CpuQuotaInput).exists()).toBe(true);

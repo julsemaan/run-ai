@@ -15,7 +15,6 @@ import type { ComponentPublicInstance } from "vue";
 import DepartmentEditFormV2 from "./department-edit-form-v2.vue";
 
 // Child components for assertions
-import { RunaiSectionTitle } from "@/components/common/runai-section-title";
 import { defaultQuotaManagement } from "@/models/quota-management.model";
 import { ScopeNameStep } from "@/components/org-unit/v2/department/steps/scope-name-step";
 import { SchedulingRulesStep } from "@/components/org-unit/v2/common/scheduling-rules-step";
@@ -205,16 +204,15 @@ describe("DepartmentEditFormV2", () => {
       await flushPromises();
 
       expect(getWizardLayout(wrapper).props("activeStep")).toBe(step);
-      const titles = wrapper
-        .findAllComponents(RunaiSectionTitle)
-        .filter((title) => title.props("title") === "Quotas are read-only");
-      expect(titles).toHaveLength(visible ? 1 : 0);
-      if (visible) {
-        expect(titles[0].isVisible()).toBe(true);
-        expect(titles[0].props("tooltipText")).toBe(
-          "These quotas are managed by Kubernetes. Edit them in Kubernetes, or switch Quota source to Run:ai to edit them here.",
-        );
-      }
+      const quotaStep = ["GpuQuotaStep", "GpuOverQuotaStep", "CpuQuotaStep"]
+        .map((name) => wrapper.findComponent({ name }))
+        .find((component) => component.exists());
+      expect(quotaStep?.props("readOnlyMessage") ?? "").toBe(
+        visible
+          ? "Quotas are managed by Kubernetes. Edit them in Kubernetes or switch Quota source to Run:ai to edit here."
+          : "",
+      );
+      expect(wrapper.text()).not.toContain("Quotas are read-only");
       wrapper.unmount();
     });
   });

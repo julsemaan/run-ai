@@ -41,12 +41,6 @@
     <runai-wizard-layout ref="wizardLayoutRef" :steps="wizardSteps" :active-step="activeStep" @step-click="onStepClick">
       <!-- Main Content -->
       <template #default>
-        <runai-section-title
-          v-if="!isNewDepartment && isQuotaStep && quotaSource.management.value.source === 'kubernetes'"
-          title="Quotas are read-only"
-          tooltip-text="These quotas are managed by Kubernetes. Edit them in Kubernetes, or switch Quota source to Run:ai to edit them here."
-          class="q-mb-md"
-        />
         <!-- Step 1: Cluster & Name -->
         <scope-name-step
           v-if="currentStep?.name === EStepNames.ScopeName"
@@ -63,6 +57,7 @@
         <gpu-quota-step
           v-else-if="currentStep?.name === EStepNames.GpuQuota"
           ref="gpuQuotaStepRef"
+          :read-only-message="quotaReadOnlyMessage"
           :entity-type="EQuotaEntity.department"
           :org-unit="localDepartment as Department"
           :cluster-id="localDepartment.clusterId || ''"
@@ -77,6 +72,7 @@
         <gpu-over-quota-step
           v-else-if="currentStep?.name === EStepNames.OverQuota"
           ref="gpuOverQuotaStepRef"
+          :read-only-message="quotaReadOnlyMessage"
           :read-only="quotaReadOnly"
           :entity-type="EQuotaEntity.department"
           :org-unit="localDepartment as Department"
@@ -110,6 +106,7 @@
         <!-- Step: CPU Quota -->
         <cpu-quota-step
           v-else-if="currentStep?.name === EStepNames.CPUQuota"
+          :read-only-message="quotaReadOnlyMessage"
           :entity-type="EQuotaEntity.department"
           :resources="(localDepartment.resources as Resources[]) || []"
           :default-node-pools="localDepartment.defaultNodePools ?? undefined"
@@ -171,7 +168,6 @@ import OrgUnitQuotaSource from "@/components/org-unit/v2/common/org-unit-quota-s
 import { useQuotaSource } from "@/composables/org-unit/use-quota-source.composable";
 import { ResourceType, Action } from "@/swagger-models/authorization-client";
 import { RunaiFormWrapper } from "@/components/common/runai-form-wrapper";
-import { RunaiSectionTitle } from "@/components/common/runai-section-title";
 import { RunaiWizardLayout } from "@/components/common/runai-wizard-layout/";
 import { useWizardLayout } from "@/composables/use-wizard-layout.composable";
 import { OrgUnitWizardSummary } from "@/components/org-unit/v2/wizard-summary";
@@ -338,6 +334,11 @@ const quotaSource = useQuotaSource({
     props.refreshQuotaObject ? props.refreshQuotaObject(discardUnsaved, editState) : emit("refresh", discardUnsaved),
 });
 const quotaReadOnly = computed(() => props.readOnly || (!props.isNewDepartment && quotaSource.locked.value));
+const quotaReadOnlyMessage = computed(() =>
+  !props.isNewDepartment && quotaSource.management.value.source === "kubernetes"
+    ? "Quotas are managed by Kubernetes. Edit them in Kubernetes or switch Quota source to Run:ai to edit here."
+    : "",
+);
 defineExpose({
   getActiveStep: () => activeStep.value,
   getEditState,

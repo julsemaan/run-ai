@@ -23,7 +23,13 @@
         Set the CPU quota for the {{ entityType }} in the selected node pool
       </div>
       <div class="cpu-input-box">
-        <cpu-quota-input v-model="cpuQuota" :state="cpuQuotaState" :message="cpuQuotaMessage" :disable="readOnly" />
+        <cpu-quota-input
+          v-model="cpuQuota"
+          :state="cpuQuotaState"
+          :message="cpuQuotaMessage"
+          :disable="readOnly"
+          :read-only-message="readOnlyMessage"
+        />
       </div>
 
       <div class="cpu-memory-input-box">
@@ -32,6 +38,7 @@
           :unit="memoryUnit"
           :state="memoryQuotaState"
           :message="memoryQuotaMessage"
+          :read-only-message="readOnlyMessage"
           :disable="readOnly"
           @update:unit="memoryUnit = $event"
         />
@@ -72,6 +79,7 @@ export interface Props {
   nodePoolTotals?: INodePoolTotals | null;
   loading?: boolean;
   readOnly?: boolean;
+  readOnlyMessage?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
