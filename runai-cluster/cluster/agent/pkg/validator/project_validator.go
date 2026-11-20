@@ -56,14 +56,19 @@ func (pv *ProjectValidator) initValidator() []validator.ValidatingFunction {
 }
 
 func (pv *ProjectValidator) Handle(ctx context.Context, req admission.Request) admission.Response {
-	// Only the agent may publish or remove backend ownership, including on CREATE.
-	if ownershipAnnotation(req.OldObject.Raw) != ownershipAnnotation(req.Object.Raw) && req.Operation != "DELETE" {
+	// Marker fencing applies even to trusted service accounts.
+	before, after := ownershipAnnotation(req.OldObject.Raw), ownershipAnnotation(req.Object.Raw)
+	if (before != "" || after != "") && req.Operation != "DELETE" {
 		uid, err := pv.getRunaiAgentUID(ctx, pv.k8sClient)
 		if err != nil {
 			return admission.Errored(http.StatusInternalServerError, err)
 		}
-		if uid == "" || req.UserInfo.UID != uid {
+		agent := uid != "" && req.UserInfo.UID == uid
+		if before != after && !agent {
 			return admission.Denied("quota ownership is managed by the agent")
+		}
+		if err := quotaControlUpdate(req, agent); err != nil {
+			return admission.Denied(err.Error())
 		}
 	}
 	if quotaOnly(req) {

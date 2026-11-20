@@ -23,6 +23,8 @@ var _ MappedNullable = &DepartmentStatus{}
 
 // DepartmentStatus struct for DepartmentStatus
 type DepartmentStatus struct {
+	// Actual Kubernetes object UID, reported only by authenticated cluster-sync.
+	KubernetesUid   *string      `json:"kubernetesUid,omitempty"`
 	LastUpdatedTime NullableTime `json:"lastUpdatedTime,omitempty"`
 }
 
@@ -41,6 +43,38 @@ func NewDepartmentStatus() *DepartmentStatus {
 func NewDepartmentStatusWithDefaults() *DepartmentStatus {
 	this := DepartmentStatus{}
 	return &this
+}
+
+// GetKubernetesUid returns the KubernetesUid field value if set, zero value otherwise.
+func (o *DepartmentStatus) GetKubernetesUid() string {
+	if o == nil || IsNil(o.KubernetesUid) {
+		var ret string
+		return ret
+	}
+	return *o.KubernetesUid
+}
+
+// GetKubernetesUidOk returns a tuple with the KubernetesUid field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *DepartmentStatus) GetKubernetesUidOk() (*string, bool) {
+	if o == nil || IsNil(o.KubernetesUid) {
+		return nil, false
+	}
+	return o.KubernetesUid, true
+}
+
+// HasKubernetesUid returns a boolean if a field has been set.
+func (o *DepartmentStatus) HasKubernetesUid() bool {
+	if o != nil && !IsNil(o.KubernetesUid) {
+		return true
+	}
+
+	return false
+}
+
+// SetKubernetesUid gets a reference to the given string and assigns it to the KubernetesUid field.
+func (o *DepartmentStatus) SetKubernetesUid(v string) {
+	o.KubernetesUid = &v
 }
 
 // GetLastUpdatedTime returns the LastUpdatedTime field value if set, zero value otherwise (both if not set or set to explicit null).
@@ -96,6 +130,9 @@ func (o DepartmentStatus) MarshalJSON() ([]byte, error) {
 
 func (o DepartmentStatus) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
+	if !IsNil(o.KubernetesUid) {
+		toSerialize["kubernetesUid"] = o.KubernetesUid
+	}
 	if o.LastUpdatedTime.IsSet() {
 		toSerialize["lastUpdatedTime"] = o.LastUpdatedTime.Get()
 	}

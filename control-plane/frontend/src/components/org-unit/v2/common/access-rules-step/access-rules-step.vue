@@ -56,6 +56,7 @@ const handleDiscard = () => {
 
 const unregisterGuard = unsavedGuard.registerStepGuard(STEP_NAME, {
   isDirty: () => isDirty.value,
+  editState: () => accessRuleManagementRef.value?.getEditState(),
   save: handleSave,
   discard: handleDiscard,
 });

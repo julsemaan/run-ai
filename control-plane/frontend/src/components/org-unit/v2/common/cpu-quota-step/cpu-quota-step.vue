@@ -347,6 +347,7 @@ const handleNodePoolTabChange = async (nodePoolId: string) => {
 
 // Handle save button click
 const handleSave = async (navigateAfterSave = false) => {
+  if (props.readOnly) return;
   const cpuQuotaToSave = cpuQuota.value === -1 || cpuQuota.value === null ? null : cpuQuota.value * CPU_VALUE_FACTOR;
   const memoryQuotaToSave = memoryQuota.value === -1 ? null : memoryQuota.value;
 
@@ -374,6 +375,7 @@ const discardChanges = () => {
 // Register unsaved changes guard - unregister on unmount
 const unregisterGuard = unsavedGuard.registerStepGuard(STEP_NAME, {
   isDirty: () => isDirty.value,
+  editState: () => [cpuQuota.value, memoryQuota.value, memoryUnit.value],
   save: handleSave,
   discard: discardChanges,
 });

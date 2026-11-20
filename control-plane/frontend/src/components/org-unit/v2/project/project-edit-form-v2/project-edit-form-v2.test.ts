@@ -6,6 +6,7 @@
 import { mount, flushPromises, type VueWrapper } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createTestingPinia } from "@pinia/testing";
+import { usePermissionStore } from "@/stores/permissions.store";
 import { Quasar } from "quasar";
 import { nextTick } from "vue";
 import type { ComponentPublicInstance } from "vue";
@@ -148,6 +149,17 @@ describe("ProjectEditFormV2", () => {
     const settingsMap = new Map();
     settingsMap.set(SettingKeys.CPUResourcesQuota, { value: true }); // Keep for backward compatibility
 
+    const pinia = createTestingPinia({
+      createSpy: vi.fn,
+      initialState: {
+        Setting: {
+          settings: settingsMap,
+          limitQuotaOverSubscription: { value: isLimitQuotaOverSubscriptionEnabled },
+        },
+      },
+    });
+    vi.mocked(usePermissionStore(pinia).hasPermission).mockReturnValue(true);
+
     return mount(ProjectEditFormV2, {
       props: {
         project: mockProject,
@@ -157,18 +169,7 @@ describe("ProjectEditFormV2", () => {
         ...props,
       },
       global: {
-        plugins: [
-          Quasar,
-          createTestingPinia({
-            createSpy: vi.fn,
-            initialState: {
-              Setting: {
-                settings: settingsMap,
-                limitQuotaOverSubscription: { value: isLimitQuotaOverSubscriptionEnabled },
-              },
-            },
-          }),
-        ],
+        plugins: [Quasar, pinia],
         mocks: {
           $route: mockRoute,
           $router: mockRouter,

@@ -30,6 +30,14 @@ func TestQuotaEvents(t *testing.T) {
 			p.Annotations[parsers.QuotaOwnershipAnnotation] = "new"
 			d.Annotations[parsers.QuotaOwnershipAnnotation] = "new"
 		}, want: true},
+		{name: "native release marker", mutate: func(p *kai.Project, d *kai.Department) {
+			p.Annotations[parsers.QuotaOwnershipAnnotation] = `{"source":"kubernetes","phase":"release","revision":2}`
+			d.Annotations[parsers.QuotaOwnershipAnnotation] = p.Annotations[parsers.QuotaOwnershipAnnotation]
+		}, want: true},
+		{name: "native stable Runai marker", mutate: func(p *kai.Project, d *kai.Department) {
+			p.Annotations[parsers.QuotaOwnershipAnnotation] = `{"source":"runai","phase":"stable","revision":3}`
+			d.Annotations[parsers.QuotaOwnershipAnnotation] = p.Annotations[parsers.QuotaOwnershipAnnotation]
+		}, want: true},
 		{name: "recreation", mutate: func(p *kai.Project, d *kai.Department) { p.UID = "new"; d.UID = "new" }, want: true},
 		{name: "ack metadata only", mutate: func(p *kai.Project, d *kai.Department) {
 			p.Annotations[parsers.QuotaAckAnnotation] = "ack"

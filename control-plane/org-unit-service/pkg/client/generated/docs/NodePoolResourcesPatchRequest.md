@@ -4,6 +4,7 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
+**QuotaManagementRevision** | Pointer to **int64** |  | [optional] 
 **OrgUnitId** | **string** | The project/department ID. | 
 **NodePoolId** | **string** |  | 
 **Rank** | Pointer to **NullableString** |  | [optional] 
@@ -27,6 +28,31 @@ will change when the set of required properties is changed
 NewNodePoolResourcesPatchRequestWithDefaults instantiates a new NodePoolResourcesPatchRequest object
 This constructor will only assign default values to properties that have it defined,
 but it doesn't guarantee that properties required by API are set
+
+### GetQuotaManagementRevision
+
+`func (o *NodePoolResourcesPatchRequest) GetQuotaManagementRevision() int64`
+
+GetQuotaManagementRevision returns the QuotaManagementRevision field if non-nil, zero value otherwise.
+
+### GetQuotaManagementRevisionOk
+
+`func (o *NodePoolResourcesPatchRequest) GetQuotaManagementRevisionOk() (*int64, bool)`
+
+GetQuotaManagementRevisionOk returns a tuple with the QuotaManagementRevision field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetQuotaManagementRevision
+
+`func (o *NodePoolResourcesPatchRequest) SetQuotaManagementRevision(v int64)`
+
+SetQuotaManagementRevision sets QuotaManagementRevision field to given value.
+
+### HasQuotaManagementRevision
+
+`func (o *NodePoolResourcesPatchRequest) HasQuotaManagementRevision() bool`
+
+HasQuotaManagementRevision returns a boolean if a field has been set.
 
 ### GetOrgUnitId
 

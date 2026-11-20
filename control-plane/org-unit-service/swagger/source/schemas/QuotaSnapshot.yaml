@@ -3,6 +3,16 @@ nullable: true
 description: Complete enrolled-pool quotas from Kubernetes. Generation is metadata.generation, CPU is millicores and memory is decimal megabytes. No defaults are applied.
 required: [epoch, kubernetesUid, generation, pools]
 properties:
+  controlRevision:
+    type: integer
+    format: int64
+    minimum: 0
+  controlPhase:
+    type: string
+    enum: [freeze, release, stable]
+  source:
+    type: string
+    enum: [runai, kubernetes]
   epoch:
     type: string
     minLength: 1

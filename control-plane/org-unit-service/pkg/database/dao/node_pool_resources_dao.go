@@ -333,12 +333,13 @@ func PatchDepartmentNodePoolResources(ctx context.Context,
 	tenantId, clusterId, departmentId, nodePoolId, resourcesId string,
 	subjectId *string,
 	updates map[string]interface{},
+	revision ...int64,
 ) error {
 	tx := runaidb.DB().WithContext(ctx).Begin()
 	committed := false
 	defer orm.FinalizeTransaction(tx, &committed)
 
-	if err := guardQuotaPatch(tx, tenantId, clusterId, departmentId, nodePoolId, updates); err != nil {
+	if err := guardQuotaPatch(tx, tenantId, clusterId, departmentId, nodePoolId, updates, revision...); err != nil {
 		return err
 	}
 	// Update the concrete resources row for the specific node pool.

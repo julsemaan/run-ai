@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/dsx-ai-factory/run-ai/control-plane/org-unit-service/generated/pkg/api"
-	"github.com/dsx-ai-factory/run-ai/control-plane/org-unit-service/pkg/config"
 	"github.com/dsx-ai-factory/run-ai/control-plane/org-unit-service/pkg/database/models"
 	"github.com/dsx-ai-factory/run-ai/runai-common-packages/runaidb"
 	"github.com/dsx-ai-factory/run-ai/runai-common-packages/runaidb/orm"
@@ -26,6 +25,7 @@ import (
 
 var ErrKubernetesQuota = errors.New("quotas are managed through Kubernetes for the enrolled node pools")
 var ErrQuotaSnapshot = errors.New("quota snapshot conflicts with the active enrollment or accepted generation")
+var ErrQuotaEmptyPools = fmt.Errorf("%w: quota ownership requires at least one node pool", ErrKubernetesQuota)
 
 // Lock the organization before reading resources. Public writes and imports use the
 // same lock, so a stale full-update payload cannot overwrite a committed snapshot.
@@ -81,11 +81,7 @@ func quotaNumbersEqual(a, b models.Resources) bool {
 		quotaPtrEqual(a.MemoryOverQuotaWeight, b.MemoryOverQuotaWeight, models.DefaultOverQuotaWeight)
 }
 
-func guardQuotaUpdate(tx orm.DB, tenantId, clusterId, kind string, id int64, proposed []models.Resources) error {
-	e, err := config.FindQuotaEnrollment(tenantId, clusterId, kind, id)
-	if err != nil || e == nil {
-		return err
-	}
+func guardQuotaUpdate(tx orm.DB, tenantId, clusterId, kind string, id int64, proposed []models.Resources, revision ...int64) error {
 	dataId, err := lockQuotaOrgUnit(tx, tenantId, clusterId, kind, id)
 	if err != nil {
 		return err
@@ -94,7 +90,45 @@ func guardQuotaUpdate(tx orm.DB, tenantId, clusterId, kind string, id int64, pro
 	if err != nil {
 		return err
 	}
-	for _, pool := range e.Pools {
+	c, err := quotaControl(tx, tenantId, clusterId, kind, id, true)
+	if err != nil || c == nil {
+		return err
+	}
+	if c.Revision > 0 && len(proposed) == 0 {
+		return ErrQuotaEmptyPools
+	}
+	if c.Revision > 0 && c.Source == "runai" && !c.pending() {
+		validRevision := len(revision) > 0 && revision[0] == c.Revision
+		if len(current) != len(proposed) && !validRevision {
+			return ErrQuotaRevision
+		}
+		for _, next := range proposed {
+			found := false
+			for _, old := range current {
+				if old.NodePoolId == next.NodePoolId {
+					found = true
+				}
+				if old.NodePoolId == next.NodePoolId && (!quotaNumbersEqual(old, next) || quotaMemoryUnits(old.MemoryUnits) != quotaMemoryUnits(next.MemoryUnits)) && !validRevision {
+					return ErrQuotaRevision
+				}
+			}
+			if !found && !validRevision {
+				return ErrQuotaRevision
+			}
+		}
+		return nil
+	}
+	if c.Revision == 0 && c.LegacyState == "" {
+		return nil
+	}
+	pools := c.Pools
+	if c.Revision > 0 {
+		pools = poolsForResources(current, "")
+	}
+	if c.Revision > 0 && len(proposed) != len(current) {
+		return ErrKubernetesQuota
+	}
+	for _, pool := range pools {
 		var old, next *models.Resources
 		for i := range current {
 			if current[i].NodePoolId == pool.NodePoolId {
@@ -153,11 +187,30 @@ func persistedQuotaNumbersEqual(a, b models.Resources) bool {
 // ImportQuotaSnapshot commits only numeric leaves and ordering metadata. The
 // converted values use the existing rows' memory units, checked again under lock.
 func ImportQuotaSnapshot(ctx context.Context, tenantId, clusterId, kind string, id int64, snapshot api.QuotaSnapshot, converted []models.Resources) error {
-	e, err := config.FindQuotaEnrollment(tenantId, clusterId, kind, id)
+	tx := runaidb.DB().WithContext(ctx).Begin()
+	committed := false
+	defer orm.FinalizeTransaction(tx, &committed)
+	dataId, err := lockQuotaOrgUnit(tx, tenantId, clusterId, kind, id)
 	if err != nil {
 		return err
 	}
-	if e == nil || e.State != "active" || e.Epoch != snapshot.Epoch || e.KubernetesUid != snapshot.KubernetesUid || snapshot.Generation < 1 {
+	c, err := quotaControl(tx, tenantId, clusterId, kind, id, true)
+	if err != nil {
+		return err
+	}
+	if c == nil || c.ownership() == nil || c.Epoch != snapshot.Epoch || c.KubernetesUID != snapshot.KubernetesUid || snapshot.Generation < 1 {
+		return ErrQuotaSnapshot
+	}
+	wasPending := c.pending()
+	stableRunaiConfirmation := wasPending && c.Phase == "stable" && c.TargetSource == "runai"
+	stableKubernetes := c.Phase == "stable" && c.TargetSource == "kubernetes"
+	applyNumbers := c.Revision == 0 || c.Phase != "stable" || c.TargetSource == "kubernetes"
+	expectedOwnership := c.ownership()
+	if c.Revision > 0 {
+		if err := c.observe(snapshot); err != nil {
+			return err
+		}
+	} else if snapshot.ControlRevision != 0 || snapshot.ControlPhase != "" || snapshot.Source != "" {
 		return ErrQuotaSnapshot
 	}
 	pools := append([]api.QuotaSnapshotPool(nil), snapshot.Pools...)
@@ -167,14 +220,7 @@ func ImportQuotaSnapshot(ctx context.Context, tenantId, clusterId, kind string, 
 	if err != nil {
 		return err
 	}
-	ownership, err := json.Marshal(e.Ownership())
-	if err != nil {
-		return err
-	}
-	tx := runaidb.DB().WithContext(ctx).Begin()
-	committed := false
-	defer orm.FinalizeTransaction(tx, &committed)
-	dataId, err := lockQuotaOrgUnit(tx, tenantId, clusterId, kind, id)
+	ownership, err := json.Marshal(expectedOwnership)
 	if err != nil {
 		return err
 	}
@@ -184,7 +230,7 @@ func ImportQuotaSnapshot(ctx context.Context, tenantId, clusterId, kind string, 
 		Ownership  json.RawMessage
 	}
 	key := "tenant_id = ? AND cluster_id = ? AND kind = ? AND org_unit_id = ? AND epoch = ?"
-	args := []interface{}{tenantId, clusterId, kind, id, e.Epoch}
+	args := []interface{}{tenantId, clusterId, kind, id, c.Epoch}
 	if err := tx.Table("quota_mirror").Where(key, args...).Find(&accepted); err != nil {
 		return err
 	}
@@ -202,10 +248,20 @@ func ImportQuotaSnapshot(ctx context.Context, tenantId, clusterId, kind string, 
 		if err := json.Unmarshal(ownership, &newOwnership); err != nil {
 			return err
 		}
-		if !reflect.DeepEqual(oldOwnership, newOwnership) || snapshot.Generation < accepted[0].Generation {
+		var prior api.QuotaSnapshot
+		if err := json.Unmarshal(accepted[0].Snapshot, &prior); err != nil {
+			return err
+		}
+		sameControl := prior.ControlRevision == snapshot.ControlRevision
+		if snapshot.Generation < accepted[0].Generation || (c.Revision == 0 && !reflect.DeepEqual(oldOwnership, newOwnership)) || prior.ControlRevision > snapshot.ControlRevision {
 			return ErrQuotaSnapshot
 		}
-		if snapshot.Generation == accepted[0].Generation {
+		// Stable markers already permit reconciliation. Kubernetes may contain
+		// edits; Runai confirms persisted DB precision below, not the release seal.
+		if wasPending && snapshot.ControlPhase != "freeze" && !stableKubernetes && !stableRunaiConfirmation && !reflect.DeepEqual(prior.Pools, snapshot.Pools) {
+			return ErrQuotaSnapshot
+		}
+		if snapshot.Generation == accepted[0].Generation && sameControl {
 			if !reflect.DeepEqual(oldSnapshot, newSnapshot) {
 				return ErrQuotaSnapshot
 			}
@@ -216,39 +272,65 @@ func ImportQuotaSnapshot(ctx context.Context, tenantId, clusterId, kind string, 
 	if err != nil {
 		return err
 	}
-	if len(converted) != len(e.Pools) || len(snapshot.Pools) != len(e.Pools) {
-		return ErrQuotaSnapshot
-	}
-	for _, pool := range e.Pools {
-		var old, next *models.Resources
-		for i := range current {
-			if current[i].NodePoolId == pool.NodePoolId {
-				old = &current[i]
+	if applyNumbers || wasPending {
+		if c.Revision > 0 {
+			if len(current) != len(c.Pools) {
+				return ErrQuotaSnapshot
 			}
-		}
-		for i := range converted {
-			if converted[i].NodePoolId == pool.NodePoolId {
-				if next != nil {
+			for _, r := range current {
+				found := false
+				for _, p := range c.Pools {
+					if p.NodePoolId == r.NodePoolId && p.NodePoolName == r.NodePoolName {
+						found = true
+					}
+				}
+				if !found {
 					return ErrQuotaSnapshot
 				}
-				next = &converted[i]
 			}
 		}
-		if old == nil || next == nil || old.NodePoolName != pool.NodePoolName || next.NodePoolName != pool.NodePoolName || old.MemoryUnits != next.MemoryUnits {
+		if len(converted) != len(c.Pools) || len(snapshot.Pools) != len(c.Pools) {
 			return ErrQuotaSnapshot
 		}
-		if !persistedQuotaNumbersEqual(*old, *next) {
-			updates := numericQuotas(*next)
-			updates["updated_at"] = time.Now()
-			if _, err := tx.Table(models.ResourcesTable).Where("id = ? AND org_unit_data_id = ? AND deleted_at IS NULL", old.ID, dataId).Updates(updates); err != nil {
-				return err
+		for _, pool := range c.Pools {
+			var old, next *models.Resources
+			for i := range current {
+				if current[i].NodePoolId == pool.NodePoolId {
+					old = &current[i]
+				}
+			}
+			for i := range converted {
+				if converted[i].NodePoolId == pool.NodePoolId {
+					if next != nil {
+						return ErrQuotaSnapshot
+					}
+					next = &converted[i]
+				}
+			}
+			if old == nil || next == nil || old.NodePoolName != pool.NodePoolName || next.NodePoolName != pool.NodePoolName || old.MemoryUnits != next.MemoryUnits {
+				return ErrQuotaSnapshot
+			}
+			if stableRunaiConfirmation && !persistedQuotaNumbersEqual(*old, *next) {
+				return ErrQuotaSnapshot
+			}
+			if applyNumbers && !persistedQuotaNumbersEqual(*old, *next) {
+				updates := numericQuotas(*next)
+				updates["updated_at"] = time.Now()
+				if _, err := tx.Table(models.ResourcesTable).Where("id = ? AND org_unit_data_id = ? AND deleted_at IS NULL", old.ID, dataId).Updates(updates); err != nil {
+					return err
+				}
 			}
 		}
 	}
 	if _, err := tx.Exec(`INSERT INTO quota_mirror (tenant_id,cluster_id,kind,org_unit_id,epoch,kubernetes_uid,generation,ownership,snapshot)
  VALUES (?,?,?,?,?,?,?,?::jsonb,?::jsonb) ON CONFLICT (tenant_id,cluster_id,kind,org_unit_id,epoch)
- DO UPDATE SET generation=EXCLUDED.generation, snapshot=EXCLUDED.snapshot`, append(args, e.KubernetesUid, snapshot.Generation, string(ownership), string(raw))...); err != nil {
+ DO UPDATE SET generation=EXCLUDED.generation, ownership=EXCLUDED.ownership, snapshot=EXCLUDED.snapshot`, append(args, c.KubernetesUID, snapshot.Generation, string(ownership), string(raw))...); err != nil {
 		return fmt.Errorf("persist quota snapshot: %w", err)
+	}
+	if c.Revision > 0 {
+		if err := saveQuotaControl(tx, c); err != nil {
+			return err
+		}
 	}
 	if err := tx.Commit(); err != nil {
 		return err
@@ -258,27 +340,32 @@ func ImportQuotaSnapshot(ctx context.Context, tenantId, clusterId, kind string, 
 	return nil
 }
 
-func guardQuotaPatch(tx orm.DB, tenantId, clusterId, departmentId, nodePoolId string, updates map[string]interface{}) error {
+func guardQuotaPatch(tx orm.DB, tenantId, clusterId, departmentId, nodePoolId string, updates map[string]interface{}, revision ...int64) error {
 	id, err := strconv.ParseInt(departmentId, 10, 64)
 	if err != nil {
 		return err
 	}
-	e, err := config.FindQuotaEnrollment(tenantId, clusterId, "department", id)
-	if err != nil || e == nil {
-		return err
-	}
-	enrolled := false
-	for _, pool := range e.Pools {
-		if pool.NodePoolId == nodePoolId {
-			enrolled = true
-		}
-	}
-	if !enrolled {
-		return nil
-	}
 	dataId, err := lockQuotaOrgUnit(tx, tenantId, clusterId, "department", id)
 	if err != nil {
 		return err
+	}
+	c, err := quotaControl(tx, tenantId, clusterId, "department", id, true)
+	if err != nil || c == nil {
+		return err
+	}
+	if c.Revision == 0 {
+		enrolled := false
+		for _, p := range c.Pools {
+			if p.NodePoolId == nodePoolId {
+				enrolled = true
+			}
+		}
+		if !enrolled {
+			return nil
+		}
+	}
+	if c.Revision > 0 && c.Source == "runai" && !c.pending() && len(revision) > 0 && revision[0] == c.Revision {
+		return nil
 	}
 	var old models.Resources
 	if err := tx.Table(models.ResourcesTable).Where("org_unit_data_id = ? AND node_pool_id = ? AND deleted_at IS NULL", dataId, nodePoolId).First(&old); err != nil {
@@ -310,30 +397,16 @@ func guardQuotaPatch(tx orm.DB, tenantId, clusterId, departmentId, nodePoolId st
 	return nil
 }
 
-// Match bulk reset's project-before-department order, independent of config or
-// request order. Tenant and cluster come first because CPU disable spans clusters.
-func orderedQuotaEnrollments() ([]config.QuotaEnrollment, error) {
-	entries, err := config.QuotaEnrollments()
-	sort.Slice(entries, func(i, j int) bool {
-		a, b := entries[i], entries[j]
-		if a.TenantId != b.TenantId {
-			return a.TenantId < b.TenantId
-		}
-		if a.ClusterId != b.ClusterId {
-			return a.ClusterId < b.ClusterId
-		}
-		if a.Kind != b.Kind {
-			return a.Kind == "project"
-		}
-		return a.Id < b.Id
-	})
-	return entries, err
+type quotaOrgRow struct {
+	ID            int64
+	TenantId      string
+	ClusterId     string
+	OrgUnitDataID uuid.UUID
 }
 
-func guardQuotaMembership(tx orm.DB, resources []models.Resources) error {
-	entries, err := orderedQuotaEnrollments()
-	if err != nil || len(entries) == 0 || len(resources) == 0 {
-		return err
+func guardQuotaMembership(tx orm.DB, resources []models.Resources, deleting bool) error {
+	if len(resources) == 0 {
+		return nil
 	}
 	var dataIds, resourceIds []uuid.UUID
 	for _, r := range resources {
@@ -355,37 +428,57 @@ func guardQuotaMembership(tx orm.DB, resources []models.Resources) error {
 			dataIds = append(dataIds, r.OrgUnitDataID)
 		}
 	}
-	for _, e := range entries {
+	for _, kind := range []string{"project", "department"} {
 		table := models.ProjectTable
-		if e.Kind == "department" {
+		if kind == "department" {
 			table = models.DepartmentTable
 		}
-		var count int64
-		if err := tx.Table(table).Where("tenant_id = ? AND cluster_id = ? AND id = ? AND org_unit_data_id IN ? AND deleted_at IS NULL", e.TenantId, e.ClusterId, e.Id, dataIds).Count(&count); err != nil {
+		var rows []quotaOrgRow
+		if err := tx.Table(table).Where("org_unit_data_id IN ? AND deleted_at IS NULL", dataIds).Order("tenant_id,cluster_id,id").Clauses(clause.Locking{Strength: "UPDATE"}).Find(&rows); err != nil {
 			return err
 		}
-		if count == 0 {
-			continue
-		}
-		dataId, err := lockQuotaOrgUnit(tx, e.TenantId, e.ClusterId, e.Kind, e.Id)
-		if errors.Is(err, orm.ErrRecordNotFound) {
-			continue
-		}
-		if err != nil {
-			return err
-		}
-		current, err := quotaResources(tx, dataId)
-		if err != nil {
-			return err
-		}
-		for _, r := range resources {
-			for _, p := range e.Pools {
-				if r.OrgUnitDataID == dataId && r.NodePoolId == p.NodePoolId {
-					return ErrKubernetesQuota
+		for _, row := range rows {
+			dataId := row.OrgUnitDataID
+			current, err := quotaResources(tx, dataId)
+			if err != nil {
+				return err
+			}
+			c, err := quotaControl(tx, row.TenantId, row.ClusterId, kind, row.ID, true)
+			if err != nil {
+				return err
+			}
+			if c == nil {
+				continue
+			}
+			if c.Revision > 0 {
+				if deleting {
+					remaining := len(current)
+					for _, old := range current {
+						for _, removed := range resources {
+							if removed.ID == old.ID {
+								remaining--
+								break
+							}
+						}
+					}
+					if remaining == 0 {
+						return ErrQuotaEmptyPools
+					}
 				}
-				for _, old := range current {
-					if old.NodePoolId == p.NodePoolId && r.ID == old.ID {
+				if c.Source == "runai" && !c.pending() {
+					continue
+				}
+				return fmt.Errorf("%w: pool membership is locked; wait for completion or switch to Runai", ErrKubernetesQuota)
+			}
+			for _, r := range resources {
+				for _, p := range c.Pools {
+					if r.OrgUnitDataID == dataId && r.NodePoolId == p.NodePoolId {
 						return ErrKubernetesQuota
+					}
+					for _, old := range current {
+						if old.NodePoolId == p.NodePoolId && r.ID == old.ID {
+							return ErrKubernetesQuota
+						}
 					}
 				}
 			}
@@ -395,20 +488,8 @@ func guardQuotaMembership(tx orm.DB, resources []models.Resources) error {
 }
 
 func guardQuotaDisableCpu(tx orm.DB, tenantId, clusterId string) error {
-	entries, err := config.QuotaEnrollments()
-	if err != nil {
-		return err
-	}
-	var ids []string
-	for _, e := range entries {
-		if e.TenantId == tenantId && e.ClusterId == clusterId {
-			for _, p := range e.Pools {
-				ids = append(ids, p.NodePoolId)
-			}
-		}
-	}
 	for _, projects := range []bool{true, false} {
-		if err := guardQuotaReset(tx, tenantId, clusterId, "", ids, CpuQuotasToDefault, projects); err != nil {
+		if err := guardQuotaReset(tx, tenantId, clusterId, "", nil, CpuQuotasToDefault, projects); err != nil {
 			return err
 		}
 	}
@@ -419,40 +500,41 @@ func guardQuotaReset(tx orm.DB, tenantId, clusterId, departmentId string, nodepo
 	if action == RanksToDefault {
 		return nil
 	}
-	entries, err := orderedQuotaEnrollments()
-	if err != nil {
-		return err
-	}
 	kind, table := "department", models.DepartmentTable
 	if projects {
 		kind, table = "project", models.ProjectTable
 	}
-	for _, e := range entries {
-		if e.TenantId != tenantId || e.ClusterId != clusterId || e.Kind != kind {
-			continue
-		}
-		dataId, err := lockQuotaOrgUnit(tx, tenantId, clusterId, kind, e.Id)
-		if errors.Is(err, orm.ErrRecordNotFound) {
-			continue
-		}
+	// Bulk UPDATE also matches newly inserted objects. Prevent inserts until its
+	// guarded row set has committed; ordinary source changes still use row locks.
+	if _, err := tx.Exec("LOCK TABLE " + table + " IN SHARE ROW EXCLUSIVE MODE"); err != nil {
+		return err
+	}
+	query := tx.Table(table).Where("tenant_id = ? AND cluster_id = ? AND deleted_at IS NULL", tenantId, clusterId)
+	if projects && departmentId != "" {
+		query = query.Where("parent_id = ?", departmentId)
+	}
+	var rows []quotaOrgRow
+	if err := query.Order("id").Clauses(clause.Locking{Strength: "UPDATE"}).Find(&rows); err != nil {
+		return err
+	}
+	for _, row := range rows {
+		c, err := quotaControl(tx, tenantId, clusterId, kind, row.ID, true)
 		if err != nil {
 			return err
 		}
-		if projects && departmentId != "" {
-			var count int64
-			if err := tx.Table(table).Where("id = ? AND tenant_id = ? AND parent_id = ?", e.Id, tenantId, departmentId).Count(&count); err != nil {
-				return err
-			}
-			if count == 0 {
-				continue
-			}
+		if c == nil {
+			continue
 		}
-		current, err := quotaResources(tx, dataId)
+		current, err := quotaResources(tx, row.OrgUnitDataID)
 		if err != nil {
 			return err
 		}
-		for _, pool := range e.Pools {
-			selected := false
+		pools := c.Pools
+		if c.Revision > 0 {
+			pools = poolsForResources(current, "")
+		}
+		for _, pool := range pools {
+			selected := action == CpuQuotasToDefault && nodepoolIds == nil
 			for _, id := range nodepoolIds {
 				if id == pool.NodePoolId {
 					selected = true

@@ -21,9 +21,12 @@ const QuotaOwnershipAnnotation = "run.ai/quota-ownership"
 const QuotaAckAnnotation = "run.ai/quota-ack"
 
 type QuotaAck struct {
-	Epoch         string `json:"epoch"`
-	KubernetesUID string `json:"kubernetesUid"`
-	Generation    int64  `json:"generation"`
+	Epoch           string  `json:"epoch"`
+	KubernetesUID   string  `json:"kubernetesUid"`
+	Generation      int64   `json:"generation"`
+	ControlRevision *int64  `json:"controlRevision,omitempty"`
+	ControlPhase    *string `json:"controlPhase,omitempty"`
+	Source          *string `json:"source,omitempty"`
 }
 
 // ParseQuotaSnapshot trusts annotation provenance to admission, not to the payload.
@@ -45,8 +48,16 @@ func ParseQuotaSnapshot(object metav1.Object, queues []kai.QueueConfig) (*api.Qu
 		return invalid("trailing ownership JSON")
 	}
 	var fields map[string]json.RawMessage
-	if json.Unmarshal([]byte(raw), &fields) != nil || len(fields) != 3 || fields["epoch"] == nil || fields["kubernetesUid"] == nil || fields["pools"] == nil {
-		return invalid("ownership requires exact epoch, kubernetesUid and pools fields")
+	if json.Unmarshal([]byte(raw), &fields) != nil || fields["epoch"] == nil || fields["kubernetesUid"] == nil || fields["pools"] == nil {
+		return invalid("ownership requires epoch, kubernetesUid and pools fields")
+	}
+	for key := range fields {
+		if key != "epoch" && key != "kubernetesUid" && key != "pools" && key != "source" && key != "phase" && key != "revision" {
+			return invalid("unknown ownership field")
+		}
+	}
+	if len(fields) != 3 && (len(fields) != 6 || string(fields["source"]) == "null" || string(fields["phase"]) == "null" || string(fields["revision"]) == "null") {
+		return invalid("incomplete native ownership fields")
 	}
 	var pools []map[string]json.RawMessage
 	if json.Unmarshal(fields["pools"], &pools) != nil {
@@ -61,8 +72,11 @@ func ParseQuotaSnapshot(object metav1.Object, queues []kai.QueueConfig) (*api.Qu
 	decoder.DisallowUnknownFields()
 	// Use plain structs because generated UnmarshalJSON can accept unknown fields.
 	var ownership struct {
-		Epoch         string `json:"epoch"`
-		KubernetesUID string `json:"kubernetesUid"`
+		Epoch         string  `json:"epoch"`
+		KubernetesUID string  `json:"kubernetesUid"`
+		Source        *string `json:"source,omitempty"`
+		Phase         *string `json:"phase,omitempty"`
+		Revision      *int64  `json:"revision,omitempty"`
 		Pools         []struct {
 			NodePoolID   string `json:"nodePoolId"`
 			NodePoolName string `json:"nodePoolName"`
@@ -76,6 +90,20 @@ func ParseQuotaSnapshot(object metav1.Object, queues []kai.QueueConfig) (*api.Qu
 		return invalid("ownership UID, epoch, generation or pools invalid")
 	}
 	snapshot := &api.QuotaSnapshot{Epoch: ownership.Epoch, KubernetesUid: ownership.KubernetesUID, Generation: object.GetGeneration()}
+	if ownership.Revision != nil || ownership.Phase != nil || ownership.Source != nil {
+		if ownership.Revision == nil || *ownership.Revision < 1 || ownership.Phase == nil || ownership.Source == nil {
+			return invalid("native ownership requires revision, phase and source")
+		}
+		if (*ownership.Source != "runai" && *ownership.Source != "kubernetes") || (*ownership.Phase != "freeze" && *ownership.Phase != "release" && *ownership.Phase != "stable") {
+			return invalid("invalid native ownership source or phase")
+		}
+		if len(ownership.Pools) != len(queues) {
+			return invalid("native ownership must cover all pools")
+		}
+		snapshot.SetControlRevision(*ownership.Revision)
+		snapshot.SetControlPhase(*ownership.Phase)
+		snapshot.SetSource(*ownership.Source)
+	}
 	ids, names, queueNames := map[string]bool{}, map[string]bool{}, map[string]bool{}
 	for _, pool := range ownership.Pools {
 		if pool.NodePoolID == "" || pool.NodePoolName == "" || pool.QueueName == "" || ids[pool.NodePoolID] || names[pool.NodePoolName] || queueNames[pool.QueueName] {

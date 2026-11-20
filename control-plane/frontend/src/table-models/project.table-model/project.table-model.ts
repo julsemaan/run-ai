@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { quotaSourceColumn, quotaSyncColumn } from "@/table-models/quota-management.table-model";
 import { EProjectColumnName, type IProjectTable } from "@/models/project.model";
 import { EResourceState, EResourceType } from "@/models/resource.model";
 import {
@@ -59,6 +60,8 @@ export enum EProjectColumnLabel {
 }
 
 export const allProjectColumnsMap: Record<string, ITableColumn> = {
+  quotaSource: quotaSourceColumn,
+  quotaSync: quotaSyncColumn,
   projectName: {
     name: ProjectFilterSortFields.Name,
     label: EProjectColumnLabel.ProjectName,
@@ -400,6 +403,8 @@ export const allProjectColumns: Array<ITableColumn> = [
   allProjectColumnsMap.projectName,
   allProjectColumnsMap.departmentName,
   allProjectColumnsMap.status,
+  allProjectColumnsMap.quotaSource,
+  allProjectColumnsMap.quotaSync,
   allProjectColumnsMap.nodePools,
   allProjectColumnsMap.accessRules,
   allProjectColumnsMap.gpuQuota,
@@ -421,6 +426,8 @@ export const projectIndexColumns: Array<ITableColumn> = [
   { ...allProjectColumnsMap.departmentName, display: true },
   { ...allProjectColumnsMap.cluster, display: true },
   { ...allProjectColumnsMap.status, display: true },
+  { ...allProjectColumnsMap.quotaSource, display: true },
+  { ...allProjectColumnsMap.quotaSync, display: true },
   { ...allProjectColumnsMap.nodePools, display: true },
   { ...allProjectColumnsMap.accessRules, display: true },
   { ...allProjectColumnsMap.gpuQuota, display: true },

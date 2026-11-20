@@ -24,6 +24,10 @@ var _ MappedNullable = &QuotaOwnership{}
 
 // QuotaOwnership Trusted active Kubernetes quota enrollment. Absent for API-managed objects and prepared enrollments.
 type QuotaOwnership struct {
+	// Target authority. Absent means legacy Kubernetes ownership.
+	Source        *string              `json:"source,omitempty"`
+	Phase         *string              `json:"phase,omitempty"`
+	Revision      *int64               `json:"revision,omitempty"`
 	Epoch         string               `json:"epoch"`
 	KubernetesUid string               `json:"kubernetesUid"`
 	Pools         []QuotaOwnershipPool `json:"pools"`
@@ -49,6 +53,102 @@ func NewQuotaOwnership(epoch string, kubernetesUid string, pools []QuotaOwnershi
 func NewQuotaOwnershipWithDefaults() *QuotaOwnership {
 	this := QuotaOwnership{}
 	return &this
+}
+
+// GetSource returns the Source field value if set, zero value otherwise.
+func (o *QuotaOwnership) GetSource() string {
+	if o == nil || IsNil(o.Source) {
+		var ret string
+		return ret
+	}
+	return *o.Source
+}
+
+// GetSourceOk returns a tuple with the Source field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *QuotaOwnership) GetSourceOk() (*string, bool) {
+	if o == nil || IsNil(o.Source) {
+		return nil, false
+	}
+	return o.Source, true
+}
+
+// HasSource returns a boolean if a field has been set.
+func (o *QuotaOwnership) HasSource() bool {
+	if o != nil && !IsNil(o.Source) {
+		return true
+	}
+
+	return false
+}
+
+// SetSource gets a reference to the given string and assigns it to the Source field.
+func (o *QuotaOwnership) SetSource(v string) {
+	o.Source = &v
+}
+
+// GetPhase returns the Phase field value if set, zero value otherwise.
+func (o *QuotaOwnership) GetPhase() string {
+	if o == nil || IsNil(o.Phase) {
+		var ret string
+		return ret
+	}
+	return *o.Phase
+}
+
+// GetPhaseOk returns a tuple with the Phase field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *QuotaOwnership) GetPhaseOk() (*string, bool) {
+	if o == nil || IsNil(o.Phase) {
+		return nil, false
+	}
+	return o.Phase, true
+}
+
+// HasPhase returns a boolean if a field has been set.
+func (o *QuotaOwnership) HasPhase() bool {
+	if o != nil && !IsNil(o.Phase) {
+		return true
+	}
+
+	return false
+}
+
+// SetPhase gets a reference to the given string and assigns it to the Phase field.
+func (o *QuotaOwnership) SetPhase(v string) {
+	o.Phase = &v
+}
+
+// GetRevision returns the Revision field value if set, zero value otherwise.
+func (o *QuotaOwnership) GetRevision() int64 {
+	if o == nil || IsNil(o.Revision) {
+		var ret int64
+		return ret
+	}
+	return *o.Revision
+}
+
+// GetRevisionOk returns a tuple with the Revision field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *QuotaOwnership) GetRevisionOk() (*int64, bool) {
+	if o == nil || IsNil(o.Revision) {
+		return nil, false
+	}
+	return o.Revision, true
+}
+
+// HasRevision returns a boolean if a field has been set.
+func (o *QuotaOwnership) HasRevision() bool {
+	if o != nil && !IsNil(o.Revision) {
+		return true
+	}
+
+	return false
+}
+
+// SetRevision gets a reference to the given int64 and assigns it to the Revision field.
+func (o *QuotaOwnership) SetRevision(v int64) {
+	o.Revision = &v
 }
 
 // GetEpoch returns the Epoch field value
@@ -133,6 +233,15 @@ func (o QuotaOwnership) MarshalJSON() ([]byte, error) {
 
 func (o QuotaOwnership) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
+	if !IsNil(o.Source) {
+		toSerialize["source"] = o.Source
+	}
+	if !IsNil(o.Phase) {
+		toSerialize["phase"] = o.Phase
+	}
+	if !IsNil(o.Revision) {
+		toSerialize["revision"] = o.Revision
+	}
 	toSerialize["epoch"] = o.Epoch
 	toSerialize["kubernetesUid"] = o.KubernetesUid
 	toSerialize["pools"] = o.Pools

@@ -13,6 +13,7 @@
 
         <gpu-quota-input
           v-model="localGpuQuota"
+          :read-only="readOnly"
           :state="state"
           :message="message"
           :entity-type="entityType"
@@ -45,6 +46,7 @@ import { EQuotaInputState } from "@/models/org-unit.model";
 import { EQuotaEntity } from "@/models/resource.model";
 
 export interface Props {
+  readOnly?: boolean;
   orgUnitName: string;
   gpuQuota: number | null;
   totalQuota: number | null;
@@ -87,6 +89,7 @@ watch(
 );
 
 watch(localGpuQuota, (newValue) => {
+  if (props.readOnly) return;
   emit("update:gpu-quota", newValue);
 });
 </script>

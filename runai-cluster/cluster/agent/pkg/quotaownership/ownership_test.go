@@ -47,8 +47,12 @@ func TestPreserve(t *testing.T) {
 		t.Fatal("accepted recreated object")
 	}
 	delete(desired.Annotations, Annotation)
+	if _, err := Desired(desired, live); err == nil {
+		t.Fatal("missing backend directive must not erase a mismatched live fence")
+	}
+	delete(live.Annotations, Annotation)
 	got, err = Desired(desired, live)
 	if err != nil || got.(*kai.Project).Spec.Queues[0].Resources.GPU.Deserved != 0 {
-		t.Fatal("annotation forged enrollment")
+		t.Fatal("unowned object must keep normal backend reconciliation")
 	}
 }

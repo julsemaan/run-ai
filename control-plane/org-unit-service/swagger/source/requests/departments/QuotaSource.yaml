@@ -1,0 +1,60 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+parameters:
+  - $ref: '../../../../../infra/openapi/docs/parameters/path/DepartmentId.yaml'
+get:
+  summary: Get department quota source
+  operationId: get_department_quota_source
+  x-service: org-unit-service
+  x-authorize:
+    resource-type: department
+    action: read
+    resource-id: departmentId
+  tags: [Departments]
+  responses:
+    200:
+      description: Current quota authority and synchronization state
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/QuotaManagement.yaml'
+    403:
+      $ref: '../../../../../infra/openapi/docs/responses/403Forbidden.yaml'
+    404:
+      $ref: '../../../../../infra/openapi/docs/responses/404NotFound.yaml'
+put:
+  summary: Set department quota source for all node pools
+  operationId: update_department_quota_source
+  x-service: org-unit-service
+  x-authorize:
+    resource-type: department
+    action: update
+    resource-id: departmentId
+  x-audit: true
+  tags: [Departments]
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../../schemas/QuotaSourceUpdateRequest.yaml'
+  responses:
+    200:
+      description: Current quota authority and synchronization state
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/QuotaManagement.yaml'
+    400:
+      $ref: '../../../../../infra/openapi/docs/responses/400BadRequest.yaml'
+    403:
+      $ref: '../../../../../infra/openapi/docs/responses/403Forbidden.yaml'
+    404:
+      $ref: '../../../../../infra/openapi/docs/responses/404NotFound.yaml'
+    409:
+      description: Stale revision or conflicting pending transfer
+      content:
+        application/json:
+          schema:
+            $ref: '../../../../../infra/openapi/docs/responses/Error.yaml'

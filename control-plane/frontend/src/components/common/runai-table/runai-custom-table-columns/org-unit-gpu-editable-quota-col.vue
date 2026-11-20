@@ -8,7 +8,9 @@
     title="GPUs"
     :display-value="displayValue"
     :state="cellState"
-    :is-submit-disabled="hasError || isLoadingDepartment"
+    :disabled="locked"
+    disabled-tooltip="Quota editing is locked by the quota source or pending synchronization."
+    :is-submit-disabled="locked || hasError || isLoadingDepartment"
     @opened="fetchDepartmentSubordinateQuota"
     @apply="handleApply"
     @reset="handleReset"
@@ -16,6 +18,7 @@
     <template #input>
       <gpu-quota-input
         v-model="editableValue"
+        :read-only="locked"
         :state="quotaState"
         :message="quotaMessage"
         :loading="isLoadingDepartment"
@@ -27,6 +30,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
+import { quotasLocked } from "@/models/quota-management.model";
 import type { ITableColumn } from "@/models/table.model";
 import { ECustomCell } from "@/models/table.model";
 import type { ICustomCellGpuQuotaColConfig, IQuotaTableRow } from "@/table-models/org-unit.table-model";
@@ -48,6 +52,7 @@ const props = defineProps<{
 }>();
 
 const settingStore = useSettingStore();
+const locked = computed(() => props.row.readOnly || quotasLocked(props.row));
 
 const config = computed(() => {
   return getCustomCellConfig(props.column, ECustomCell.ORG_UNIT_GPU_EDITABLE_QUOTA_COL) as
@@ -159,7 +164,7 @@ const handleReset = () => {
 };
 
 const handleApply = () => {
-  if (hasError.value || !config.value?.onSave) return;
+  if (locked.value || hasError.value || !config.value?.onSave) return;
 
   config.value.onSave({
     projectId: props.row.id,

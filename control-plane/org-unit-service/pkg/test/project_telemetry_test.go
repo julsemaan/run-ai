@@ -493,10 +493,9 @@ var _ = Describe("Project API tests", Ordered, func() {
 			projectId := response.Body.(api.Project).Id
 			projectIds = append(projectIds, projectId)
 			statusRequest := getProjectStatusRequest(0, projectId, clusterId)
-			_, err = projectApiService.UpdateProjectStatus(ctx, statusRequest)
-			if err != nil {
-				Fail("Failed creating project")
-			}
+			statusResponse, err := projectApiService.UpdateProjectStatus(ctx, statusRequest)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(statusResponse.Code).To(Equal(http.StatusOK), fmt.Sprint(statusResponse.Body))
 
 			// proj on cluster 1, department 1
 			// default nodepool: gpu: 1, cpu: 1000, memory: 100
@@ -509,10 +508,9 @@ var _ = Describe("Project API tests", Ordered, func() {
 			projectId = response.Body.(api.Project).Id
 			projectIds = append(projectIds, projectId)
 			statusRequest = getProjectStatusRequest(1, projectId, clusterId)
-			_, err = projectApiService.UpdateProjectStatus(ctx, statusRequest)
-			if err != nil {
-				Fail("Failed creating project")
-			}
+			statusResponse, err = projectApiService.UpdateProjectStatus(ctx, statusRequest)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(statusResponse.Code).To(Equal(http.StatusOK), fmt.Sprint(statusResponse.Body))
 
 			// proj on cluster 1, department 2
 			// default nodepool: gpu: 2, cpu: 2000, memory: 200
@@ -525,10 +523,9 @@ var _ = Describe("Project API tests", Ordered, func() {
 			projectId = response.Body.(api.Project).Id
 			projectIds = append(projectIds, projectId)
 			statusRequest = getProjectStatusRequest(2, projectId, clusterId)
-			_, err = projectApiService.UpdateProjectStatus(ctx, statusRequest)
-			if err != nil {
-				Fail("Failed creating project")
-			}
+			statusResponse, err = projectApiService.UpdateProjectStatus(ctx, statusRequest)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(statusResponse.Code).To(Equal(http.StatusOK), fmt.Sprint(statusResponse.Body))
 
 			// proj on cluster 1, department 2
 			// default nodepool: gpu: 3, cpu: 3000, memory: 300
@@ -541,10 +538,9 @@ var _ = Describe("Project API tests", Ordered, func() {
 			projectId = response.Body.(api.Project).Id
 			projectIds = append(projectIds, projectId)
 			statusRequest = getProjectStatusRequest(3, projectId, clusterId)
-			_, err = projectApiService.UpdateProjectStatus(ctx, statusRequest)
-			if err != nil {
-				Fail("Failed creating project")
-			}
+			statusResponse, err = projectApiService.UpdateProjectStatus(ctx, statusRequest)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(statusResponse.Code).To(Equal(http.StatusOK), fmt.Sprint(statusResponse.Body))
 
 			// proj on cluster 2, department 3
 			// default nodepool: gpu: 4.5, cpu: 4500, memory: 450
@@ -556,11 +552,10 @@ var _ = Describe("Project API tests", Ordered, func() {
 			}
 			projectId = response.Body.(api.Project).Id
 			projectIds = append(projectIds, projectId)
-			statusRequest = getProjectStatusRequest(4.5, projectId, clusterId)
-			_, err = projectApiService.UpdateProjectStatus(ctx, statusRequest)
-			if err != nil {
-				Fail("Failed creating project")
-			}
+			statusRequest = getProjectStatusRequest(4.5, projectId, cluster2Id)
+			statusResponse, err = projectApiService.UpdateProjectStatus(ctx, statusRequest)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(statusResponse.Code).To(Equal(http.StatusOK), fmt.Sprint(statusResponse.Body))
 		})
 
 		AfterAll(func() {

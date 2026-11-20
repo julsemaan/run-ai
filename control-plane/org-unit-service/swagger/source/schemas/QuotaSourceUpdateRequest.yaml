@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+type: object
+required: [source, expectedRevision]
+properties:
+  source:
+    type: string
+    enum: [runai, kubernetes]
+  expectedRevision:
+    type: integer
+    format: int64
+    minimum: 0

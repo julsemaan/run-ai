@@ -24,6 +24,7 @@ var _ MappedNullable = &ProjectNodePoolResources{}
 
 // ProjectNodePoolResources struct for ProjectNodePoolResources
 type ProjectNodePoolResources struct {
+	QuotaManagement *QuotaManagement `json:"quotaManagement,omitempty"`
 	// The unique ID of the resources.
 	Id string `json:"id"`
 	// The project/department ID.
@@ -65,6 +66,38 @@ func NewProjectNodePoolResources(id string, orgUnitId string, orgUnitName string
 func NewProjectNodePoolResourcesWithDefaults() *ProjectNodePoolResources {
 	this := ProjectNodePoolResources{}
 	return &this
+}
+
+// GetQuotaManagement returns the QuotaManagement field value if set, zero value otherwise.
+func (o *ProjectNodePoolResources) GetQuotaManagement() QuotaManagement {
+	if o == nil || IsNil(o.QuotaManagement) {
+		var ret QuotaManagement
+		return ret
+	}
+	return *o.QuotaManagement
+}
+
+// GetQuotaManagementOk returns a tuple with the QuotaManagement field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *ProjectNodePoolResources) GetQuotaManagementOk() (*QuotaManagement, bool) {
+	if o == nil || IsNil(o.QuotaManagement) {
+		return nil, false
+	}
+	return o.QuotaManagement, true
+}
+
+// HasQuotaManagement returns a boolean if a field has been set.
+func (o *ProjectNodePoolResources) HasQuotaManagement() bool {
+	if o != nil && !IsNil(o.QuotaManagement) {
+		return true
+	}
+
+	return false
+}
+
+// SetQuotaManagement gets a reference to the given QuotaManagement and assigns it to the QuotaManagement field.
+func (o *ProjectNodePoolResources) SetQuotaManagement(v QuotaManagement) {
+	o.QuotaManagement = &v
 }
 
 // GetId returns the Id field value
@@ -325,6 +358,9 @@ func (o ProjectNodePoolResources) MarshalJSON() ([]byte, error) {
 
 func (o ProjectNodePoolResources) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
+	if !IsNil(o.QuotaManagement) {
+		toSerialize["quotaManagement"] = o.QuotaManagement
+	}
 	toSerialize["id"] = o.Id
 	toSerialize["orgUnitId"] = o.OrgUnitId
 	toSerialize["orgUnitName"] = o.OrgUnitName

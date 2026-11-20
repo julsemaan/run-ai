@@ -1,6 +1,10 @@
 allOf:
   - $ref: "./DataUpdatableDepartmentFields.yaml"
   - properties:
+      quotaManagementRevision:
+        type: integer
+        format: int64
+        minimum: 0
       resources:
         type: array
         items:

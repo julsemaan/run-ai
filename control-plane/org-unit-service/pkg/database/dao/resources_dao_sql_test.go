@@ -33,6 +33,7 @@ var _ = Describe("Resources DAO SQL", func() {
 			mocker := setupSQLMock()
 			resource := testResources()
 			mocker.ExpectTransaction().Begin()
+			expectQuotaMembershipLocks(mocker)
 			mocker.ExpectExec(sqlInsertResources).Returns(1)
 			mocker.ExpectTransaction().Commit()
 
@@ -43,6 +44,7 @@ var _ = Describe("Resources DAO SQL", func() {
 			mocker := setupSQLMock()
 			resource := testResources()
 			mocker.ExpectTransaction().Begin()
+			expectQuotaMembershipLocks(mocker)
 			mocker.ExpectExec(sqlInsertResources).ReturnsError(errors.New("insert failed"))
 			mocker.ExpectTransaction().Rollback()
 
@@ -55,6 +57,7 @@ var _ = Describe("Resources DAO SQL", func() {
 			mocker := setupSQLMock()
 			resource := testResources()
 			mocker.ExpectTransaction().Begin()
+			expectQuotaMembershipLocks(mocker)
 			mocker.ExpectExec(sqlSoftDeleteResources).Returns(1)
 			mocker.ExpectTransaction().Commit()
 
@@ -65,6 +68,7 @@ var _ = Describe("Resources DAO SQL", func() {
 			mocker := setupSQLMock()
 			resource := testResources()
 			mocker.ExpectTransaction().Begin()
+			expectQuotaMembershipLocks(mocker)
 			mocker.ExpectExec(sqlSoftDeleteResources).ReturnsError(errors.New("delete failed"))
 			mocker.ExpectTransaction().Rollback()
 
@@ -77,6 +81,8 @@ var _ = Describe("Resources DAO SQL", func() {
 			mocker := setupSQLMock()
 			clusterUUID := testClusterID().String()
 			mocker.ExpectTransaction().Begin()
+			expectQuotaResetLocks(mocker, "project", false)
+			expectQuotaResetLocks(mocker, "department", false)
 			mocker.ExpectExec(sqlDisableCPUQuotaProjects, testTenantID, clusterUUID).Returns(1)
 			mocker.ExpectExec(sqlDisableCPUQuotaDepartments, testTenantID, clusterUUID).Returns(1)
 			mocker.ExpectTransaction().Commit()
@@ -88,6 +94,8 @@ var _ = Describe("Resources DAO SQL", func() {
 			mocker := setupSQLMock()
 			clusterUUID := testClusterID().String()
 			mocker.ExpectTransaction().Begin()
+			expectQuotaResetLocks(mocker, "project", false)
+			expectQuotaResetLocks(mocker, "department", false)
 			mocker.ExpectExec(sqlDisableCPUQuotaProjects, testTenantID, clusterUUID).ReturnsError(errors.New("update failed"))
 			mocker.ExpectTransaction().Rollback()
 
@@ -99,6 +107,7 @@ var _ = Describe("Resources DAO SQL", func() {
 		It("succeeds", func() {
 			mocker := setupSQLMock()
 			mocker.ExpectTransaction().Begin()
+			expectQuotaResetLocks(mocker, "project", false)
 			mocker.ExpectExec(sqlResetProjectQuotas).Returns(2)
 			mocker.ExpectTransaction().Commit()
 
@@ -108,6 +117,7 @@ var _ = Describe("Resources DAO SQL", func() {
 		It("invalid action", func() {
 			mocker := setupSQLMock()
 			mocker.ExpectTransaction().Begin()
+			expectQuotaResetLocks(mocker, "project", false)
 			mocker.ExpectTransaction().Rollback()
 			err := ResetResources(context.Background(), testTenantID, testClusterID().String(), "", []string{testNodePoolID}, "not-an-action", true)
 			Expect(err).To(MatchError("invalid reset resources action: not-an-action"))
@@ -115,6 +125,7 @@ var _ = Describe("Resources DAO SQL", func() {
 		It("departments", func() {
 			mocker := setupSQLMock()
 			mocker.ExpectTransaction().Begin()
+			expectQuotaResetLocks(mocker, "department", false)
 			mocker.ExpectExec(`UPDATE resources SET gpu_deserved = 0, gpu_limit = NULL, cpu_deserved = NULL, cpu_limit = NULL, memory_deserved = NULL, memory_limit = NULL, updated_at=now() FROM department WHERE department.org_unit_data_id = resources.org_unit_data_id AND ((gpu_deserved <> 0 OR gpu_limit <> -1 OR cpu_deserved <> -1 OR cpu_limit <> -1 OR memory_deserved <> -1 OR memory_limit <> -1) AND resources.node_pool_id IN (?)) AND department.tenant_id = ? AND department.cluster_id = ? AND department.deleted_at is NULL and resources.deleted_at is NULL;`).Returns(1)
 
 			mocker.ExpectTransaction().Commit()
@@ -124,6 +135,7 @@ var _ = Describe("Resources DAO SQL", func() {
 		It("with department filter", func() {
 			mocker := setupSQLMock()
 			mocker.ExpectTransaction().Begin()
+			expectQuotaResetLocks(mocker, "project", true)
 			mocker.ExpectExec(`UPDATE resources SET gpu_deserved = 0, gpu_limit = NULL, cpu_deserved = NULL, cpu_limit = NULL, memory_deserved = NULL, memory_limit = NULL, updated_at=now() FROM project WHERE project.org_unit_data_id = resources.org_unit_data_id AND ((gpu_deserved <> 0 OR gpu_limit <> -1 OR cpu_deserved <> -1 OR cpu_limit <> -1 OR memory_deserved <> -1 OR memory_limit <> -1) AND resources.node_pool_id IN (?) AND project.parent_id = ?) AND project.tenant_id = ? AND project.cluster_id = ? AND project.deleted_at is NULL and resources.deleted_at is NULL;`).Returns(1)
 
 			mocker.ExpectTransaction().Commit()
@@ -142,6 +154,7 @@ var _ = Describe("Resources DAO SQL", func() {
 		It("weights to default", func() {
 			mocker := setupSQLMock()
 			mocker.ExpectTransaction().Begin()
+			expectQuotaResetLocks(mocker, "project", false)
 			mocker.ExpectExec(`UPDATE resources SET gpu_over_quota_weight = 2.000000, cpu_over_quota_weight = CASE WHEN cpu_over_quota_weight IS NOT NULL THEN 2.000000 ELSE NULL END, memory_over_quota_weight = CASE WHEN memory_over_quota_weight IS NOT NULL THEN 2.000000 ELSE NULL END, updated_at=now() FROM project WHERE project.org_unit_data_id = resources.org_unit_data_id AND ((gpu_over_quota_weight IS DISTINCT FROM 2.000000 OR cpu_over_quota_weight <> 2.000000 OR memory_over_quota_weight <> 2.000000) AND resources.node_pool_id IN (?)) AND project.tenant_id = ? AND project.cluster_id = ? AND project.deleted_at is NULL and resources.deleted_at is NULL;`).Returns(1)
 
 			mocker.ExpectTransaction().Commit()
@@ -151,6 +164,7 @@ var _ = Describe("Resources DAO SQL", func() {
 		It("weights to deserved", func() {
 			mocker := setupSQLMock()
 			mocker.ExpectTransaction().Begin()
+			expectQuotaResetLocks(mocker, "project", false)
 			mocker.ExpectExec(`UPDATE resources SET gpu_over_quota_weight = gpu_deserved, cpu_over_quota_weight = cpu_deserved, memory_over_quota_weight = memory_deserved, updated_at=now() FROM project WHERE project.org_unit_data_id = resources.org_unit_data_id AND ((gpu_over_quota_weight IS DISTINCT FROM gpu_deserved OR cpu_over_quota_weight IS DISTINCT FROM cpu_deserved OR memory_over_quota_weight IS DISTINCT FROM memory_deserved) AND resources.node_pool_id IN (?)) AND project.tenant_id = ? AND project.cluster_id = ? AND project.deleted_at is NULL and resources.deleted_at is NULL;`).Returns(1)
 
 			mocker.ExpectTransaction().Commit()
@@ -185,7 +199,9 @@ var _ = Describe("Resources DAO SQL", func() {
 			sqlProjects := `UPDATE resources SET cpu_deserved = NULL, cpu_limit = NULL, cpu_over_quota_weight = NULL, memory_deserved = NULL, memory_limit = NULL, memory_over_quota_weight = NULL, updated_at=now() FROM project WHERE project.org_unit_data_id = resources.org_unit_data_id AND ((cpu_deserved IS NOT NULL OR cpu_limit IS NOT NULL OR cpu_over_quota_weight IS NOT NULL OR memory_deserved IS NOT NULL OR memory_limit IS NOT NULL OR memory_over_quota_weight IS NOT NULL) AND resources.node_pool_id IN (?)) AND project.tenant_id = ? AND project.cluster_id = ? AND project.deleted_at is NULL and resources.deleted_at is NULL;`
 			sqlDepartments := `UPDATE resources SET cpu_deserved = NULL, cpu_limit = NULL, cpu_over_quota_weight = NULL, memory_deserved = NULL, memory_limit = NULL, memory_over_quota_weight = NULL, updated_at=now() FROM department WHERE department.org_unit_data_id = resources.org_unit_data_id AND ((cpu_deserved IS NOT NULL OR cpu_limit IS NOT NULL OR cpu_over_quota_weight IS NOT NULL OR memory_deserved IS NOT NULL OR memory_limit IS NOT NULL OR memory_over_quota_weight IS NOT NULL) AND resources.node_pool_id IN (?)) AND department.tenant_id = ? AND department.cluster_id = ? AND department.deleted_at is NULL and resources.deleted_at is NULL;`
 			mocker.ExpectTransaction().Begin()
+			expectQuotaResetLocks(mocker, "project", false)
 			mocker.ExpectExec(sqlProjects).Returns(1)
+			expectQuotaResetLocks(mocker, "department", false)
 			mocker.ExpectExec(sqlDepartments).Returns(1)
 			mocker.ExpectTransaction().Commit()
 
@@ -196,6 +212,7 @@ var _ = Describe("Resources DAO SQL", func() {
 			mocker := setupSQLMock()
 			sqlProjects := `UPDATE resources SET cpu_deserved = NULL, cpu_limit = NULL, cpu_over_quota_weight = NULL, memory_deserved = NULL, memory_limit = NULL, memory_over_quota_weight = NULL, updated_at=now() FROM project WHERE project.org_unit_data_id = resources.org_unit_data_id AND ((cpu_deserved IS NOT NULL OR cpu_limit IS NOT NULL OR cpu_over_quota_weight IS NOT NULL OR memory_deserved IS NOT NULL OR memory_limit IS NOT NULL OR memory_over_quota_weight IS NOT NULL) AND resources.node_pool_id IN (?)) AND project.tenant_id = ? AND project.cluster_id = ? AND project.deleted_at is NULL and resources.deleted_at is NULL;`
 			mocker.ExpectTransaction().Begin()
+			expectQuotaResetLocks(mocker, "project", false)
 			mocker.ExpectExec(sqlProjects).ReturnsError(errors.New("update failed"))
 			mocker.ExpectTransaction().Rollback()
 

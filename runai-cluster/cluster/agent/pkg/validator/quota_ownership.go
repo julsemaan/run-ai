@@ -37,6 +37,10 @@ func quotaOnly(req admission.Request) bool {
 	if err != nil {
 		return false
 	}
+	control, err := quotaownership.ParseControl(old.GetAnnotations()[quotaownership.Annotation])
+	if err != nil || control.Source != "kubernetes" || control.Phase != "stable" {
+		return false
+	}
 	oldQueues, _, err := unstructured.NestedSlice(old.Object, "spec", "queues")
 	if err != nil {
 		return false

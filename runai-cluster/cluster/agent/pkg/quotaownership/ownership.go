@@ -18,7 +18,12 @@ func Set(object client.Object, ownership *api.QuotaOwnership) error {
 	if ownership == nil {
 		return nil
 	}
-	data, err := json.Marshal(ownership)
+	// Revision zero must retain the old canonical wire shape during rollout.
+	wire := *ownership
+	if wire.GetRevision() == 0 {
+		wire.Revision, wire.Source, wire.Phase = nil, nil, nil
+	}
+	data, err := json.Marshal(wire)
 	if err != nil {
 		return fmt.Errorf("encode quota ownership: %w", err)
 	}
@@ -85,17 +90,17 @@ func Find(queues []kai.QueueConfig, name, pool string) (*kai.QueueConfig, error)
 	return found, nil
 }
 
-// Desired uses only backend-provided ownership, never the live annotation, to select preserved leaves.
+// Desired fences backend commands against the protected live marker before selecting numeric leaves.
 func Desired(backend, latest client.Object) (client.Object, error) {
 	value := backend.GetAnnotations()[Annotation]
 	if !IsOrgUnit(backend) {
 		return backend, nil
 	}
 	if value == "" {
-		// Enrollment removal is not a handoff. Keep live ownership until the
-		// disposable object is deleted, even if its latest quota is not mirrored.
-		if _, err := Parse(latest.GetAnnotations()[Annotation], string(latest.GetUID())); err == nil {
-			return nil, fmt.Errorf("backend enrollment missing for Kubernetes-owned object %s", latest.GetName())
+		// A missing backend directive is not a handoff, including after return
+		// to Runai or a UID mismatch. Never erase a live fence implicitly.
+		if _, present := latest.GetAnnotations()[Annotation]; present {
+			return nil, fmt.Errorf("backend enrollment missing for quota-controlled object %s", latest.GetName())
 		}
 		return backend, nil
 	}
@@ -103,8 +108,64 @@ func Desired(backend, latest client.Object) (client.Object, error) {
 	if err != nil {
 		return nil, err
 	}
+	next, err := ParseControl(value)
+	if err != nil {
+		return nil, err
+	}
+	liveValue := latest.GetAnnotations()[Annotation]
+	var live *api.QuotaOwnership
+	previous := Control{}
+	if liveValue != "" {
+		live, err = Parse(liveValue, string(latest.GetUID()))
+		if err != nil {
+			return nil, err
+		}
+		previous, err = ParseControl(liveValue)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if err := Fence(previous, next, liveValue != ""); err != nil {
+		return nil, err
+	}
+	runaiStable := live != nil && next.Phase == "stable" && next.Source == "runai" && previous.Phase == "stable" && previous.Source == "runai" && previous.Epoch == next.Epoch
+	if live != nil && next.Revision > 0 && !runaiStable && (previous.Revision == next.Revision || previous.Epoch == next.Epoch) && !samePools(live.Pools, o.Pools) {
+		return nil, fmt.Errorf("quota control pool bindings changed within operation")
+	}
+	if next.Revision > 0 {
+		if (!runaiStable && len(o.Pools) != len(Queues(latest))) || len(o.Pools) != len(Queues(backend)) {
+			return nil, fmt.Errorf("native quota control must cover all pools")
+		}
+		for _, p := range o.Pools {
+			if !runaiStable {
+				if _, err := Find(Queues(latest), p.QueueName, p.NodePoolName); err != nil {
+					return nil, err
+				}
+			}
+			if _, err := Find(Queues(backend), p.QueueName, p.NodePoolName); err != nil {
+				return nil, err
+			}
+		}
+	}
 	desired := backend.DeepCopyObject().(client.Object)
-	for _, p := range o.Pools {
+	preserve := o.Pools
+	if next.Revision > 0 {
+		switch {
+		case runaiStable:
+			preserve = nil
+		case next.Phase == "freeze" && (live == nil || previous.Epoch != next.Epoch):
+			// Legacy normalization has mixed authority. Only its protected pools
+			// retain live numbers; newly covered pools use frozen backend values.
+			preserve = nil
+			if live != nil && previous.Source != "runai" {
+				preserve = live.Pools
+			}
+		}
+	}
+	for _, p := range preserve {
+		if next.Revision > 0 && !containsPool(o.Pools, p) {
+			return nil, fmt.Errorf("protected quota pool binding changed")
+		}
 		source, err := Find(Queues(latest), p.QueueName, p.NodePoolName)
 		if err != nil {
 			return nil, err
@@ -113,7 +174,30 @@ func Desired(backend, latest client.Object) (client.Object, error) {
 		if err != nil {
 			return nil, err
 		}
-		*target.Resources = *source.Resources
+		copyNumbers(&target.Resources.GPU, source.Resources.GPU)
+		copyNumbers(&target.Resources.CPU, source.Resources.CPU)
+		copyNumbers(&target.Resources.Memory, source.Resources.Memory)
 	}
 	return desired, nil
+}
+
+func samePools(a, b []api.QuotaOwnershipPool) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for _, pool := range a {
+		if !containsPool(b, pool) {
+			return false
+		}
+	}
+	return true
+}
+
+func containsPool(pools []api.QuotaOwnershipPool, pool api.QuotaOwnershipPool) bool {
+	for _, other := range pools {
+		if pool == other {
+			return true
+		}
+	}
+	return false
 }

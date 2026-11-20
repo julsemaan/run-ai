@@ -13,6 +13,10 @@
 
 package api
 
+import (
+	"errors"
+)
+
 ////////////////////////// RUNAI START (18.1) ////////////////////////////
 import runaihttp "github.com/dsx-ai-factory/run-ai/runai-common-packages/runaihttp"
 
@@ -43,6 +47,11 @@ type ProjectUpdateRequest struct {
 	//////////////////////////////////// RUNAI START (19) ///////////////////////////////////////////
 	//NodeTypes NodeTypesPerWorkload `json:"nodeTypes,omitempty"`
 	NodeTypes NodeTypesPerWorkload `json:"nodeTypes,omitempty" gorm:"serializer:json; type:jsonb;not null;"`
+	//////////////////////////////////// RUNAI END ///////////////////////////////////////////
+
+	//////////////////////////////////// RUNAI START (19) ///////////////////////////////////////////
+	//QuotaManagementRevision int64 `json:"quotaManagementRevision,omitempty"`
+	QuotaManagementRevision int64 `json:"quotaManagementRevision,omitempty" gorm:"not null;"`
 	//////////////////////////////////// RUNAI END ///////////////////////////////////////////
 
 	// a flag to enforce that all pods in this namespace will be scheduled with runai-scheduler. Supported for cluster v2.21+
@@ -118,6 +127,14 @@ func AssertProjectUpdateRequestConstraints(obj ProjectUpdateRequest) error {
 	if err := AssertNodeTypesPerWorkloadConstraints(obj.NodeTypes); err != nil {
 		return err
 	}
+	if obj.QuotaManagementRevision < 0 {
+		return &ParsingError{Param: "QuotaManagementRevision", Err: errors.New(errMsgMinValueConstraint)}
+	}
+	//////////////////////// RUNAI START (18.2) //////////////////////////
+	//////////////////////// RUNAI END //////////////////////////
+	//////////////////////// RUNAI START (2.1) //////////////////////////
+
+	//////////////////////// RUNAI END //////////////////////////
 	//////////////////////// RUNAI START (18.2) //////////////////////////
 	//////////////////////// RUNAI END //////////////////////////
 	//////////////////////// RUNAI START (2.1) //////////////////////////

@@ -89,8 +89,8 @@ func (departmentHandler *DepartmentHandler) updateStatus(department *kaiv1alpha1
 	if res != nil {
 		_ = res.Body.Close()
 	}
-	if snapshot != nil {
-		return quotaHTTPError(department, res, err)
+	if commitErr := quotaHTTPError(department, res, err); commitErr != nil {
+		return commitErr
 	}
 	return departmentHandler.backendClient.HandleHttpResponse(res, err, fmt.Sprintf("Updated status of department %s", department.Name))
 }

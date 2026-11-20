@@ -158,6 +158,72 @@ func TestQuotaUploadsRetryLatestAndRestart(t *testing.T) {
 	}
 }
 
+func TestNativeQuotaPhaseUploads(t *testing.T) {
+	for _, department := range []bool{false, true} {
+		c, obj := quotaFixture(t, department)
+		var snapshot *api.QuotaSnapshot
+		var uid string
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			var body struct {
+				QuotaSnapshot *api.QuotaSnapshot `json:"quotaSnapshot"`
+				Status        struct {
+					KubernetesUid string `json:"kubernetesUid"`
+				} `json:"status"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				t.Error(err)
+				w.WriteHeader(400)
+				return
+			}
+			snapshot, uid = body.QuotaSnapshot, body.Status.KubernetesUid
+			w.WriteHeader(http.StatusNoContent)
+		}))
+		b := quotaBackend(server.URL)
+		for operation, source := range []string{"kubernetes", "runai"} {
+			for step, phase := range []string{"freeze", "release", "stable"} {
+				if err := c.Get(context.Background(), client.ObjectKeyFromObject(obj), obj); err != nil {
+					t.Fatal(err)
+				}
+				var ownership api.QuotaOwnership
+				if err := json.Unmarshal([]byte(obj.GetAnnotations()[parsers.QuotaOwnershipAnnotation]), &ownership); err != nil {
+					t.Fatal(err)
+				}
+				ownership.SetSource(source)
+				ownership.SetPhase(phase)
+				ownership.SetRevision(int64(operation*3 + step + 1))
+				encoded, _ := json.Marshal(ownership)
+				obj.GetAnnotations()[parsers.QuotaOwnershipAnnotation] = string(encoded)
+				if err := c.Update(context.Background(), obj); err != nil {
+					t.Fatal(err)
+				}
+				var err error
+				if department {
+					err = NewDepartmentHandler(b, c).HandleUpdateItem(client.ObjectKeyFromObject(obj))
+				} else {
+					err = NewProjectHandler(b, c).HandleUpdateItem(client.ObjectKeyFromObject(obj))
+				}
+				if err != nil {
+					t.Fatal(err)
+				}
+				if uid != "uid" || snapshot == nil || snapshot.GetSource() != source || snapshot.GetControlPhase() != phase || snapshot.GetControlRevision() != ownership.GetRevision() {
+					t.Fatalf("lost trusted control snapshot: %+v UID %s", snapshot, uid)
+				}
+				if err := c.Get(context.Background(), client.ObjectKeyFromObject(obj), obj); err != nil {
+					t.Fatal(err)
+				}
+				var ack parsers.QuotaAck
+				if err := json.Unmarshal([]byte(obj.GetAnnotations()[parsers.QuotaAckAnnotation]), &ack); err != nil {
+					t.Fatal(err)
+				}
+				if ack.ControlRevision == nil || *ack.ControlRevision != ownership.GetRevision() || ack.ControlPhase == nil || *ack.ControlPhase != phase || ack.Source == nil || *ack.Source != source {
+					t.Fatalf("wrong native ACK: %+v", ack)
+				}
+			}
+		}
+		server.Close()
+	}
+}
+
 func TestQuotaAckCannotReplaceNewerObject(t *testing.T) {
 	for _, department := range []bool{false, true} {
 		c, obj := quotaFixture(t, department)
@@ -178,6 +244,37 @@ func TestQuotaAckCannotReplaceNewerObject(t *testing.T) {
 		}
 		if current.GetGeneration() != 2 || current.GetAnnotations()[parsers.QuotaAckAnnotation] != "" {
 			t.Fatal("newer object overwritten")
+		}
+	}
+}
+
+func TestNativeQuotaAckCannotCrossPhase(t *testing.T) {
+	for _, department := range []bool{false, true} {
+		c, obj := quotaFixture(t, department)
+		if err := c.Get(context.Background(), client.ObjectKeyFromObject(obj), obj); err != nil {
+			t.Fatal(err)
+		}
+		stale := obj.DeepCopyObject().(client.Object)
+		var marker api.QuotaOwnership
+		if err := json.Unmarshal([]byte(obj.GetAnnotations()[parsers.QuotaOwnershipAnnotation]), &marker); err != nil {
+			t.Fatal(err)
+		}
+		marker.SetSource("runai")
+		marker.SetPhase("freeze")
+		marker.SetRevision(1)
+		encoded, _ := json.Marshal(marker)
+		obj.GetAnnotations()[parsers.QuotaOwnershipAnnotation] = string(encoded)
+		if err := c.Update(context.Background(), obj); err != nil {
+			t.Fatal(err)
+		}
+		if err := recordOrgUnitSync(c, stale, metav1.Now()); err == nil {
+			t.Fatal("old phase ACK crossed metadata-only control update")
+		}
+		if err := c.Get(context.Background(), client.ObjectKeyFromObject(obj), obj); err != nil {
+			t.Fatal(err)
+		}
+		if obj.GetAnnotations()[parsers.QuotaAckAnnotation] != "" || obj.GetGeneration() != stale.GetGeneration() {
+			t.Fatal("ACK changed phase or generation")
 		}
 	}
 }

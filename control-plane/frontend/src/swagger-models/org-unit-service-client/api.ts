@@ -869,6 +869,12 @@ export interface Department {
     'overtimeData'?: OvertimeData;
     /**
      * 
+     * @type {QuotaManagement}
+     * @memberof Department
+     */
+    'quotaManagement'?: QuotaManagement;
+    /**
+     * 
      * @type {string}
      * @memberof Department
      */
@@ -934,6 +940,12 @@ export interface Department {
  * @interface DepartmentAllOf
  */
 export interface DepartmentAllOf {
+    /**
+     * 
+     * @type {QuotaManagement}
+     * @memberof DepartmentAllOf
+     */
+    'quotaManagement'?: QuotaManagement;
     /**
      * 
      * @type {string}
@@ -1324,6 +1336,12 @@ export interface DepartmentForList {
     'overtimeData'?: OvertimeData;
     /**
      * 
+     * @type {QuotaManagement}
+     * @memberof DepartmentForList
+     */
+    'quotaManagement'?: QuotaManagement;
+    /**
+     * 
      * @type {string}
      * @memberof DepartmentForList
      */
@@ -1383,6 +1401,12 @@ export interface DepartmentForList {
  * @interface DepartmentForListAllOf
  */
 export interface DepartmentForListAllOf {
+    /**
+     * 
+     * @type {QuotaManagement}
+     * @memberof DepartmentForListAllOf
+     */
+    'quotaManagement'?: QuotaManagement;
     /**
      * 
      * @type {string}
@@ -1725,6 +1749,12 @@ export interface DepartmentMetricsV1Response {
  */
 export interface DepartmentNodePoolResources {
     /**
+     * 
+     * @type {QuotaManagement}
+     * @memberof DepartmentNodePoolResources
+     */
+    'quotaManagement'?: QuotaManagement;
+    /**
      * The unique ID of the resources.
      * @type {string}
      * @memberof DepartmentNodePoolResources
@@ -1849,6 +1879,12 @@ export interface DepartmentProjectParent {
  */
 export interface DepartmentStatus {
     /**
+     * Actual Kubernetes object UID, reported only by authenticated cluster-sync.
+     * @type {string}
+     * @memberof DepartmentStatus
+     */
+    'kubernetesUid'?: string;
+    /**
      * 
      * @type {string}
      * @memberof DepartmentStatus
@@ -1861,6 +1897,12 @@ export interface DepartmentStatus {
  * @interface DepartmentStatusUpdateRequest
  */
 export interface DepartmentStatusUpdateRequest {
+    /**
+     * 
+     * @type {QuotaSnapshot}
+     * @memberof DepartmentStatusUpdateRequest
+     */
+    'quotaSnapshot'?: QuotaSnapshot | null;
     /**
      * The id of the cluster.
      * @type {string}
@@ -1899,6 +1941,12 @@ export interface DepartmentSumResponse {
  * @interface DepartmentSync
  */
 export interface DepartmentSync {
+    /**
+     * 
+     * @type {QuotaOwnership}
+     * @memberof DepartmentSync
+     */
+    'quotaOwnership'?: QuotaOwnership | null;
     /**
      * 
      * @type {string}
@@ -1974,6 +2022,12 @@ export interface DepartmentUpdateRequest {
      */
     'nodeTypes'?: NodeTypesPerWorkload;
     /**
+     * 
+     * @type {number}
+     * @memberof DepartmentUpdateRequest
+     */
+    'quotaManagementRevision'?: number;
+    /**
      * Resources assigned to this Organization per Node Pool
      * @type {Array<ResourcesNullable>}
      * @memberof DepartmentUpdateRequest
@@ -1986,6 +2040,12 @@ export interface DepartmentUpdateRequest {
  * @interface DepartmentUpdateRequestAllOf
  */
 export interface DepartmentUpdateRequestAllOf {
+    /**
+     * 
+     * @type {number}
+     * @memberof DepartmentUpdateRequestAllOf
+     */
+    'quotaManagementRevision'?: number;
     /**
      * Resources assigned to this Organization per Node Pool
      * @type {Array<ResourcesNullable>}
@@ -3260,6 +3320,12 @@ export interface NodePoolAssignedResourcesV1ResponseNodePool {
  */
 export interface NodePoolResourcesPatchRequest {
     /**
+     * 
+     * @type {number}
+     * @memberof NodePoolResourcesPatchRequest
+     */
+    'quotaManagementRevision'?: number;
+    /**
      * The project/department ID.
      * @type {string}
      * @memberof NodePoolResourcesPatchRequest
@@ -3850,6 +3916,12 @@ export interface Project {
     'nodeTypes'?: NodeTypesPerWorkload;
     /**
      * 
+     * @type {QuotaManagement}
+     * @memberof Project
+     */
+    'quotaManagement'?: QuotaManagement;
+    /**
+     * 
      * @type {string}
      * @memberof Project
      */
@@ -4052,6 +4124,12 @@ export interface ProjectAggregatedResourcesV1NodePool {
  * @interface ProjectAllOf
  */
 export interface ProjectAllOf {
+    /**
+     * 
+     * @type {QuotaManagement}
+     * @memberof ProjectAllOf
+     */
+    'quotaManagement'?: QuotaManagement;
     /**
      * 
      * @type {string}
@@ -4570,6 +4648,12 @@ export interface ProjectMetricsV1Response {
  */
 export interface ProjectNodePoolResources {
     /**
+     * 
+     * @type {QuotaManagement}
+     * @memberof ProjectNodePoolResources
+     */
+    'quotaManagement'?: QuotaManagement;
+    /**
      * The unique ID of the resources.
      * @type {string}
      * @memberof ProjectNodePoolResources
@@ -4720,6 +4804,12 @@ export interface ProjectQuotasV1Inner {
  */
 export interface ProjectStatus {
     /**
+     * Actual Kubernetes object UID, reported only by authenticated cluster-sync.
+     * @type {string}
+     * @memberof ProjectStatus
+     */
+    'kubernetesUid'?: string;
+    /**
      * the project\'s namespace
      * @type {string}
      * @memberof ProjectStatus
@@ -4770,6 +4860,12 @@ export interface ProjectStatus {
 export interface ProjectStatusUpdateRequest {
     /**
      * 
+     * @type {QuotaSnapshot}
+     * @memberof ProjectStatusUpdateRequest
+     */
+    'quotaSnapshot'?: QuotaSnapshot | null;
+    /**
+     * 
      * @type {string}
      * @memberof ProjectStatusUpdateRequest
      */
@@ -4793,6 +4889,12 @@ export interface ProjectStatusUpdateRequest {
  * @interface ProjectSync
  */
 export interface ProjectSync {
+    /**
+     * 
+     * @type {QuotaOwnership}
+     * @memberof ProjectSync
+     */
+    'quotaOwnership'?: QuotaOwnership | null;
     /**
      * 
      * @type {string}
@@ -4943,6 +5045,12 @@ export interface ProjectUpdateRequest {
      */
     'nodeTypes'?: NodeTypesPerWorkload;
     /**
+     * 
+     * @type {number}
+     * @memberof ProjectUpdateRequest
+     */
+    'quotaManagementRevision'?: number;
+    /**
      * a flag to enforce that all pods in this namespace will be scheduled with runai-scheduler. Supported for cluster v2.21+
      * @type {boolean}
      * @memberof ProjectUpdateRequest
@@ -4961,6 +5069,12 @@ export interface ProjectUpdateRequest {
  * @interface ProjectUpdateRequestAllOf
  */
 export interface ProjectUpdateRequestAllOf {
+    /**
+     * 
+     * @type {number}
+     * @memberof ProjectUpdateRequestAllOf
+     */
+    'quotaManagementRevision'?: number;
     /**
      * a flag to enforce that all pods in this namespace will be scheduled with runai-scheduler. Supported for cluster v2.21+
      * @type {boolean}
@@ -5959,6 +6073,321 @@ export interface ProjectsResourcesResetRequestAllOf {
     'parentId'?: string;
 }
 /**
+ * 
+ * @export
+ * @interface QuotaManagement
+ */
+export interface QuotaManagement {
+    /**
+     * 
+     * @type {string}
+     * @memberof QuotaManagement
+     */
+    'source': QuotaManagementSourceEnum;
+    /**
+     * 
+     * @type {string}
+     * @memberof QuotaManagement
+     */
+    'requestedSource': QuotaManagementRequestedSourceEnum;
+    /**
+     * 
+     * @type {number}
+     * @memberof QuotaManagement
+     */
+    'revision': number;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof QuotaManagement
+     */
+    'canEditQuotas': boolean;
+    /**
+     * 
+     * @type {QuotaManagementSyncStatus}
+     * @memberof QuotaManagement
+     */
+    'syncStatus': QuotaManagementSyncStatus;
+}
+
+export const QuotaManagementSourceEnum = {
+    Runai: 'runai',
+    Kubernetes: 'kubernetes'
+} as const;
+
+export type QuotaManagementSourceEnum = typeof QuotaManagementSourceEnum[keyof typeof QuotaManagementSourceEnum];
+export const QuotaManagementRequestedSourceEnum = {
+    Runai: 'runai',
+    Kubernetes: 'kubernetes'
+} as const;
+
+export type QuotaManagementRequestedSourceEnum = typeof QuotaManagementRequestedSourceEnum[keyof typeof QuotaManagementRequestedSourceEnum];
+
+/**
+ * 
+ * @export
+ * @interface QuotaManagementSyncStatus
+ */
+export interface QuotaManagementSyncStatus {
+    /**
+     * 
+     * @type {string}
+     * @memberof QuotaManagementSyncStatus
+     */
+    'phase': QuotaManagementSyncStatusPhaseEnum;
+    /**
+     * 
+     * @type {string}
+     * @memberof QuotaManagementSyncStatus
+     */
+    'message'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof QuotaManagementSyncStatus
+     */
+    'lastSyncedAt'?: string | null;
+}
+
+export const QuotaManagementSyncStatusPhaseEnum = {
+    Pending: 'pending',
+    Synced: 'synced',
+    Error: 'error'
+} as const;
+
+export type QuotaManagementSyncStatusPhaseEnum = typeof QuotaManagementSyncStatusPhaseEnum[keyof typeof QuotaManagementSyncStatusPhaseEnum];
+
+/**
+ * Trusted active Kubernetes quota enrollment. Absent for API-managed objects and prepared enrollments.
+ * @export
+ * @interface QuotaOwnership
+ */
+export interface QuotaOwnership {
+    /**
+     * Target authority. Absent means legacy Kubernetes ownership.
+     * @type {string}
+     * @memberof QuotaOwnership
+     */
+    'source'?: QuotaOwnershipSourceEnum;
+    /**
+     * 
+     * @type {string}
+     * @memberof QuotaOwnership
+     */
+    'phase'?: QuotaOwnershipPhaseEnum;
+    /**
+     * 
+     * @type {number}
+     * @memberof QuotaOwnership
+     */
+    'revision'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof QuotaOwnership
+     */
+    'epoch': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof QuotaOwnership
+     */
+    'kubernetesUid': string;
+    /**
+     * 
+     * @type {Array<QuotaOwnershipPool>}
+     * @memberof QuotaOwnership
+     */
+    'pools': Array<QuotaOwnershipPool>;
+}
+
+export const QuotaOwnershipSourceEnum = {
+    Runai: 'runai',
+    Kubernetes: 'kubernetes'
+} as const;
+
+export type QuotaOwnershipSourceEnum = typeof QuotaOwnershipSourceEnum[keyof typeof QuotaOwnershipSourceEnum];
+export const QuotaOwnershipPhaseEnum = {
+    Freeze: 'freeze',
+    Release: 'release',
+    Stable: 'stable'
+} as const;
+
+export type QuotaOwnershipPhaseEnum = typeof QuotaOwnershipPhaseEnum[keyof typeof QuotaOwnershipPhaseEnum];
+
+/**
+ * 
+ * @export
+ * @interface QuotaOwnershipPool
+ */
+export interface QuotaOwnershipPool {
+    /**
+     * 
+     * @type {string}
+     * @memberof QuotaOwnershipPool
+     */
+    'nodePoolId': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof QuotaOwnershipPool
+     */
+    'nodePoolName': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof QuotaOwnershipPool
+     */
+    'queueName': string;
+}
+/**
+ * Complete enrolled-pool quotas from Kubernetes. Generation is metadata.generation, CPU is millicores and memory is decimal megabytes. No defaults are applied.
+ * @export
+ * @interface QuotaSnapshot
+ */
+export interface QuotaSnapshot {
+    /**
+     * 
+     * @type {number}
+     * @memberof QuotaSnapshot
+     */
+    'controlRevision'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof QuotaSnapshot
+     */
+    'controlPhase'?: QuotaSnapshotControlPhaseEnum;
+    /**
+     * 
+     * @type {string}
+     * @memberof QuotaSnapshot
+     */
+    'source'?: QuotaSnapshotSourceEnum;
+    /**
+     * 
+     * @type {string}
+     * @memberof QuotaSnapshot
+     */
+    'epoch': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof QuotaSnapshot
+     */
+    'kubernetesUid': string;
+    /**
+     * 
+     * @type {number}
+     * @memberof QuotaSnapshot
+     */
+    'generation': number;
+    /**
+     * 
+     * @type {Array<QuotaSnapshotPool>}
+     * @memberof QuotaSnapshot
+     */
+    'pools': Array<QuotaSnapshotPool>;
+}
+
+export const QuotaSnapshotControlPhaseEnum = {
+    Freeze: 'freeze',
+    Release: 'release',
+    Stable: 'stable'
+} as const;
+
+export type QuotaSnapshotControlPhaseEnum = typeof QuotaSnapshotControlPhaseEnum[keyof typeof QuotaSnapshotControlPhaseEnum];
+export const QuotaSnapshotSourceEnum = {
+    Runai: 'runai',
+    Kubernetes: 'kubernetes'
+} as const;
+
+export type QuotaSnapshotSourceEnum = typeof QuotaSnapshotSourceEnum[keyof typeof QuotaSnapshotSourceEnum];
+
+/**
+ * 
+ * @export
+ * @interface QuotaSnapshotPool
+ */
+export interface QuotaSnapshotPool {
+    /**
+     * 
+     * @type {string}
+     * @memberof QuotaSnapshotPool
+     */
+    'nodePoolId': string;
+    /**
+     * 
+     * @type {QuotaSnapshotResource}
+     * @memberof QuotaSnapshotPool
+     */
+    'gpu': QuotaSnapshotResource;
+    /**
+     * 
+     * @type {QuotaSnapshotResource}
+     * @memberof QuotaSnapshotPool
+     */
+    'cpu': QuotaSnapshotResource;
+    /**
+     * 
+     * @type {QuotaSnapshotResource}
+     * @memberof QuotaSnapshotPool
+     */
+    'memory': QuotaSnapshotResource;
+}
+/**
+ * All three numeric leaves are mandatory and must be non-null. Minus one means unlimited for deserved or limit. Weight must be nonnegative.
+ * @export
+ * @interface QuotaSnapshotResource
+ */
+export interface QuotaSnapshotResource {
+    /**
+     * 
+     * @type {number}
+     * @memberof QuotaSnapshotResource
+     */
+    'deserved': number | null;
+    /**
+     * 
+     * @type {number}
+     * @memberof QuotaSnapshotResource
+     */
+    'limit': number | null;
+    /**
+     * 
+     * @type {number}
+     * @memberof QuotaSnapshotResource
+     */
+    'overQuotaWeight': number | null;
+}
+/**
+ * 
+ * @export
+ * @interface QuotaSourceUpdateRequest
+ */
+export interface QuotaSourceUpdateRequest {
+    /**
+     * 
+     * @type {string}
+     * @memberof QuotaSourceUpdateRequest
+     */
+    'source': QuotaSourceUpdateRequestSourceEnum;
+    /**
+     * 
+     * @type {number}
+     * @memberof QuotaSourceUpdateRequest
+     */
+    'expectedRevision': number;
+}
+
+export const QuotaSourceUpdateRequestSourceEnum = {
+    Runai: 'runai',
+    Kubernetes: 'kubernetes'
+} as const;
+
+export type QuotaSourceUpdateRequestSourceEnum = typeof QuotaSourceUpdateRequestSourceEnum[keyof typeof QuotaSourceUpdateRequestSourceEnum];
+
+/**
  * Sum of all quota statuses of all the node pools
  * @export
  * @interface QuotaStatus
@@ -6709,6 +7138,12 @@ export interface ResourcesNodePool {
  * @interface ResourcesNullable
  */
 export interface ResourcesNullable {
+    /**
+     * 
+     * @type {number}
+     * @memberof ResourcesNullable
+     */
+    'quotaManagementRevision'?: number;
     /**
      * 
      * @type {ResourcesNodePool}
@@ -7728,6 +8163,44 @@ export const DepartmentsApiAxiosParamCreator = function (configuration?: Configu
             };
         },
         /**
+         * 
+         * @summary Get department quota source
+         * @param {string} departmentId The id of the department.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getDepartmentQuotaSource: async (departmentId: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'departmentId' is not null or undefined
+            assertParamExists('getDepartmentQuotaSource', 'departmentId', departmentId)
+            const localVarPath = `/api/v1/org-unit/departments/{departmentId}/quota-source`
+                .replace(`{${"departmentId"}}`, encodeURIComponent(String(departmentId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication bearerAuth required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
          * list departments
          * @summary Get departments
          * @param {Array<string>} [filterBy] Filter results by a parameter. Use the format field-name operator value. Operators are &#x3D;&#x3D; Equals, !&#x3D; Not equals, &lt;&#x3D; Less than or equal, &gt;&#x3D; Greater than or equal, &#x3D;@ contains, !@ Does not contains, &#x3D;^ Starts with and &#x3D;$ Ends with. Dates are in ISO 8601 timestamp format and available for operators &#x3D;&#x3D;, !&#x3D;, &lt;&#x3D; and &gt;&#x3D;.
@@ -8146,6 +8619,50 @@ export const DepartmentsApiAxiosParamCreator = function (configuration?: Configu
             };
         },
         /**
+         * 
+         * @summary Set department quota source for all node pools
+         * @param {string} departmentId The id of the department.
+         * @param {QuotaSourceUpdateRequest} quotaSourceUpdateRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        updateDepartmentQuotaSource: async (departmentId: string, quotaSourceUpdateRequest: QuotaSourceUpdateRequest, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'departmentId' is not null or undefined
+            assertParamExists('updateDepartmentQuotaSource', 'departmentId', departmentId)
+            // verify required parameter 'quotaSourceUpdateRequest' is not null or undefined
+            assertParamExists('updateDepartmentQuotaSource', 'quotaSourceUpdateRequest', quotaSourceUpdateRequest)
+            const localVarPath = `/api/v1/org-unit/departments/{departmentId}/quota-source`
+                .replace(`{${"departmentId"}}`, encodeURIComponent(String(departmentId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PUT', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication bearerAuth required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(quotaSourceUpdateRequest, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
          * Update department resources by Id
          * @summary Update department resources
          * @param {string} departmentId The id of the department.
@@ -8366,6 +8883,17 @@ export const DepartmentsApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
+         * 
+         * @summary Get department quota source
+         * @param {string} departmentId The id of the department.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getDepartmentQuotaSource(departmentId: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<QuotaManagement>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getDepartmentQuotaSource(departmentId, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
          * list departments
          * @summary Get departments
          * @param {Array<string>} [filterBy] Filter results by a parameter. Use the format field-name operator value. Operators are &#x3D;&#x3D; Equals, !&#x3D; Not equals, &lt;&#x3D; Less than or equal, &gt;&#x3D; Greater than or equal, &#x3D;@ contains, !@ Does not contains, &#x3D;^ Starts with and &#x3D;$ Ends with. Dates are in ISO 8601 timestamp format and available for operators &#x3D;&#x3D;, !&#x3D;, &lt;&#x3D; and &gt;&#x3D;.
@@ -8469,6 +8997,18 @@ export const DepartmentsApiFp = function(configuration?: Configuration) {
          */
         async updateDepartment(departmentId: string, departmentUpdateRequest: DepartmentUpdateRequest, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Department>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.updateDepartment(departmentId, departmentUpdateRequest, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * 
+         * @summary Set department quota source for all node pools
+         * @param {string} departmentId The id of the department.
+         * @param {QuotaSourceUpdateRequest} quotaSourceUpdateRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async updateDepartmentQuotaSource(departmentId: string, quotaSourceUpdateRequest: QuotaSourceUpdateRequest, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<QuotaManagement>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.updateDepartmentQuotaSource(departmentId, quotaSourceUpdateRequest, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
@@ -8618,6 +9158,16 @@ export const DepartmentsApiFactory = function (configuration?: Configuration, ba
             return localVarFp.getDepartmentNodePoolResources(filterBy, sortBy, sortOrder, offset, limit, search, options).then((request) => request(axios, basePath));
         },
         /**
+         * 
+         * @summary Get department quota source
+         * @param {string} departmentId The id of the department.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getDepartmentQuotaSource(departmentId: string, options?: any): AxiosPromise<QuotaManagement> {
+            return localVarFp.getDepartmentQuotaSource(departmentId, options).then((request) => request(axios, basePath));
+        },
+        /**
          * list departments
          * @summary Get departments
          * @param {Array<string>} [filterBy] Filter results by a parameter. Use the format field-name operator value. Operators are &#x3D;&#x3D; Equals, !&#x3D; Not equals, &lt;&#x3D; Less than or equal, &gt;&#x3D; Greater than or equal, &#x3D;@ contains, !@ Does not contains, &#x3D;^ Starts with and &#x3D;$ Ends with. Dates are in ISO 8601 timestamp format and available for operators &#x3D;&#x3D;, !&#x3D;, &lt;&#x3D; and &gt;&#x3D;.
@@ -8714,6 +9264,17 @@ export const DepartmentsApiFactory = function (configuration?: Configuration, ba
          */
         updateDepartment(departmentId: string, departmentUpdateRequest: DepartmentUpdateRequest, options?: any): AxiosPromise<Department> {
             return localVarFp.updateDepartment(departmentId, departmentUpdateRequest, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @summary Set department quota source for all node pools
+         * @param {string} departmentId The id of the department.
+         * @param {QuotaSourceUpdateRequest} quotaSourceUpdateRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        updateDepartmentQuotaSource(departmentId: string, quotaSourceUpdateRequest: QuotaSourceUpdateRequest, options?: any): AxiosPromise<QuotaManagement> {
+            return localVarFp.updateDepartmentQuotaSource(departmentId, quotaSourceUpdateRequest, options).then((request) => request(axios, basePath));
         },
         /**
          * Update department resources by Id
@@ -8880,6 +9441,18 @@ export class DepartmentsApi extends BaseAPI {
     }
 
     /**
+     * 
+     * @summary Get department quota source
+     * @param {string} departmentId The id of the department.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DepartmentsApi
+     */
+    public getDepartmentQuotaSource(departmentId: string, options?: AxiosRequestConfig) {
+        return DepartmentsApiFp(this.configuration).getDepartmentQuotaSource(departmentId, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
      * list departments
      * @summary Get departments
      * @param {Array<string>} [filterBy] Filter results by a parameter. Use the format field-name operator value. Operators are &#x3D;&#x3D; Equals, !&#x3D; Not equals, &lt;&#x3D; Less than or equal, &gt;&#x3D; Greater than or equal, &#x3D;@ contains, !@ Does not contains, &#x3D;^ Starts with and &#x3D;$ Ends with. Dates are in ISO 8601 timestamp format and available for operators &#x3D;&#x3D;, !&#x3D;, &lt;&#x3D; and &gt;&#x3D;.
@@ -8991,6 +9564,19 @@ export class DepartmentsApi extends BaseAPI {
      */
     public updateDepartment(departmentId: string, departmentUpdateRequest: DepartmentUpdateRequest, options?: AxiosRequestConfig) {
         return DepartmentsApiFp(this.configuration).updateDepartment(departmentId, departmentUpdateRequest, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @summary Set department quota source for all node pools
+     * @param {string} departmentId The id of the department.
+     * @param {QuotaSourceUpdateRequest} quotaSourceUpdateRequest 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DepartmentsApi
+     */
+    public updateDepartmentQuotaSource(departmentId: string, quotaSourceUpdateRequest: QuotaSourceUpdateRequest, options?: AxiosRequestConfig) {
+        return DepartmentsApiFp(this.configuration).updateDepartmentQuotaSource(departmentId, quotaSourceUpdateRequest, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -11239,6 +11825,44 @@ export const ProjectsApiAxiosParamCreator = function (configuration?: Configurat
             };
         },
         /**
+         * 
+         * @summary Get project quota source
+         * @param {string} projectId The project id
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getProjectQuotaSource: async (projectId: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectId' is not null or undefined
+            assertParamExists('getProjectQuotaSource', 'projectId', projectId)
+            const localVarPath = `/api/v1/org-unit/projects/{projectId}/quota-source`
+                .replace(`{${"projectId"}}`, encodeURIComponent(String(projectId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication bearerAuth required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
          * List projects
          * @summary Get projects
          * @param {Array<string>} [filterBy] Filter results by a parameter. Use the format field-name operator value. Operators are &#x3D;&#x3D; Equals, !&#x3D; Not equals, &lt;&#x3D; Less than or equal, &gt;&#x3D; Greater than or equal, &#x3D;@ contains, !@ Does not contains, &#x3D;^ Starts with and &#x3D;$ Ends with. Dates are in ISO 8601 timestamp format and available for operators &#x3D;&#x3D;, !&#x3D;, &lt;&#x3D; and &gt;&#x3D;.
@@ -11775,6 +12399,50 @@ export const ProjectsApiAxiosParamCreator = function (configuration?: Configurat
             };
         },
         /**
+         * 
+         * @summary Set project quota source for all node pools
+         * @param {string} projectId The project id
+         * @param {QuotaSourceUpdateRequest} quotaSourceUpdateRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        updateProjectQuotaSource: async (projectId: string, quotaSourceUpdateRequest: QuotaSourceUpdateRequest, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectId' is not null or undefined
+            assertParamExists('updateProjectQuotaSource', 'projectId', projectId)
+            // verify required parameter 'quotaSourceUpdateRequest' is not null or undefined
+            assertParamExists('updateProjectQuotaSource', 'quotaSourceUpdateRequest', quotaSourceUpdateRequest)
+            const localVarPath = `/api/v1/org-unit/projects/{projectId}/quota-source`
+                .replace(`{${"projectId"}}`, encodeURIComponent(String(projectId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PUT', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication bearerAuth required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(quotaSourceUpdateRequest, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
          * Update projects resources
          * @summary Update project resources
          * @param {string} projectId The project id
@@ -12000,6 +12668,17 @@ export const ProjectsApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
+         * 
+         * @summary Get project quota source
+         * @param {string} projectId The project id
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getProjectQuotaSource(projectId: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<QuotaManagement>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getProjectQuotaSource(projectId, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
          * List projects
          * @summary Get projects
          * @param {Array<string>} [filterBy] Filter results by a parameter. Use the format field-name operator value. Operators are &#x3D;&#x3D; Equals, !&#x3D; Not equals, &lt;&#x3D; Less than or equal, &gt;&#x3D; Greater than or equal, &#x3D;@ contains, !@ Does not contains, &#x3D;^ Starts with and &#x3D;$ Ends with. Dates are in ISO 8601 timestamp format and available for operators &#x3D;&#x3D;, !&#x3D;, &lt;&#x3D; and &gt;&#x3D;.
@@ -12133,6 +12812,18 @@ export const ProjectsApiFp = function(configuration?: Configuration) {
          */
         async updateProject(projectId: string, projectUpdateRequest: ProjectUpdateRequest, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Project>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.updateProject(projectId, projectUpdateRequest, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * 
+         * @summary Set project quota source for all node pools
+         * @param {string} projectId The project id
+         * @param {QuotaSourceUpdateRequest} quotaSourceUpdateRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async updateProjectQuotaSource(projectId: string, quotaSourceUpdateRequest: QuotaSourceUpdateRequest, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<QuotaManagement>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.updateProjectQuotaSource(projectId, quotaSourceUpdateRequest, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
@@ -12290,6 +12981,16 @@ export const ProjectsApiFactory = function (configuration?: Configuration, baseP
             return localVarFp.getProjectNodePoolResources(filterBy, sortBy, sortOrder, offset, limit, search, options).then((request) => request(axios, basePath));
         },
         /**
+         * 
+         * @summary Get project quota source
+         * @param {string} projectId The project id
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getProjectQuotaSource(projectId: string, options?: any): AxiosPromise<QuotaManagement> {
+            return localVarFp.getProjectQuotaSource(projectId, options).then((request) => request(axios, basePath));
+        },
+        /**
          * List projects
          * @summary Get projects
          * @param {Array<string>} [filterBy] Filter results by a parameter. Use the format field-name operator value. Operators are &#x3D;&#x3D; Equals, !&#x3D; Not equals, &lt;&#x3D; Less than or equal, &gt;&#x3D; Greater than or equal, &#x3D;@ contains, !@ Does not contains, &#x3D;^ Starts with and &#x3D;$ Ends with. Dates are in ISO 8601 timestamp format and available for operators &#x3D;&#x3D;, !&#x3D;, &lt;&#x3D; and &gt;&#x3D;.
@@ -12414,6 +13115,17 @@ export const ProjectsApiFactory = function (configuration?: Configuration, baseP
          */
         updateProject(projectId: string, projectUpdateRequest: ProjectUpdateRequest, options?: any): AxiosPromise<Project> {
             return localVarFp.updateProject(projectId, projectUpdateRequest, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @summary Set project quota source for all node pools
+         * @param {string} projectId The project id
+         * @param {QuotaSourceUpdateRequest} quotaSourceUpdateRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        updateProjectQuotaSource(projectId: string, quotaSourceUpdateRequest: QuotaSourceUpdateRequest, options?: any): AxiosPromise<QuotaManagement> {
+            return localVarFp.updateProjectQuotaSource(projectId, quotaSourceUpdateRequest, options).then((request) => request(axios, basePath));
         },
         /**
          * Update projects resources
@@ -12588,6 +13300,18 @@ export class ProjectsApi extends BaseAPI {
     }
 
     /**
+     * 
+     * @summary Get project quota source
+     * @param {string} projectId The project id
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ProjectsApi
+     */
+    public getProjectQuotaSource(projectId: string, options?: AxiosRequestConfig) {
+        return ProjectsApiFp(this.configuration).getProjectQuotaSource(projectId, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
      * List projects
      * @summary Get projects
      * @param {Array<string>} [filterBy] Filter results by a parameter. Use the format field-name operator value. Operators are &#x3D;&#x3D; Equals, !&#x3D; Not equals, &lt;&#x3D; Less than or equal, &gt;&#x3D; Greater than or equal, &#x3D;@ contains, !@ Does not contains, &#x3D;^ Starts with and &#x3D;$ Ends with. Dates are in ISO 8601 timestamp format and available for operators &#x3D;&#x3D;, !&#x3D;, &lt;&#x3D; and &gt;&#x3D;.
@@ -12731,6 +13455,19 @@ export class ProjectsApi extends BaseAPI {
      */
     public updateProject(projectId: string, projectUpdateRequest: ProjectUpdateRequest, options?: AxiosRequestConfig) {
         return ProjectsApiFp(this.configuration).updateProject(projectId, projectUpdateRequest, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @summary Set project quota source for all node pools
+     * @param {string} projectId The project id
+     * @param {QuotaSourceUpdateRequest} quotaSourceUpdateRequest 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ProjectsApi
+     */
+    public updateProjectQuotaSource(projectId: string, quotaSourceUpdateRequest: QuotaSourceUpdateRequest, options?: AxiosRequestConfig) {
+        return ProjectsApiFp(this.configuration).updateProjectQuotaSource(projectId, quotaSourceUpdateRequest, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**

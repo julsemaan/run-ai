@@ -4,6 +4,7 @@
  */
 
 import type { ITableColumn } from "@/models/table.model";
+import type { QuotaManagement } from "@/models/quota-management.model";
 import {
   type DepartmentGetRanking,
   DepartmentNodePoolResourcesFilterSortFields,
@@ -205,6 +206,8 @@ export const departmentsRankingColumns: ITableColumn[] = [
  * Row interface for quota table
  */
 export interface IQuotaTableRow {
+  quotaManagement?: QuotaManagement;
+  readOnly?: boolean;
   id: string;
   name: string;
   gpuQuota: number | null;

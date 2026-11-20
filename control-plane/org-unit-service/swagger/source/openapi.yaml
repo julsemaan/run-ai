@@ -78,6 +78,8 @@ paths:
     $ref: "./requests/departments/Department.yaml"
   /api/v1/org-unit/departments/{departmentId}:
     $ref: "./requests/departments/DepartmentById.yaml"
+  /api/v1/org-unit/departments/{departmentId}/quota-source:
+    $ref: './requests/departments/QuotaSource.yaml'
   /api/v1/org-unit/departments/{departmentId}/resources:
     $ref: "./requests/departments/DepartmentResources.yaml"
   /api/v1/org-unit/departments/{departmentId}/metrics:
@@ -96,6 +98,8 @@ paths:
     $ref: "./requests/projects/ProjectsMetadata.yaml"
   /api/v1/org-unit/projects/{projectId}:
     $ref: "./requests/projects/ProjectById.yaml"
+  /api/v1/org-unit/projects/{projectId}/quota-source:
+    $ref: './requests/projects/QuotaSource.yaml'
   /api/v1/org-unit/projects/{projectId}/resources:
     $ref: "./requests/projects/ProjectResources.yaml"
   /api/v1/org-unit/projects/{projectId}/metrics:

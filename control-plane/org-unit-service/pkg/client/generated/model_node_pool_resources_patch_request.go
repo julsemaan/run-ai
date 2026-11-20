@@ -24,6 +24,7 @@ var _ MappedNullable = &NodePoolResourcesPatchRequest{}
 
 // NodePoolResourcesPatchRequest struct for NodePoolResourcesPatchRequest
 type NodePoolResourcesPatchRequest struct {
+	QuotaManagementRevision *int64 `json:"quotaManagementRevision,omitempty"`
 	// The project/department ID.
 	OrgUnitId  string                               `json:"orgUnitId"`
 	NodePoolId string                               `json:"nodePoolId"`
@@ -50,6 +51,38 @@ func NewNodePoolResourcesPatchRequest(orgUnitId string, nodePoolId string) *Node
 func NewNodePoolResourcesPatchRequestWithDefaults() *NodePoolResourcesPatchRequest {
 	this := NodePoolResourcesPatchRequest{}
 	return &this
+}
+
+// GetQuotaManagementRevision returns the QuotaManagementRevision field value if set, zero value otherwise.
+func (o *NodePoolResourcesPatchRequest) GetQuotaManagementRevision() int64 {
+	if o == nil || IsNil(o.QuotaManagementRevision) {
+		var ret int64
+		return ret
+	}
+	return *o.QuotaManagementRevision
+}
+
+// GetQuotaManagementRevisionOk returns a tuple with the QuotaManagementRevision field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *NodePoolResourcesPatchRequest) GetQuotaManagementRevisionOk() (*int64, bool) {
+	if o == nil || IsNil(o.QuotaManagementRevision) {
+		return nil, false
+	}
+	return o.QuotaManagementRevision, true
+}
+
+// HasQuotaManagementRevision returns a boolean if a field has been set.
+func (o *NodePoolResourcesPatchRequest) HasQuotaManagementRevision() bool {
+	if o != nil && !IsNil(o.QuotaManagementRevision) {
+		return true
+	}
+
+	return false
+}
+
+// SetQuotaManagementRevision gets a reference to the given int64 and assigns it to the QuotaManagementRevision field.
+func (o *NodePoolResourcesPatchRequest) SetQuotaManagementRevision(v int64) {
+	o.QuotaManagementRevision = &v
 }
 
 // GetOrgUnitId returns the OrgUnitId field value
@@ -196,6 +229,9 @@ func (o NodePoolResourcesPatchRequest) MarshalJSON() ([]byte, error) {
 
 func (o NodePoolResourcesPatchRequest) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
+	if !IsNil(o.QuotaManagementRevision) {
+		toSerialize["quotaManagementRevision"] = o.QuotaManagementRevision
+	}
 	toSerialize["orgUnitId"] = o.OrgUnitId
 	toSerialize["nodePoolId"] = o.NodePoolId
 	if o.Rank.IsSet() {

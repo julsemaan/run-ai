@@ -24,10 +24,13 @@ var _ MappedNullable = &QuotaSnapshot{}
 
 // QuotaSnapshot Complete enrolled-pool quotas from Kubernetes. Generation is metadata.generation, CPU is millicores and memory is decimal megabytes. No defaults are applied.
 type QuotaSnapshot struct {
-	Epoch         string              `json:"epoch"`
-	KubernetesUid string              `json:"kubernetesUid"`
-	Generation    int64               `json:"generation"`
-	Pools         []QuotaSnapshotPool `json:"pools"`
+	ControlRevision *int64              `json:"controlRevision,omitempty"`
+	ControlPhase    *string             `json:"controlPhase,omitempty"`
+	Source          *string             `json:"source,omitempty"`
+	Epoch           string              `json:"epoch"`
+	KubernetesUid   string              `json:"kubernetesUid"`
+	Generation      int64               `json:"generation"`
+	Pools           []QuotaSnapshotPool `json:"pools"`
 }
 
 type _QuotaSnapshot QuotaSnapshot
@@ -51,6 +54,102 @@ func NewQuotaSnapshot(epoch string, kubernetesUid string, generation int64, pool
 func NewQuotaSnapshotWithDefaults() *QuotaSnapshot {
 	this := QuotaSnapshot{}
 	return &this
+}
+
+// GetControlRevision returns the ControlRevision field value if set, zero value otherwise.
+func (o *QuotaSnapshot) GetControlRevision() int64 {
+	if o == nil || IsNil(o.ControlRevision) {
+		var ret int64
+		return ret
+	}
+	return *o.ControlRevision
+}
+
+// GetControlRevisionOk returns a tuple with the ControlRevision field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *QuotaSnapshot) GetControlRevisionOk() (*int64, bool) {
+	if o == nil || IsNil(o.ControlRevision) {
+		return nil, false
+	}
+	return o.ControlRevision, true
+}
+
+// HasControlRevision returns a boolean if a field has been set.
+func (o *QuotaSnapshot) HasControlRevision() bool {
+	if o != nil && !IsNil(o.ControlRevision) {
+		return true
+	}
+
+	return false
+}
+
+// SetControlRevision gets a reference to the given int64 and assigns it to the ControlRevision field.
+func (o *QuotaSnapshot) SetControlRevision(v int64) {
+	o.ControlRevision = &v
+}
+
+// GetControlPhase returns the ControlPhase field value if set, zero value otherwise.
+func (o *QuotaSnapshot) GetControlPhase() string {
+	if o == nil || IsNil(o.ControlPhase) {
+		var ret string
+		return ret
+	}
+	return *o.ControlPhase
+}
+
+// GetControlPhaseOk returns a tuple with the ControlPhase field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *QuotaSnapshot) GetControlPhaseOk() (*string, bool) {
+	if o == nil || IsNil(o.ControlPhase) {
+		return nil, false
+	}
+	return o.ControlPhase, true
+}
+
+// HasControlPhase returns a boolean if a field has been set.
+func (o *QuotaSnapshot) HasControlPhase() bool {
+	if o != nil && !IsNil(o.ControlPhase) {
+		return true
+	}
+
+	return false
+}
+
+// SetControlPhase gets a reference to the given string and assigns it to the ControlPhase field.
+func (o *QuotaSnapshot) SetControlPhase(v string) {
+	o.ControlPhase = &v
+}
+
+// GetSource returns the Source field value if set, zero value otherwise.
+func (o *QuotaSnapshot) GetSource() string {
+	if o == nil || IsNil(o.Source) {
+		var ret string
+		return ret
+	}
+	return *o.Source
+}
+
+// GetSourceOk returns a tuple with the Source field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *QuotaSnapshot) GetSourceOk() (*string, bool) {
+	if o == nil || IsNil(o.Source) {
+		return nil, false
+	}
+	return o.Source, true
+}
+
+// HasSource returns a boolean if a field has been set.
+func (o *QuotaSnapshot) HasSource() bool {
+	if o != nil && !IsNil(o.Source) {
+		return true
+	}
+
+	return false
+}
+
+// SetSource gets a reference to the given string and assigns it to the Source field.
+func (o *QuotaSnapshot) SetSource(v string) {
+	o.Source = &v
 }
 
 // GetEpoch returns the Epoch field value
@@ -159,6 +258,15 @@ func (o QuotaSnapshot) MarshalJSON() ([]byte, error) {
 
 func (o QuotaSnapshot) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
+	if !IsNil(o.ControlRevision) {
+		toSerialize["controlRevision"] = o.ControlRevision
+	}
+	if !IsNil(o.ControlPhase) {
+		toSerialize["controlPhase"] = o.ControlPhase
+	}
+	if !IsNil(o.Source) {
+		toSerialize["source"] = o.Source
+	}
 	toSerialize["epoch"] = o.Epoch
 	toSerialize["kubernetesUid"] = o.KubernetesUid
 	toSerialize["generation"] = o.Generation

@@ -18,6 +18,7 @@ func ParseKaiDepartmentToUpdateStatusRequest(department *kaiv1alpha1.Department)
 	return org_unit_openapi.DepartmentStatusUpdateRequest{
 		ClusterId: &config.Config().ClusterUuid,
 		Status: org_unit_openapi.DepartmentStatus{
+			KubernetesUid:   ptr.To(string(department.UID)),
 			LastUpdatedTime: *org_unit_openapi.NewNullableTime(ptr.To(lastSyncTimeFromAnnotations(department.Annotations))),
 		},
 	}

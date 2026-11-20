@@ -3,6 +3,10 @@ required:
   - orgUnitId
   - nodePoolId
 properties:
+  quotaManagementRevision:
+    type: integer
+    format: int64
+    minimum: 0
   orgUnitId:
     description: The project/department ID.
     type: string

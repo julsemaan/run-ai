@@ -983,6 +983,66 @@ paths:
           $ref: '#/components/responses/404NotFound'
         '503':
           $ref: '#/components/responses/503ServiceUnavailable'
+  /api/v1/org-unit/departments/{departmentId}/quota-source:
+    parameters:
+      - $ref: '#/components/parameters/DepartmentId'
+    get:
+      summary: Get department quota source
+      operationId: get_department_quota_source
+      x-service: org-unit-service
+      x-authorize:
+        resource-type: department
+        action: read
+        resource-id: departmentId
+      tags:
+        - Departments
+      responses:
+        '200':
+          description: Current quota authority and synchronization state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuotaManagement'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+    put:
+      summary: Set department quota source for all node pools
+      operationId: update_department_quota_source
+      x-service: org-unit-service
+      x-authorize:
+        resource-type: department
+        action: update
+        resource-id: departmentId
+      x-audit: true
+      tags:
+        - Departments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuotaSourceUpdateRequest'
+      responses:
+        '200':
+          description: Current quota authority and synchronization state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuotaManagement'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '409':
+          description: Stale revision or conflicting pending transfer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /api/v1/org-unit/departments/{departmentId}/resources:
     put:
       summary: Update department resources
@@ -1451,6 +1511,66 @@ paths:
           $ref: '#/components/responses/500InternalServerError'
         '503':
           $ref: '#/components/responses/503ServiceUnavailable'
+  /api/v1/org-unit/projects/{projectId}/quota-source:
+    parameters:
+      - $ref: '#/components/parameters/ProjectId'
+    get:
+      summary: Get project quota source
+      operationId: get_project_quota_source
+      x-service: org-unit-service
+      x-authorize:
+        resource-type: project
+        action: read
+        resource-id: projectId
+      tags:
+        - Projects
+      responses:
+        '200':
+          description: Current quota authority and synchronization state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuotaManagement'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+    put:
+      summary: Set project quota source for all node pools
+      operationId: update_project_quota_source
+      x-service: org-unit-service
+      x-authorize:
+        resource-type: project
+        action: update
+        resource-id: projectId
+      x-audit: true
+      tags:
+        - Projects
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuotaSourceUpdateRequest'
+      responses:
+        '200':
+          description: Current quota authority and synchronization state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuotaManagement'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '409':
+          description: Stale revision or conflicting pending transfer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /api/v1/org-unit/projects/{projectId}/resources:
     put:
       summary: Update project resources
@@ -4053,6 +4173,50 @@ components:
               $ref: '#/components/schemas/ClusterId'
             overtimeData:
               $ref: '#/components/schemas/OvertimeData'
+    QuotaManagementSyncStatus:
+      type: object
+      required:
+        - phase
+      properties:
+        phase:
+          type: string
+          enum:
+            - pending
+            - synced
+            - error
+        message:
+          type: string
+        lastSyncedAt:
+          type: string
+          format: date-time
+          nullable: true
+    QuotaManagement:
+      type: object
+      required:
+        - source
+        - requestedSource
+        - revision
+        - canEditQuotas
+        - syncStatus
+      properties:
+        source:
+          type: string
+          enum:
+            - runai
+            - kubernetes
+        requestedSource:
+          type: string
+          enum:
+            - runai
+            - kubernetes
+        revision:
+          type: integer
+          format: int64
+          minimum: 0
+        canEditQuotas:
+          type: boolean
+        syncStatus:
+          $ref: '#/components/schemas/QuotaManagementSyncStatus'
     DepartmentProjectChild:
       type: object
       description: Department or project child
@@ -4225,6 +4389,8 @@ components:
             - updatedAt
             - totalResources
           properties:
+            quotaManagement:
+              $ref: '#/components/schemas/QuotaManagement'
             id:
               type: string
               example: 50
@@ -4259,6 +4425,10 @@ components:
               description: Resources assigned to this Organization per Node Pool
     ResourcesNullable:
       properties:
+        quotaManagementRevision:
+          type: integer
+          format: int64
+          minimum: 0
         nodePool:
           required:
             - id
@@ -4379,6 +4549,8 @@ components:
             - updatedAt
             - totalResources
           properties:
+            quotaManagement:
+              $ref: '#/components/schemas/QuotaManagement'
             id:
               type: string
               example: 50
@@ -4422,11 +4594,30 @@ components:
       allOf:
         - $ref: '#/components/schemas/DataUpdatableDepartmentFields'
         - properties:
+            quotaManagementRevision:
+              type: integer
+              format: int64
+              minimum: 0
             resources:
               type: array
               items:
                 $ref: '#/components/schemas/ResourcesNullable'
               description: Resources assigned to this Organization per Node Pool
+    QuotaSourceUpdateRequest:
+      type: object
+      required:
+        - source
+        - expectedRevision
+      properties:
+        source:
+          type: string
+          enum:
+            - runai
+            - kubernetes
+        expectedRevision:
+          type: integer
+          format: int64
+          minimum: 0
     ResourcesUpdateRequest:
       type: array
       items:
@@ -4503,9 +4694,94 @@ components:
         - GPU_ALLOCATION_NON_PREEMPTIBLE
         - CPU_ALLOCATION_NON_PREEMPTIBLE
         - MEMORY_ALLOCATION_NON_PREEMPTIBLE
+    QuotaSnapshotResource:
+      type: object
+      description: All three numeric leaves are mandatory and must be non-null. Minus one means unlimited for deserved or limit. Weight must be nonnegative.
+      required:
+        - deserved
+        - limit
+        - overQuotaWeight
+      properties:
+        deserved:
+          type: number
+          format: double
+          nullable: true
+          minimum: -1
+        limit:
+          type: number
+          format: double
+          nullable: true
+          minimum: -1
+        overQuotaWeight:
+          type: number
+          format: double
+          nullable: true
+          minimum: 0
+    QuotaSnapshotPool:
+      type: object
+      required:
+        - nodePoolId
+        - gpu
+        - cpu
+        - memory
+      properties:
+        nodePoolId:
+          type: string
+          minLength: 1
+        gpu:
+          $ref: '#/components/schemas/QuotaSnapshotResource'
+        cpu:
+          $ref: '#/components/schemas/QuotaSnapshotResource'
+        memory:
+          $ref: '#/components/schemas/QuotaSnapshotResource'
+    QuotaSnapshot:
+      type: object
+      nullable: true
+      description: Complete enrolled-pool quotas from Kubernetes. Generation is metadata.generation, CPU is millicores and memory is decimal megabytes. No defaults are applied.
+      required:
+        - epoch
+        - kubernetesUid
+        - generation
+        - pools
+      properties:
+        controlRevision:
+          type: integer
+          format: int64
+          minimum: 0
+        controlPhase:
+          type: string
+          enum:
+            - freeze
+            - release
+            - stable
+        source:
+          type: string
+          enum:
+            - runai
+            - kubernetes
+        epoch:
+          type: string
+          minLength: 1
+        kubernetesUid:
+          type: string
+          minLength: 1
+        generation:
+          type: integer
+          format: int64
+          minimum: 1
+        pools:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/QuotaSnapshotPool'
     DepartmentStatus:
       type: object
       properties:
+        kubernetesUid:
+          type: string
+          minLength: 1
+          x-internal: true
+          description: Actual Kubernetes object UID, reported only by authenticated cluster-sync.
         lastUpdatedTime:
           type: string
           format: date-time
@@ -4516,6 +4792,8 @@ components:
       required:
         - status
       properties:
+        quotaSnapshot:
+          $ref: '#/components/schemas/QuotaSnapshot'
         clusterId:
           $ref: '#/components/schemas/ClusterId'
         status:
@@ -4575,6 +4853,11 @@ components:
     ProjectStatus:
       type: object
       properties:
+        kubernetesUid:
+          type: string
+          minLength: 1
+          x-internal: true
+          description: Actual Kubernetes object UID, reported only by authenticated cluster-sync.
         namespace:
           type: string
           description: the project's namespace
@@ -4672,6 +4955,8 @@ components:
             - clusterId
             - resources
           properties:
+            quotaManagement:
+              $ref: '#/components/schemas/QuotaManagement'
             id:
               type: string
               example: 33
@@ -4798,6 +5083,10 @@ components:
           required:
             - resources
           properties:
+            quotaManagementRevision:
+              type: integer
+              format: int64
+              minimum: 0
             enforceRunaiScheduler:
               type: boolean
               description: a flag to enforce that all pods in this namespace will be scheduled with runai-scheduler. Supported for cluster v2.21+
@@ -4815,6 +5104,8 @@ components:
         - clusterId
         - status
       properties:
+        quotaSnapshot:
+          $ref: '#/components/schemas/QuotaSnapshot'
         id:
           type: string
           example: 33
@@ -4850,6 +5141,58 @@ components:
           type: string
           format: uuid
           example: d73a738f-fab3-430a-8fa3-5241493d7128
+    QuotaOwnershipPool:
+      type: object
+      required:
+        - nodePoolId
+        - nodePoolName
+        - queueName
+      properties:
+        nodePoolId:
+          type: string
+          minLength: 1
+        nodePoolName:
+          type: string
+          minLength: 1
+        queueName:
+          type: string
+          minLength: 1
+    QuotaOwnership:
+      type: object
+      nullable: true
+      description: Trusted active Kubernetes quota enrollment. Absent for API-managed objects and prepared enrollments.
+      required:
+        - epoch
+        - kubernetesUid
+        - pools
+      properties:
+        source:
+          type: string
+          enum:
+            - runai
+            - kubernetes
+          description: Target authority. Absent means legacy Kubernetes ownership.
+        phase:
+          type: string
+          enum:
+            - freeze
+            - release
+            - stable
+        revision:
+          type: integer
+          format: int64
+          minimum: 0
+        epoch:
+          type: string
+          minLength: 1
+        kubernetesUid:
+          type: string
+          minLength: 1
+        pools:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/QuotaOwnershipPool'
     ResourcesSync:
       required:
         - gpu
@@ -4906,6 +5249,8 @@ components:
         - createdAt
         - updatedAt
       properties:
+        quotaOwnership:
+          $ref: '#/components/schemas/QuotaOwnership'
         id:
           type: string
           example: 33
@@ -4988,6 +5333,8 @@ components:
         - createdAt
         - updatedAt
       properties:
+        quotaOwnership:
+          $ref: '#/components/schemas/QuotaOwnership'
         id:
           type: string
           example: 50
@@ -5220,6 +5567,8 @@ components:
         - resources
         - clusterId
       properties:
+        quotaManagement:
+          $ref: '#/components/schemas/QuotaManagement'
         id:
           description: The unique ID of the resources.
           type: string
@@ -5274,6 +5623,10 @@ components:
         - orgUnitId
         - nodePoolId
       properties:
+        quotaManagementRevision:
+          type: integer
+          format: int64
+          minimum: 0
         orgUnitId:
           description: The project/department ID.
           type: string
@@ -5418,6 +5771,8 @@ components:
         - rank
         - clusterId
       properties:
+        quotaManagement:
+          $ref: '#/components/schemas/QuotaManagement'
         id:
           description: The unique ID of the resources.
           type: string

@@ -8,6 +8,7 @@ Name | Type | Description | Notes
 **SchedulingRules** | Pointer to [**NullableSchedulingRules**](SchedulingRules.md) |  | [optional] 
 **DefaultNodePools** | Pointer to **[]string** | An ordered list of node pools that defines the default scheduling preference for workloads in this department. The Scheduler will attempt to schedule workloads on node pools in this order. This setting is enforced if no node pool list is defined in the workload policy. | [optional] 
 **NodeTypes** | Pointer to [**NodeTypesPerWorkload**](NodeTypesPerWorkload.md) |  | [optional] 
+**QuotaManagementRevision** | Pointer to **int64** |  | [optional] 
 **Resources** | [**[]ResourcesNullable**](ResourcesNullable.md) | Resources assigned to this Organization per Node Pool | 
 
 ## Methods
@@ -148,6 +149,31 @@ SetNodeTypes sets NodeTypes field to given value.
 `func (o *DepartmentUpdateRequest) HasNodeTypes() bool`
 
 HasNodeTypes returns a boolean if a field has been set.
+
+### GetQuotaManagementRevision
+
+`func (o *DepartmentUpdateRequest) GetQuotaManagementRevision() int64`
+
+GetQuotaManagementRevision returns the QuotaManagementRevision field if non-nil, zero value otherwise.
+
+### GetQuotaManagementRevisionOk
+
+`func (o *DepartmentUpdateRequest) GetQuotaManagementRevisionOk() (*int64, bool)`
+
+GetQuotaManagementRevisionOk returns a tuple with the QuotaManagementRevision field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetQuotaManagementRevision
+
+`func (o *DepartmentUpdateRequest) SetQuotaManagementRevision(v int64)`
+
+SetQuotaManagementRevision sets QuotaManagementRevision field to given value.
+
+### HasQuotaManagementRevision
+
+`func (o *DepartmentUpdateRequest) HasQuotaManagementRevision() bool`
+
+HasQuotaManagementRevision returns a boolean if a field has been set.
 
 ### GetResources
 

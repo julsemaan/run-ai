@@ -17,6 +17,7 @@
     <template #input>
       <q-input
         v-model.number="editableValue"
+        :disable="isDisabled"
         type="number"
         dense
         min="0"
@@ -30,6 +31,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
+import { getQuotaManagement, quotasLocked, type QuotaManagement } from "@/models/quota-management.model";
 import type { ITableColumn } from "@/models/table.model";
 import { ECustomCell } from "@/models/table.model";
 import type { ICustomCellEditableWeightColConfig } from "@/table-models/org-unit.table-model";
@@ -37,6 +39,8 @@ import { getCustomCellConfig } from "@/utils/table-format.util/table-format.util
 import { EditableCellPopup, type EditableCellState } from "./editable-cell-popup";
 
 export interface IEditableWeightColRow {
+  quotaManagement?: QuotaManagement;
+  readOnly?: boolean;
   id: string;
   orgUnitId: string;
   weight: number | null;
@@ -58,7 +62,7 @@ const config = computed(() => {
 });
 
 // Disabled state from config
-const isDisabled = computed(() => config.value?.disabled ?? false);
+const isDisabled = computed(() => props.row.readOnly || quotasLocked(props.row) || (config.value?.disabled ?? false));
 const disabledTooltip = computed(() => config.value?.disabledTooltip ?? "");
 
 const editableValue = ref<number>(props.row.weight ?? 0);
@@ -79,7 +83,7 @@ const errorMessage = computed(() => {
 // Display value - show deserved when disabled, otherwise show weight
 const displayValue = computed(() => {
   // 1. Select the value based on the state
-  const val = isDisabled.value ? props.row.deserved : props.row.weight;
+  const val = config.value?.disabled && !getQuotaManagement(props.row) ? props.row.deserved : props.row.weight;
 
   // 2. Apply formatting logic (checks for null, undefined, or -1)
   if (val == null || val === -1) {
@@ -100,7 +104,7 @@ const handleReset = () => {
 };
 
 const handleApply = () => {
-  if (hasError.value || !config.value?.onSave) return;
+  if (isDisabled.value || hasError.value || !config.value?.onSave) return;
 
   config.value.onSave({
     orgUnitId: props.row.orgUnitId,

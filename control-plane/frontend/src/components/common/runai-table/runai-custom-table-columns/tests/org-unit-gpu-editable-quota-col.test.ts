@@ -109,6 +109,28 @@ describe("OrgUnitGpuEditableQuotaCol", () => {
     vi.clearAllMocks();
   });
 
+  describe("quota source locks", () => {
+    it.each(["kubernetes", "pending"] as const)("blocks popup and imperative Apply for %s peers", async (state) => {
+      const wrapper = createWrapper(
+        createRow({
+          quotaManagement: {
+            source: state === "kubernetes" ? "kubernetes" : "runai",
+            requestedSource: "kubernetes",
+            revision: 4,
+            canEditQuotas: false,
+            syncStatus: { phase: state === "pending" ? "pending" : "synced" },
+          },
+        }),
+      );
+      const popup = wrapper.findComponent(EditableCellPopup);
+      expect(popup.props("disabled")).toBe(true);
+      popup.vm.$emit("apply");
+      await flushPromises();
+      expect(onSaveMock).not.toHaveBeenCalled();
+      wrapper.unmount();
+    });
+  });
+
   describe("Rendering", () => {
     it("renders quota button with display value", () => {
       const wrapper = createWrapper();

@@ -6,6 +6,7 @@
 <template>
   <org-unit-step-wrapper
     label="GPU quota"
+    :read-only="readOnly"
     :loading="loading"
     :hide-save-button="isSingleNodePool"
     @save="handleSave"
@@ -19,6 +20,7 @@
       tooltip-text="The workload submitter can override this default.The leftmost node pool is the first one workloads will attempt to schedule onto."
     />
     <node-pool-tabs
+      :disable-list-actions="readOnly"
       :node-pools="selectedNodePools"
       :available-node-pools="allNodePools"
       :model-value="selectedNodePoolId"
@@ -51,6 +53,7 @@
       <org-unit-legend class="q-mb-md" :items="legendItems" />
 
       <gpu-quota-card
+        :read-only="readOnly"
         :org-unit-name="orgUnit.name"
         :gpu-quota="gpuQuota"
         :total-quota="availabilityTotal"
@@ -74,6 +77,7 @@
       >
         <org-unit-quota-table
           ref="quotaTableRef"
+          :read-only="readOnly"
           :entity-type="entityType"
           :fetch-context="fetchContext"
           :available-quota="availabilityAvailable"
@@ -93,6 +97,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch, onBeforeUnmount, type ComputedRef } from "vue";
+import { quotasLocked, type QuotaManagement } from "@/models/quota-management.model";
 import type { Department, Project } from "@/swagger-models/org-unit-service-client";
 import { DepartmentNodePoolResourcesFilterSortFields } from "@/swagger-models/org-unit-service-client";
 import { NodePoolTabs } from "@/components/org-unit/v2/common/node-pool-tabs";
@@ -181,6 +186,8 @@ const pendingPeerChanges = ref<
     {
       nodePoolName: string;
       nodePoolId: string;
+      quotaManagement?: QuotaManagement;
+      quotaManagementRevision?: number;
       orgUnitName: string; // Track entity name for detecting default department changes
       newValue: number | null;
       originalValue: number | null;
@@ -216,7 +223,7 @@ const {
   selectedNodePoolName,
   localDefaultNodePools,
   isNodePoolListDirty,
-  updateNodePools,
+  updateNodePools: applyNodePools,
   resetNodePoolsToBaseline,
 } = useOrgUnitNodePools({
   resources: () => props.orgUnit.resources || [],
@@ -225,6 +232,10 @@ const {
     props.entityType === EQuotaEntity.project ? (props.parentOrgUnit?.defaultNodePools ?? undefined) : undefined,
   editable: true,
 });
+
+const updateNodePools: typeof applyNodePools = (...args) => {
+  if (!props.readOnly) applyNodePools(...args);
+};
 
 // Get GPU quota snapshot for a node pool
 const getResourceSnapshot = (nodePoolName: string) => {
@@ -632,6 +643,7 @@ const fetchContext = computed(() => {
 });
 
 const handleGpuQuotaUpdate = (value: number) => {
+  if (props.readOnly) return;
   gpuQuota.value = value;
 };
 
@@ -678,6 +690,7 @@ watch(
 );
 
 const handleSave = (navigateAfterSave = false): Promise<void> => {
+  if (props.readOnly) return Promise.resolve();
   return new Promise((resolve) => {
     // Include node pool changes if dirty, otherwise undefined (parent will ignore)
     const defaultNodePools = isNodePoolListDirty.value ? localDefaultNodePools.value : undefined;
@@ -686,6 +699,8 @@ const handleSave = (navigateAfterSave = false): Promise<void> => {
     const peerChanges: Array<IPeerOrgUnitQuotaChange> = [];
     for (const [orgUnitId, change] of pendingPeerChanges.value.entries()) {
       peerChanges.push({
+        quotaManagement: change.quotaManagement,
+        quotaManagementRevision: change.quotaManagementRevision,
         orgUnitId,
         nodePoolName: change.nodePoolName,
         nodePoolId: change.nodePoolId,
@@ -758,6 +773,8 @@ const discardChanges = () => {
 };
 
 const handleQuotaChanged = (payload: {
+  quotaManagement?: QuotaManagement;
+  quotaManagementRevision?: number;
   entityId: string;
   entityName: string;
   nodePoolName: string;
@@ -767,8 +784,11 @@ const handleQuotaChanged = (payload: {
   originalLimit: number | null;
   originalOverQuotaWeight: number | null;
 }) => {
+  if (props.readOnly || quotasLocked(payload)) return;
   // Store change in pending map (no API call)
   pendingPeerChanges.value.set(payload.entityId, {
+    quotaManagement: payload.quotaManagement,
+    quotaManagementRevision: payload.quotaManagementRevision,
     nodePoolName: selectedNodePoolName.value,
     nodePoolId: payload.nodePoolId,
     orgUnitName: payload.entityName,
@@ -782,6 +802,7 @@ const handleQuotaChanged = (payload: {
 // Register unsaved changes guard - unregister on unmount
 const unregisterGuard = unsavedGuard.registerStepGuard(STEP_NAME, {
   isDirty: () => isStepDirty.value,
+  editState: () => [gpuQuota.value, selectedNodePools.value, [...pendingPeerChanges.value]],
   save: handleSave,
   discard: discardChanges,
 });

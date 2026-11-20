@@ -165,6 +165,7 @@ const handleDiscard = () => {
 
 const unregisterGuard = unsavedGuard.registerStepGuard(STEP_NAME, {
   isDirty: () => isDirty.value,
+  editState: serializeState,
   save: handleSave,
   discard: handleDiscard,
 });

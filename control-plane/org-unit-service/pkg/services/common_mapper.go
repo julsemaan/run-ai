@@ -771,6 +771,7 @@ func MapAllocationStatus(status float64) *float64 {
 
 func ConvertNodePoolResourcesPatchRequest(npr api.NodePoolResourcesPatchRequest) api.ResourcesNullable {
 	result := api.ResourcesNullable{
+		QuotaManagementRevision: npr.QuotaManagementRevision,
 		NodePool: &api.ResourcesNodePool{
 			Id: npr.NodePoolId,
 		},

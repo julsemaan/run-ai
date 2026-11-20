@@ -8,6 +8,7 @@ Name | Type | Description | Notes
 **SchedulingRules** | Pointer to [**NullableSchedulingRules**](SchedulingRules.md) |  | [optional] 
 **DefaultNodePools** | Pointer to **[]string** | An ordered list of node pools that defines the default scheduling preference for workloads in this project. The Scheduler will attempt to schedule workloads on node pools in this order. This setting is enforced if no node pool list is defined in the workload policy. | [optional] 
 **NodeTypes** | Pointer to [**NodeTypesPerWorkload**](NodeTypesPerWorkload.md) |  | [optional] 
+**QuotaManagement** | Pointer to [**QuotaManagement**](QuotaManagement.md) |  | [optional] 
 **Id** | **string** |  | 
 **Name** | **string** |  | 
 **ClusterId** | **string** | The id of the cluster. | 
@@ -159,6 +160,31 @@ SetNodeTypes sets NodeTypes field to given value.
 `func (o *Project) HasNodeTypes() bool`
 
 HasNodeTypes returns a boolean if a field has been set.
+
+### GetQuotaManagement
+
+`func (o *Project) GetQuotaManagement() QuotaManagement`
+
+GetQuotaManagement returns the QuotaManagement field if non-nil, zero value otherwise.
+
+### GetQuotaManagementOk
+
+`func (o *Project) GetQuotaManagementOk() (*QuotaManagement, bool)`
+
+GetQuotaManagementOk returns a tuple with the QuotaManagement field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetQuotaManagement
+
+`func (o *Project) SetQuotaManagement(v QuotaManagement)`
+
+SetQuotaManagement sets QuotaManagement field to given value.
+
+### HasQuotaManagement
+
+`func (o *Project) HasQuotaManagement() bool`
+
+HasQuotaManagement returns a boolean if a field has been set.
 
 ### GetId
 

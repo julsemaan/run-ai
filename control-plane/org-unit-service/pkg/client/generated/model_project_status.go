@@ -23,6 +23,8 @@ var _ MappedNullable = &ProjectStatus{}
 
 // ProjectStatus struct for ProjectStatus
 type ProjectStatus struct {
+	// Actual Kubernetes object UID, reported only by authenticated cluster-sync.
+	KubernetesUid *string `json:"kubernetesUid,omitempty"`
 	// the project's namespace
 	Namespace NullableString `json:"namespace,omitempty"`
 	Phase     *ProjectPhase  `json:"phase,omitempty"`
@@ -49,6 +51,38 @@ func NewProjectStatus() *ProjectStatus {
 func NewProjectStatusWithDefaults() *ProjectStatus {
 	this := ProjectStatus{}
 	return &this
+}
+
+// GetKubernetesUid returns the KubernetesUid field value if set, zero value otherwise.
+func (o *ProjectStatus) GetKubernetesUid() string {
+	if o == nil || IsNil(o.KubernetesUid) {
+		var ret string
+		return ret
+	}
+	return *o.KubernetesUid
+}
+
+// GetKubernetesUidOk returns a tuple with the KubernetesUid field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *ProjectStatus) GetKubernetesUidOk() (*string, bool) {
+	if o == nil || IsNil(o.KubernetesUid) {
+		return nil, false
+	}
+	return o.KubernetesUid, true
+}
+
+// HasKubernetesUid returns a boolean if a field has been set.
+func (o *ProjectStatus) HasKubernetesUid() bool {
+	if o != nil && !IsNil(o.KubernetesUid) {
+		return true
+	}
+
+	return false
+}
+
+// SetKubernetesUid gets a reference to the given string and assigns it to the KubernetesUid field.
+func (o *ProjectStatus) SetKubernetesUid(v string) {
+	o.KubernetesUid = &v
 }
 
 // GetNamespace returns the Namespace field value if set, zero value otherwise (both if not set or set to explicit null).
@@ -319,6 +353,9 @@ func (o ProjectStatus) MarshalJSON() ([]byte, error) {
 
 func (o ProjectStatus) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
+	if !IsNil(o.KubernetesUid) {
+		toSerialize["kubernetesUid"] = o.KubernetesUid
+	}
 	if o.Namespace.IsSet() {
 		toSerialize["namespace"] = o.Namespace.Get()
 	}

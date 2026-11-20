@@ -22,10 +22,11 @@ var _ MappedNullable = &ResourcesNullable{}
 
 // ResourcesNullable struct for ResourcesNullable
 type ResourcesNullable struct {
-	NodePool NullableResourcesNodePool `json:"nodePool,omitempty"`
-	Gpu      *ResourcesNullableGpu     `json:"gpu,omitempty"`
-	Cpu      NullableResourcesCpu      `json:"cpu,omitempty"`
-	Memory   NullableResourcesMemory   `json:"memory,omitempty"`
+	QuotaManagementRevision *int64                    `json:"quotaManagementRevision,omitempty"`
+	NodePool                NullableResourcesNodePool `json:"nodePool,omitempty"`
+	Gpu                     *ResourcesNullableGpu     `json:"gpu,omitempty"`
+	Cpu                     NullableResourcesCpu      `json:"cpu,omitempty"`
+	Memory                  NullableResourcesMemory   `json:"memory,omitempty"`
 	// The scheduling rank of this org-unit within the node pool. Determines the scheduling order of workloads between org-units. Workloads in higher-ranked org-units are scheduled before workloads in lower-ranked org-units. For example, all workloads in rank \"High\" will be scheduled before all workloads in rank \"Medium\".
 	Rank NullableString `json:"rank,omitempty"`
 }
@@ -49,6 +50,38 @@ func NewResourcesNullableWithDefaults() *ResourcesNullable {
 	var rank string = "MediumLow"
 	this.Rank = *NewNullableString(&rank)
 	return &this
+}
+
+// GetQuotaManagementRevision returns the QuotaManagementRevision field value if set, zero value otherwise.
+func (o *ResourcesNullable) GetQuotaManagementRevision() int64 {
+	if o == nil || IsNil(o.QuotaManagementRevision) {
+		var ret int64
+		return ret
+	}
+	return *o.QuotaManagementRevision
+}
+
+// GetQuotaManagementRevisionOk returns a tuple with the QuotaManagementRevision field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *ResourcesNullable) GetQuotaManagementRevisionOk() (*int64, bool) {
+	if o == nil || IsNil(o.QuotaManagementRevision) {
+		return nil, false
+	}
+	return o.QuotaManagementRevision, true
+}
+
+// HasQuotaManagementRevision returns a boolean if a field has been set.
+func (o *ResourcesNullable) HasQuotaManagementRevision() bool {
+	if o != nil && !IsNil(o.QuotaManagementRevision) {
+		return true
+	}
+
+	return false
+}
+
+// SetQuotaManagementRevision gets a reference to the given int64 and assigns it to the QuotaManagementRevision field.
+func (o *ResourcesNullable) SetQuotaManagementRevision(v int64) {
+	o.QuotaManagementRevision = &v
 }
 
 // GetNodePool returns the NodePool field value if set, zero value otherwise (both if not set or set to explicit null).
@@ -265,6 +298,9 @@ func (o ResourcesNullable) MarshalJSON() ([]byte, error) {
 
 func (o ResourcesNullable) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
+	if !IsNil(o.QuotaManagementRevision) {
+		toSerialize["quotaManagementRevision"] = o.QuotaManagementRevision
+	}
 	if o.NodePool.IsSet() {
 		toSerialize["nodePool"] = o.NodePool.Get()
 	}

@@ -453,6 +453,16 @@ defineExpose({
   accessRulesCount: totalAccessRulesCount,
   isFormOpen: isNewAccessRuleFormOpen,
   isFormDirty,
+  getEditState: () => {
+    const form = newAccessRuleFormRef.value;
+    return [
+      isNewAccessRuleFormOpen.value,
+      form?.selectedSubjectType,
+      form?.selectedSubjectIds,
+      form?.selectedRole,
+      form?.selectedScopes,
+    ];
+  },
   closeForm,
   submitForm,
 });

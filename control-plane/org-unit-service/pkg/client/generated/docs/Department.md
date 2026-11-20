@@ -11,6 +11,7 @@ Name | Type | Description | Notes
 **Name** | **string** | The unique name of the department within the cluster. Must be a valid Kubernetes name (lowercase, alphanumeric, hyphens allowed). | 
 **ClusterId** | **string** | The id of the cluster. | 
 **OvertimeData** | Pointer to [**OvertimeData**](OvertimeData.md) |  | [optional] 
+**QuotaManagement** | Pointer to [**QuotaManagement**](QuotaManagement.md) |  | [optional] 
 **Id** | **string** |  | 
 **CreatedAt** | **time.Time** |  | 
 **UpdatedAt** | **time.Time** |  | 
@@ -220,6 +221,31 @@ SetOvertimeData sets OvertimeData field to given value.
 `func (o *Department) HasOvertimeData() bool`
 
 HasOvertimeData returns a boolean if a field has been set.
+
+### GetQuotaManagement
+
+`func (o *Department) GetQuotaManagement() QuotaManagement`
+
+GetQuotaManagement returns the QuotaManagement field if non-nil, zero value otherwise.
+
+### GetQuotaManagementOk
+
+`func (o *Department) GetQuotaManagementOk() (*QuotaManagement, bool)`
+
+GetQuotaManagementOk returns a tuple with the QuotaManagement field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetQuotaManagement
+
+`func (o *Department) SetQuotaManagement(v QuotaManagement)`
+
+SetQuotaManagement sets QuotaManagement field to given value.
+
+### HasQuotaManagement
+
+`func (o *Department) HasQuotaManagement() bool`
+
+HasQuotaManagement returns a boolean if a field has been set.
 
 ### GetId
 

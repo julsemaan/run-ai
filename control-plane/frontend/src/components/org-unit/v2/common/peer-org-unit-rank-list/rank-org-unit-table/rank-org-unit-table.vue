@@ -7,6 +7,8 @@
   <runai-table
     class="rank-org-unit-rank-table"
     :rows="rowsWithPendingChanges"
+    :disable-selection="readOnly"
+    :is-row-selectable="(row: OrgUnitNodePoolResources) => !readOnly && !quotasLocked(row)"
     :columns="columns"
     :filter-by="filterBy"
     :loading="false"
@@ -34,6 +36,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
+import { quotasLocked } from "@/models/quota-management.model";
 import { RunaiTable } from "@/components/common/runai-table";
 import { RunaiTableNoData } from "@/components/common/runai-table/runai-table-no-data";
 import type { IFilterBy } from "@/models/filter.model";
@@ -48,6 +51,7 @@ export type OrgUnitNodePoolResources = ProjectNodePoolResources | DepartmentNode
 const DISPLAYED_COLUMNS = ["name", "weight", "distribution"];
 
 export interface Props {
+  readOnly?: boolean;
   orgUnits: OrgUnitNodePoolResources[];
   entityType?: EQuotaEntity;
   loading?: boolean;
@@ -114,6 +118,7 @@ const rowsWithPendingChanges = computed(() => {
 
     return {
       ...orgUnit,
+      readOnly: props.readOnly || quotasLocked(orgUnit),
       weight, // Display weight (pending or server)
       serverWeight, // Original weight from server
       deserved, // GPU deserved value (used when disabled)
@@ -165,6 +170,8 @@ const columns = computed<ITableColumn[]>(() => [
       [ECustomCell.ORG_UNIT_EDITABLE_WEIGHT_COL]: {
         nodePoolId: props.nodePoolId,
         onSave: (payload: { orgUnitId: string; nodePoolId: string; weight: number; originalWeight: number | null }) => {
+          const unit = props.orgUnits.find((row) => row.orgUnitId === payload.orgUnitId);
+          if (props.readOnly || !unit || quotasLocked(unit)) return;
           emit("weight-changed", payload);
         },
         disabled: !props.isOverQuotaPriorityEnabled,

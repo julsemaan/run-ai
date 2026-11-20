@@ -4,6 +4,7 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
+**QuotaManagement** | Pointer to [**QuotaManagement**](QuotaManagement.md) |  | [optional] 
 **Id** | **string** | The unique ID of the resources. | 
 **OrgUnitId** | **string** | The project/department ID. | 
 **OrgUnitName** | **string** | The project/department name. | 
@@ -33,6 +34,31 @@ will change when the set of required properties is changed
 NewProjectNodePoolResourcesWithDefaults instantiates a new ProjectNodePoolResources object
 This constructor will only assign default values to properties that have it defined,
 but it doesn't guarantee that properties required by API are set
+
+### GetQuotaManagement
+
+`func (o *ProjectNodePoolResources) GetQuotaManagement() QuotaManagement`
+
+GetQuotaManagement returns the QuotaManagement field if non-nil, zero value otherwise.
+
+### GetQuotaManagementOk
+
+`func (o *ProjectNodePoolResources) GetQuotaManagementOk() (*QuotaManagement, bool)`
+
+GetQuotaManagementOk returns a tuple with the QuotaManagement field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetQuotaManagement
+
+`func (o *ProjectNodePoolResources) SetQuotaManagement(v QuotaManagement)`
+
+SetQuotaManagement sets QuotaManagement field to given value.
+
+### HasQuotaManagement
+
+`func (o *ProjectNodePoolResources) HasQuotaManagement() bool`
+
+HasQuotaManagement returns a boolean if a field has been set.
 
 ### GetId
 

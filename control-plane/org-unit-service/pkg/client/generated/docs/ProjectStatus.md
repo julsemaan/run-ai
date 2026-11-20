@@ -4,6 +4,7 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
+**KubernetesUid** | Pointer to **string** | Actual Kubernetes object UID, reported only by authenticated cluster-sync. | [optional] 
 **Namespace** | Pointer to **NullableString** | the project&#39;s namespace | [optional] 
 **Phase** | Pointer to [**ProjectPhase**](ProjectPhase.md) |  | [optional] 
 **PhaseMessage** | Pointer to **NullableString** | the project&#39;s phase message | [optional] 
@@ -30,6 +31,31 @@ will change when the set of required properties is changed
 NewProjectStatusWithDefaults instantiates a new ProjectStatus object
 This constructor will only assign default values to properties that have it defined,
 but it doesn't guarantee that properties required by API are set
+
+### GetKubernetesUid
+
+`func (o *ProjectStatus) GetKubernetesUid() string`
+
+GetKubernetesUid returns the KubernetesUid field if non-nil, zero value otherwise.
+
+### GetKubernetesUidOk
+
+`func (o *ProjectStatus) GetKubernetesUidOk() (*string, bool)`
+
+GetKubernetesUidOk returns a tuple with the KubernetesUid field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetKubernetesUid
+
+`func (o *ProjectStatus) SetKubernetesUid(v string)`
+
+SetKubernetesUid sets KubernetesUid field to given value.
+
+### HasKubernetesUid
+
+`func (o *ProjectStatus) HasKubernetesUid() bool`
+
+HasKubernetesUid returns a boolean if a field has been set.
 
 ### GetNamespace
 

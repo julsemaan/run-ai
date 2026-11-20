@@ -1,0 +1,20 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+type: object
+required: [source, requestedSource, revision, canEditQuotas, syncStatus]
+properties:
+  source:
+    type: string
+    enum: [runai, kubernetes]
+  requestedSource:
+    type: string
+    enum: [runai, kubernetes]
+  revision:
+    type: integer
+    format: int64
+    minimum: 0
+  canEditQuotas:
+    type: boolean
+  syncStatus:
+    $ref: './QuotaManagementSyncStatus.yaml'

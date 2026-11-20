@@ -26,6 +26,12 @@ var dummyDepartmentStatus = runaihttp.AssertPattern
 
 type DepartmentStatus struct {
 
+	// Actual Kubernetes object UID, reported only by authenticated cluster-sync.
+	//////////////////////////////////// RUNAI START (19) ///////////////////////////////////////////
+	//KubernetesUid string `json:"kubernetesUid,omitempty"`
+	KubernetesUid string `json:"kubernetesUid,omitempty" gorm:"not null;"`
+	//////////////////////////////////// RUNAI END ///////////////////////////////////////////
+
 	//////////////////////////////////// RUNAI START (19) ///////////////////////////////////////////
 	//LastUpdatedTime *time.Time `json:"lastUpdatedTime,omitempty"`
 	LastUpdatedTime *time.Time `json:"lastUpdatedTime,omitempty" gorm:""`
@@ -39,6 +45,14 @@ func AssertDepartmentStatusRequired(obj DepartmentStatus) error {
 
 // AssertDepartmentStatusConstraints checks if the values respects the defined constraints
 func AssertDepartmentStatusConstraints(obj DepartmentStatus) error {
+	//////////////////////// RUNAI START (18.2) //////////////////////////
+	if minLengthErr := runaihttp.AssertMinLength(obj.KubernetesUid, "KubernetesUid", 1); minLengthErr != nil {
+		return &ParsingError{Param: "KubernetesUid", Err: minLengthErr}
+	}
+	//////////////////////// RUNAI END //////////////////////////
+	//////////////////////// RUNAI START (2.1) //////////////////////////
+
+	//////////////////////// RUNAI END //////////////////////////
 	//////////////////////// RUNAI START (18.2) //////////////////////////
 	//////////////////////// RUNAI END //////////////////////////
 	//////////////////////// RUNAI START (2.1) //////////////////////////

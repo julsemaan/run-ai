@@ -1,5 +1,10 @@
 type: object
 properties:
+  kubernetesUid:
+    type: string
+    minLength: 1
+    x-internal: true
+    description: Actual Kubernetes object UID, reported only by authenticated cluster-sync.
   namespace:
     type: string
     description: the project's namespace

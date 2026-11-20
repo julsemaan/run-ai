@@ -9,6 +9,7 @@
       <div class="col-auto row no-wrap items-center">
         <q-toggle
           v-model="localIsOverQuotaEnabled"
+          :disable="readOnly"
           color="primary"
           left-label
           :label="toggleLabel"
@@ -28,6 +29,7 @@
 
           <org-unit-over-quota-limit-input
             v-model="localLimit"
+            :read-only="readOnly"
             class="full-width"
             :deserved="deserved"
             :entity-type="entityType"
@@ -47,6 +49,7 @@ import { OrgUnitOverQuotaLimitInput } from "@/components/org-unit/v2/common/org-
 import { EQuotaEntity } from "@/models/resource.model";
 
 export interface Props {
+  readOnly?: boolean;
   limit: number | null;
   isOverQuotaEnabled: boolean;
   deserved: number;
@@ -65,12 +68,16 @@ const emit = defineEmits<{
 
 const localLimit = computed({
   get: () => props.limit,
-  set: (val: number | null) => emit("update:limit", val),
+  set: (val: number | null) => {
+    if (!props.readOnly) emit("update:limit", val);
+  },
 });
 
 const localIsOverQuotaEnabled = computed({
   get: () => props.isOverQuotaEnabled,
-  set: (val: boolean) => emit("update:is-over-quota-enabled", val),
+  set: (val: boolean) => {
+    if (!props.readOnly) emit("update:is-over-quota-enabled", val);
+  },
 });
 
 const entityLabel = computed(() => {
@@ -86,6 +93,7 @@ const toggleLabel = computed(() => {
 });
 
 const emitIsOverQuotaEnabled = (value: boolean) => {
+  if (props.readOnly) return;
   emit("update:is-over-quota-enabled", value);
 };
 

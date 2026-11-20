@@ -71,6 +71,8 @@ import { filterService } from "@/services/filter.service/filter.service";
 import type { IDepartmentTableFilterBy } from "@/models/department.model";
 import { EGpuResourceState } from "@/models/org-unit-forms.model";
 
+import { quotaRevision, quotasLocked, type QuotaManagement } from "@/models/quota-management.model";
+
 export const orgUnitUtil = {
   getEmptyProjectModel,
   getEmptyResourcesModel,
@@ -295,6 +297,7 @@ function removeOverQuotaWeightFields(resources: Resources[]): Resources[] {
 
 function getProjectUpdateRequest(project: Project): ProjectUpdateRequest {
   return {
+    ...quotaRevision(project),
     description: project.description,
     schedulingRules: project.schedulingRules,
     defaultNodePools: project.defaultNodePools,
@@ -305,6 +308,7 @@ function getProjectUpdateRequest(project: Project): ProjectUpdateRequest {
 
 function getDepartmentUpdateRequest(department: Department): DepartmentUpdateRequest {
   return {
+    ...quotaRevision(department),
     description: department.description,
     resources: department.resources,
     schedulingRules: department.schedulingRules,
@@ -685,6 +689,8 @@ function ensureLimitsNotBelowDeserved(resources: Resources[]): Resources[] {
  */
 function buildNodePoolBatchPatchRequest(
   peerChanges: Array<{
+    quotaManagement?: QuotaManagement;
+    quotaManagementRevision?: number;
     orgUnitId: string;
     nodePoolId: string;
     nodePoolName: string;
@@ -695,10 +701,15 @@ function buildNodePoolBatchPatchRequest(
   isOverQuotaPriorityEnabled: boolean,
 ): BatchPatchNodePoolResourcesRequest {
   const patchRequests: NodePoolResourcesPatchRequest[] = peerChanges.map((change) => {
+    if (quotasLocked(change))
+      throw new Error("Peer quota editing is locked by the quota source or pending synchronization.");
     const isUnlimited =
       change.originalLimit === null || change.originalLimit === -1 || change.originalLimit === undefined;
 
-    const overQuotaWeight = isOverQuotaPriorityEnabled ? change.originalOverQuotaWeight : undefined;
+    const overQuotaWeight =
+      isOverQuotaPriorityEnabled || change.quotaManagementRevision !== undefined
+        ? change.originalOverQuotaWeight
+        : undefined;
 
     const resources: ResourcesPerNodePoolNullable = {
       gpu: {
@@ -711,6 +722,7 @@ function buildNodePoolBatchPatchRequest(
     return {
       orgUnitId: change.orgUnitId,
       nodePoolId: change.nodePoolId,
+      quotaManagementRevision: change.quotaManagementRevision,
       resources,
     };
   });
@@ -726,6 +738,8 @@ function buildNodePoolBatchPatchRequest(
  */
 function buildNodePoolRankBatchPatchRequest(
   rankChanges: Array<{
+    quotaManagement?: QuotaManagement;
+    quotaManagementRevision?: number;
     orgUnitId: string;
     nodePoolId: string;
     newRank: string;
@@ -733,9 +747,12 @@ function buildNodePoolRankBatchPatchRequest(
   }>,
 ): BatchPatchNodePoolResourcesRequest {
   const patchRequests: NodePoolResourcesPatchRequest[] = rankChanges.map((change) => {
+    if (quotasLocked(change))
+      throw new Error("Peer quota editing is locked by the quota source or pending synchronization.");
     return {
       orgUnitId: change.orgUnitId,
       nodePoolId: change.nodePoolId,
+      quotaManagementRevision: change.quotaManagementRevision,
       rank: change.newRank,
     };
   });
@@ -750,6 +767,8 @@ function buildNodePoolRankBatchPatchRequest(
  */
 function buildNodePoolWeightBatchPatchRequest(
   weightChanges: Array<{
+    quotaManagement?: QuotaManagement;
+    quotaManagementRevision?: number;
     orgUnitId: string;
     nodePoolId: string;
     newWeight: number;
@@ -757,9 +776,12 @@ function buildNodePoolWeightBatchPatchRequest(
   }>,
 ): BatchPatchNodePoolResourcesRequest {
   const patchRequests: NodePoolResourcesPatchRequest[] = weightChanges.map((change) => {
+    if (quotasLocked(change))
+      throw new Error("Peer quota editing is locked by the quota source or pending synchronization.");
     return {
       orgUnitId: change.orgUnitId,
       nodePoolId: change.nodePoolId,
+      quotaManagementRevision: change.quotaManagementRevision,
       resources: {
         gpu: {
           overQuotaWeight: change.newWeight,
@@ -778,6 +800,8 @@ function buildNodePoolWeightBatchPatchRequest(
  */
 function buildNodePoolOrgUnitChangesBatchPatchRequest(
   changes: Array<{
+    quotaManagement?: QuotaManagement;
+    quotaManagementRevision?: number;
     orgUnitId: string;
     nodePoolId: string;
     newRank?: string;
@@ -787,9 +811,12 @@ function buildNodePoolOrgUnitChangesBatchPatchRequest(
   }>,
 ): BatchPatchNodePoolResourcesRequest {
   const patchRequests: NodePoolResourcesPatchRequest[] = changes.map((change) => {
+    if (quotasLocked(change))
+      throw new Error("Peer quota editing is locked by the quota source or pending synchronization.");
     const request: NodePoolResourcesPatchRequest = {
       orgUnitId: change.orgUnitId,
       nodePoolId: change.nodePoolId,
+      quotaManagementRevision: change.quotaManagementRevision,
     };
 
     // Add rank if it changed

@@ -89,6 +89,7 @@ func MapUpdateRequestToModel(
 	}
 
 	update := models.Project{
+		QuotaManagementRevision: request.QuotaManagementRevision,
 		IntBaseModel: models.IntBaseModel{
 			ID:        project.ID,
 			CreatedBy: project.CreatedBy,
@@ -250,12 +251,15 @@ func timeLimitEqual(original *int32, newData *int32) bool {
 }
 
 func MapModelToResponse(ctx context.Context, project models.Project, nodePoolsMetadata map[string]cluster_openapi.NodepoolMinimal) api.Project {
+	var management api.QuotaManagement
+	project.OrgUnitData.Resources, management = services.QuotaObjectSnapshot(ctx, project.TenantId, project.ClusterId.String(), "project", project.ID, project.OrgUnitData.Resources)
 	orgUnitData := project.OrgUnitData
 	if len(orgUnitData.Resources) == 0 {
 		logging.WithCtx(runaictx.LoggerHook(ctx)).Errorf("Project %v resources is empty", project.ID)
 	}
 	resources := services.ApiResourcesFromModel(orgUnitData.Resources, services.QuotaNodePoolsMetadata(project.TenantId, project.ClusterId.String(), "project", project.ID, nodePoolsMetadata))
 	response := api.Project{
+		QuotaManagement:       management,
 		Id:                    strconv.FormatInt(project.ID, 10),
 		CreatedAt:             project.CreatedAt,
 		UpdatedAt:             project.UpdatedAt,

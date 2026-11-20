@@ -1543,6 +1543,99 @@
         }
       }
     },
+    "/api/v1/org-unit/departments/{departmentId}/quota-source": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/DepartmentId"
+        }
+      ],
+      "get": {
+        "summary": "Get department quota source",
+        "operationId": "get_department_quota_source",
+        "x-service": "org-unit-service",
+        "x-authorize": {
+          "resource-type": "department",
+          "action": "read",
+          "resource-id": "departmentId"
+        },
+        "tags": [
+          "Departments"
+        ],
+        "responses": {
+          "200": {
+            "description": "Current quota authority and synchronization state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuotaManagement"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/403Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/404NotFound"
+          }
+        }
+      },
+      "put": {
+        "summary": "Set department quota source for all node pools",
+        "operationId": "update_department_quota_source",
+        "x-service": "org-unit-service",
+        "x-authorize": {
+          "resource-type": "department",
+          "action": "update",
+          "resource-id": "departmentId"
+        },
+        "x-audit": true,
+        "tags": [
+          "Departments"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuotaSourceUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Current quota authority and synchronization state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuotaManagement"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400BadRequest"
+          },
+          "403": {
+            "$ref": "#/components/responses/403Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/404NotFound"
+          },
+          "409": {
+            "description": "Stale revision or conflicting pending transfer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/org-unit/departments/{departmentId}/resources": {
       "put": {
         "summary": "Update department resources",
@@ -2291,6 +2384,99 @@
           },
           "503": {
             "$ref": "#/components/responses/503ServiceUnavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/org-unit/projects/{projectId}/quota-source": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ProjectId"
+        }
+      ],
+      "get": {
+        "summary": "Get project quota source",
+        "operationId": "get_project_quota_source",
+        "x-service": "org-unit-service",
+        "x-authorize": {
+          "resource-type": "project",
+          "action": "read",
+          "resource-id": "projectId"
+        },
+        "tags": [
+          "Projects"
+        ],
+        "responses": {
+          "200": {
+            "description": "Current quota authority and synchronization state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuotaManagement"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/403Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/404NotFound"
+          }
+        }
+      },
+      "put": {
+        "summary": "Set project quota source for all node pools",
+        "operationId": "update_project_quota_source",
+        "x-service": "org-unit-service",
+        "x-authorize": {
+          "resource-type": "project",
+          "action": "update",
+          "resource-id": "projectId"
+        },
+        "x-audit": true,
+        "tags": [
+          "Projects"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuotaSourceUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Current quota authority and synchronization state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuotaManagement"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400BadRequest"
+          },
+          "403": {
+            "$ref": "#/components/responses/403Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/404NotFound"
+          },
+          "409": {
+            "description": "Stale revision or conflicting pending transfer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -6085,6 +6271,67 @@
           }
         ]
       },
+      "QuotaManagementSyncStatus": {
+        "type": "object",
+        "required": [
+          "phase"
+        ],
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "synced",
+              "error"
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "lastSyncedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "QuotaManagement": {
+        "type": "object",
+        "required": [
+          "source",
+          "requestedSource",
+          "revision",
+          "canEditQuotas",
+          "syncStatus"
+        ],
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": [
+              "runai",
+              "kubernetes"
+            ]
+          },
+          "requestedSource": {
+            "type": "string",
+            "enum": [
+              "runai",
+              "kubernetes"
+            ]
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "canEditQuotas": {
+            "type": "boolean"
+          },
+          "syncStatus": {
+            "$ref": "#/components/schemas/QuotaManagementSyncStatus"
+          }
+        }
+      },
       "DepartmentProjectChild": {
         "type": "object",
         "description": "Department or project child",
@@ -6324,6 +6571,9 @@
               "totalResources"
             ],
             "properties": {
+              "quotaManagement": {
+                "$ref": "#/components/schemas/QuotaManagement"
+              },
               "id": {
                 "type": "string",
                 "example": 50
@@ -6375,6 +6625,11 @@
       },
       "ResourcesNullable": {
         "properties": {
+          "quotaManagementRevision": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
           "nodePool": {
             "required": [
               "id"
@@ -6569,6 +6824,9 @@
               "totalResources"
             ],
             "properties": {
+              "quotaManagement": {
+                "$ref": "#/components/schemas/QuotaManagement"
+              },
               "id": {
                 "type": "string",
                 "example": 50
@@ -6636,6 +6894,11 @@
           },
           {
             "properties": {
+              "quotaManagementRevision": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 0
+              },
               "resources": {
                 "type": "array",
                 "items": {
@@ -6646,6 +6909,27 @@
             }
           }
         ]
+      },
+      "QuotaSourceUpdateRequest": {
+        "type": "object",
+        "required": [
+          "source",
+          "expectedRevision"
+        ],
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": [
+              "runai",
+              "kubernetes"
+            ]
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
       },
       "ResourcesUpdateRequest": {
         "type": "array",
@@ -6810,6 +7094,26 @@
           "pools"
         ],
         "properties": {
+          "controlRevision": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "controlPhase": {
+            "type": "string",
+            "enum": [
+              "freeze",
+              "release",
+              "stable"
+            ]
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "runai",
+              "kubernetes"
+            ]
+          },
           "epoch": {
             "type": "string",
             "minLength": 1
@@ -6835,6 +7139,12 @@
       "DepartmentStatus": {
         "type": "object",
         "properties": {
+          "kubernetesUid": {
+            "type": "string",
+            "minLength": 1,
+            "x-internal": true,
+            "description": "Actual Kubernetes object UID, reported only by authenticated cluster-sync."
+          },
           "lastUpdatedTime": {
             "type": "string",
             "format": "date-time",
@@ -6927,6 +7237,12 @@
       "ProjectStatus": {
         "type": "object",
         "properties": {
+          "kubernetesUid": {
+            "type": "string",
+            "minLength": 1,
+            "x-internal": true,
+            "description": "Actual Kubernetes object UID, reported only by authenticated cluster-sync."
+          },
           "namespace": {
             "type": "string",
             "description": "the project's namespace",
@@ -7058,6 +7374,9 @@
               "resources"
             ],
             "properties": {
+              "quotaManagement": {
+                "$ref": "#/components/schemas/QuotaManagement"
+              },
               "id": {
                 "type": "string",
                 "example": 33
@@ -7237,6 +7556,11 @@
               "resources"
             ],
             "properties": {
+              "quotaManagementRevision": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 0
+              },
               "enforceRunaiScheduler": {
                 "type": "boolean",
                 "description": "a flag to enforce that all pods in this namespace will be scheduled with runai-scheduler. Supported for cluster v2.21+",
@@ -7350,6 +7674,27 @@
           "pools"
         ],
         "properties": {
+          "source": {
+            "type": "string",
+            "enum": [
+              "runai",
+              "kubernetes"
+            ],
+            "description": "Target authority. Absent means legacy Kubernetes ownership."
+          },
+          "phase": {
+            "type": "string",
+            "enum": [
+              "freeze",
+              "release",
+              "stable"
+            ]
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
           "epoch": {
             "type": "string",
             "minLength": 1
@@ -7884,6 +8229,9 @@
           "clusterId"
         ],
         "properties": {
+          "quotaManagement": {
+            "$ref": "#/components/schemas/QuotaManagement"
+          },
           "id": {
             "description": "The unique ID of the resources.",
             "type": "string"
@@ -7972,6 +8320,11 @@
           "nodePoolId"
         ],
         "properties": {
+          "quotaManagementRevision": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
           "orgUnitId": {
             "description": "The project/department ID.",
             "type": "string"
@@ -8177,6 +8530,9 @@
           "clusterId"
         ],
         "properties": {
+          "quotaManagement": {
+            "$ref": "#/components/schemas/QuotaManagement"
+          },
           "id": {
             "description": "The unique ID of the resources.",
             "type": "string"

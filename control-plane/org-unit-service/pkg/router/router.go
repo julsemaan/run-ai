@@ -76,6 +76,7 @@ func CreateRouter(
 		router.Use(runaimetrics.HttpMiddleware)
 		router.Use(logginghttp.HttpMiddleware)
 		router.Use(middlewares.PreserveJwtToken)
+		router.Use(validateQuotaSourceRequest)
 		api.AddRoutes(router, DepartmentApiController, ProjectApiController, NodeTypeApiController,
 			OrgUnitApiController, notificationsApiController, ReportsApiController,
 			DepartmentV1ApiController, ProjectV1ApiController, SettingsApiController)
