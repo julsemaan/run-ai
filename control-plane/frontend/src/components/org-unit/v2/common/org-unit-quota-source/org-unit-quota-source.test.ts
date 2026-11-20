@@ -7,6 +7,10 @@ import { mount } from "@vue/test-utils";
 import QuotaSource from "./org-unit-quota-source.vue";
 import { defaultQuotaManagement, type QuotaSource as Source } from "@/models/quota-management.model";
 
+vi.mock("@/components/common/runai-expansion-item/runai-expansion-item.vue", () => ({
+  default: { template: "<section><slot /></section>" },
+}));
+
 vi.mock("@/components/common/runai-base-dialog/runai-base-dialog.vue", () => ({
   default: {
     props: ["modelValue"],

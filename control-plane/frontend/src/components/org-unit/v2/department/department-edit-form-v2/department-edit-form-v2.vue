@@ -11,16 +11,6 @@
     full-width
     class="q-pb-xl"
   >
-    <org-unit-quota-source
-      v-if="!isNewDepartment"
-      :management="quotaSource.management.value"
-      entity-type="department"
-      :name="department.name"
-      :can-update="canUpdate"
-      :busy="quotaSource.busy.value || isDepartmentSubmitting"
-      @change-source="quotaSource.changeSource"
-      @refresh="quotaSource.refresh"
-    />
     <!-- Unsaved Changes Dialog -->
     <unsaved-changes-dialog
       v-model="unsavedDialogModel"
@@ -125,6 +115,16 @@
           @save-cpu-quota="handleSaveCpuQuota"
           @close="handleClose"
         />
+        <org-unit-quota-source
+          v-else-if="!isNewDepartment && currentStep?.name === EStepNames.QuotaSource"
+          :management="quotaSource.management.value"
+          entity-type="department"
+          :name="department.name"
+          :can-update="canUpdate"
+          :busy="quotaSource.busy.value || isDepartmentSubmitting"
+          @change-source="quotaSource.changeSource"
+          @refresh="quotaSource.refresh"
+        />
       </template>
 
       <template #content-footer>
@@ -136,7 +136,7 @@
           :is-first-step="isFirstStep"
           :is-last-step="isLastStep"
           :submitting-action="submittingAction"
-          :read-only="props.readOnly"
+          :read-only="props.readOnly || currentStep?.name === EStepNames.QuotaSource"
           @close="handleClose"
           @next="handleNext"
           @submit-and-close="handleSubmitAndClose"
@@ -197,6 +197,7 @@ import type { NodepoolMinimal } from "@/swagger-models/cluster-service-client";
 import { deepCopy } from "@/utils/common.util";
 import {
   DEPARTMENT_FORM_WIZARD_STEPS,
+  QUOTA_SOURCE_WIZARD_STEP,
   ESaveOrgUnitAction,
   EStepNames,
   type ISaveOrgUnitPayload,
@@ -265,10 +266,13 @@ const hasMultipleNodePools = computed(() => {
 // Build steps array - filters steps based on nodepool capabilities and permissions
 const getInitialSteps = (): IRunaiWizardLayoutStep[] => {
   return deepCopy(
-    filterOrgUnitSteps(DEPARTMENT_FORM_WIZARD_STEPS, {
-      nodepoolCapabilities: nodepoolCapabilities.value,
-      hasPermission: (r, a) => permissionStore.hasPermission(r, a),
-    }),
+    filterOrgUnitSteps(
+      [...DEPARTMENT_FORM_WIZARD_STEPS, ...(!props.isNewDepartment ? [QUOTA_SOURCE_WIZARD_STEP] : [])],
+      {
+        nodepoolCapabilities: nodepoolCapabilities.value,
+        hasPermission: (r, a) => permissionStore.hasPermission(r, a),
+      },
+    ),
   );
 };
 
@@ -847,6 +851,7 @@ const handleExploreDialogStartTour = () => {
 watch(
   () => props.isNewDepartment,
   (isNew) => {
+    setSteps(getInitialSteps());
     if (!isNew) {
       wizardSteps.value.forEach((step) => {
         wizard.setStepDisabled(step.name, false);
