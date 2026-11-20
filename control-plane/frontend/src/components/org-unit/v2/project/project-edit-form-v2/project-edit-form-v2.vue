@@ -228,6 +228,7 @@ import { orgUnitUtil } from "@/utils/org-unit.util/org-unit.util";
 
 // Props
 export interface Props {
+  initialStep?: string;
   refreshQuotaObject?: (discardUnsaved?: boolean, editState?: string) => Promise<void>;
   invalidateQuotaRefresh?: () => void;
   project: Project | ProjectCreationRequest;
@@ -273,10 +274,8 @@ const getInitialSteps = (): IRunaiWizardLayoutStep[] => {
 };
 
 const getInitialActiveStep = (): string | undefined => {
-  // if no stepName query return undefined
   const route = useRoute();
-  const stepName = route.query.stepName;
-  return stepName?.toString();
+  return props.initialStep ?? route.query.stepName?.toString();
 };
 
 // Emits
@@ -328,7 +327,11 @@ const quotaSource = useQuotaSource({
     props.refreshQuotaObject ? props.refreshQuotaObject(discardUnsaved, editState) : emit("refresh", discardUnsaved),
 });
 const quotaReadOnly = computed(() => !props.isNewProject && quotaSource.locked.value);
-defineExpose({ getEditState, hasUnsavedChanges: () => unsavedGuard.isAnyStepDirty.value || isScopeNameDirty.value });
+defineExpose({
+  getActiveStep: () => activeStep.value,
+  getEditState,
+  hasUnsavedChanges: () => unsavedGuard.isAnyStepDirty.value || isScopeNameDirty.value,
+});
 
 // Access rules count for the summary component
 const accessRulesCount = ref(0);

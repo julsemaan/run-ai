@@ -300,6 +300,18 @@ describe("DepartmentEditFormV2", () => {
   // ==========================================================================
 
   describe("Initial Step from Query Parameter", () => {
+    it("uses the refresh section before the route query and exposes live navigation", async () => {
+      setMockRouteStepName(ETestStepNames.CPUQuota);
+      const wrapper = createWrapper({ props: { isNewDepartment: false, initialStep: "quota-source" } });
+      await flushPromises();
+      expect(getWizardLayout(wrapper).props("activeStep")).toBe("quota-source");
+      expect(wrapper.vm.getActiveStep()).toBe("quota-source");
+      getWizardLayout(wrapper).vm.$emit("step-click", createStepClickPayload(ETestStepNames.ScopeName));
+      await flushPromises();
+      expect(wrapper.vm.getActiveStep()).toBe(ETestStepNames.ScopeName);
+      wrapper.unmount();
+    });
+
     it("starts at first step when no stepName query param is provided", async () => {
       setMockRouteStepName(undefined);
       const wrapper = createWrapper({ props: { isNewDepartment: false } });
