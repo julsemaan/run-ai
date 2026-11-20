@@ -15,6 +15,8 @@ import type { ComponentPublicInstance } from "vue";
 import DepartmentEditFormV2 from "./department-edit-form-v2.vue";
 
 // Child components for assertions
+import { RunaiSectionTitle } from "@/components/common/runai-section-title";
+import { defaultQuotaManagement } from "@/models/quota-management.model";
 import { ScopeNameStep } from "@/components/org-unit/v2/department/steps/scope-name-step";
 import { SchedulingRulesStep } from "@/components/org-unit/v2/common/scheduling-rules-step";
 import { UnsavedChangesDialog } from "@/components/org-unit/v2/common/unsaved-changes-dialog";
@@ -115,6 +117,7 @@ describe("DepartmentEditFormV2", () => {
     props?: Record<string, unknown>;
     nodePoolsMinimal?: typeof mockCpuEnabledNodePools;
     hasPermission?: boolean;
+    stubs?: Record<string, boolean>;
   }
 
   const createWrapper = (options: CreateWrapperOptions = {}) => {
@@ -147,6 +150,7 @@ describe("DepartmentEditFormV2", () => {
         },
         stubs: {
           RunaiFormWrapper: RunaiFormWrapperStub,
+          ...options.stubs,
         },
       },
     });
@@ -161,6 +165,59 @@ describe("DepartmentEditFormV2", () => {
   // ==========================================================================
   // Basic Rendering Tests
   // ==========================================================================
+
+  describe("Kubernetes quota explanation", () => {
+    it.each([
+      [ETestStepNames.GpuQuota, "kubernetes", false, true],
+      ["over-quota", "kubernetes", false, true],
+      [ETestStepNames.CPUQuota, "kubernetes", false, true],
+      [ETestStepNames.GpuQuota, "runai", false, false],
+      ["over-quota", "runai", false, false],
+      [ETestStepNames.CPUQuota, "runai", false, false],
+      [ETestStepNames.GpuQuota, "kubernetes", true, false],
+      ["over-quota", "kubernetes", true, false],
+      [ETestStepNames.CPUQuota, "kubernetes", true, false],
+      [ETestStepNames.ScopeName, "kubernetes", false, false],
+      [ETestStepNames.SchedulingRules, "kubernetes", false, false],
+      [ETestStepNames.AccessRules, "kubernetes", false, false],
+      ["quota-source", "kubernetes", false, false],
+    ] as const)("step=%s source=%s new=%s shows explanation=%s", async (step, source, isNewDepartment, visible) => {
+      setMockRouteStepName(step);
+      const wrapper = createWrapper({
+        stubs: {
+          ScopeNameStep: true,
+          GpuQuotaStep: true,
+          GpuOverQuotaStep: true,
+          CpuQuotaStep: true,
+          SchedulingRulesStep: true,
+          AccessRulesStep: true,
+        },
+        hasPermission: true,
+        nodePoolsMinimal: mockFullCapabilitiesNodePools,
+        props: {
+          isNewDepartment,
+          department: {
+            ...mockDepartment,
+            quotaManagement: { ...defaultQuotaManagement, source },
+          },
+        },
+      });
+      await flushPromises();
+
+      expect(getWizardLayout(wrapper).props("activeStep")).toBe(step);
+      const titles = wrapper
+        .findAllComponents(RunaiSectionTitle)
+        .filter((title) => title.props("title") === "Quotas are read-only");
+      expect(titles).toHaveLength(visible ? 1 : 0);
+      if (visible) {
+        expect(titles[0].isVisible()).toBe(true);
+        expect(titles[0].props("tooltipText")).toBe(
+          "These quotas are managed by Kubernetes. Edit them in Kubernetes, or switch Quota source to Run:ai to edit them here.",
+        );
+      }
+      wrapper.unmount();
+    });
+  });
 
   describe("Rendering", () => {
     it("renders the component correctly", () => {
