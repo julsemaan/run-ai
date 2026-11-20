@@ -13,6 +13,7 @@ import (
 )
 
 type Department struct {
+	QuotaManagementRevision int64 `gorm:"-"`
 	IntBaseModel
 	TenantId        string
 	ClusterId       uuid.UUID

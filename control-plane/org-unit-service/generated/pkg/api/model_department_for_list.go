@@ -67,6 +67,11 @@ type DepartmentForList struct {
 	//////////////////////////////////// RUNAI END ///////////////////////////////////////////
 
 	//////////////////////////////////// RUNAI START (19) ///////////////////////////////////////////
+	//QuotaManagement QuotaManagement `json:"quotaManagement,omitempty"`
+	QuotaManagement QuotaManagement `json:"quotaManagement,omitempty" gorm:"serializer:json; type:jsonb;not null;"`
+	//////////////////////////////////// RUNAI END ///////////////////////////////////////////
+
+	//////////////////////////////////// RUNAI START (19) ///////////////////////////////////////////
 	//Id string `json:"id"`
 	Id string `json:"id" gorm:"not null;"`
 	//////////////////////////////////// RUNAI END ///////////////////////////////////////////
@@ -139,6 +144,9 @@ func AssertDepartmentForListRequired(obj DepartmentForList) error {
 		return err
 	}
 	if err := AssertOvertimeDataRequired(obj.OvertimeData); err != nil {
+		return err
+	}
+	if err := AssertQuotaManagementRequired(obj.QuotaManagement); err != nil {
 		return err
 	}
 	if obj.Children != nil {
@@ -216,6 +224,14 @@ func AssertDepartmentForListConstraints(obj DepartmentForList) error {
 
 	//////////////////////// RUNAI END //////////////////////////
 	if err := AssertOvertimeDataConstraints(obj.OvertimeData); err != nil {
+		return err
+	}
+	//////////////////////// RUNAI START (18.2) //////////////////////////
+	//////////////////////// RUNAI END //////////////////////////
+	//////////////////////// RUNAI START (2.1) //////////////////////////
+
+	//////////////////////// RUNAI END //////////////////////////
+	if err := AssertQuotaManagementConstraints(obj.QuotaManagement); err != nil {
 		return err
 	}
 	//////////////////////// RUNAI START (18.2) //////////////////////////

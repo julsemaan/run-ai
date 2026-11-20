@@ -112,6 +112,68 @@ func TestQuotaReconciliation(t *testing.T) {
 	}
 }
 
+func TestNativeStaleCommandConflict(t *testing.T) {
+	scheme := runtime.NewScheme()
+	if err := kai.AddToScheme(scheme); err != nil {
+		t.Fatal(err)
+	}
+	live := &kai.Project{ObjectMeta: metav1.ObjectMeta{Name: "p", UID: "uid"}}
+	live.Spec.Queues = []kai.QueueConfig{{Name: "q", Nodepool: "pool", Resources: &kai.QueueResourcesConfig{GPU: kai.SystemResource{Deserved: 9, Limit: -1}}}}
+	marker := func(phase string, revision int64) string {
+		o := api.QuotaOwnership{Epoch: "e", KubernetesUid: "uid", Pools: []api.QuotaOwnershipPool{{NodePoolId: "1", NodePoolName: "pool", QueueName: "q"}}}
+		o.SetSource("kubernetes")
+		o.SetPhase(phase)
+		o.SetRevision(revision)
+		encoded, _ := json.Marshal(o)
+		return string(encoded)
+	}
+	desired := live.DeepCopy()
+	desired.Annotations = map[string]string{quotaownership.Annotation: marker("freeze", 1)}
+	desired.Spec.Queues[0].Resources.GPU.Deserved = 2
+	attempts := 0
+	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(live).WithInterceptorFuncs(interceptor.Funcs{Update: func(ctx context.Context, c client.WithWatch, obj client.Object, opts ...client.UpdateOption) error {
+		attempts++
+		latest := live.DeepCopy()
+		if err := c.Get(ctx, client.ObjectKeyFromObject(obj), latest); err != nil {
+			return err
+		}
+		latest.Annotations = map[string]string{quotaownership.Annotation: marker("release", 2)}
+		if err := c.Update(ctx, latest); err != nil {
+			return err
+		}
+		return errors.NewConflict(schema.GroupResource{Resource: "projects"}, obj.GetName(), nil)
+	}}).Build()
+	h := &CommonHandler{runaiClient: c, cachedClient: c, gvk: kai.GroupVersion.WithKind("Project"), objectInspector: KaiProjectObjectInspector(true)}
+	if err := h.CreateOrUpdateObject(desired, ""); err == nil {
+		t.Fatal("stale command accepted after conflict")
+	}
+	got := live.DeepCopy()
+	if err := c.Get(context.Background(), client.ObjectKeyFromObject(live), got); err != nil {
+		t.Fatal(err)
+	}
+	if attempts != 1 || got.Spec.Queues[0].Resources.GPU.Deserved != 9 || got.Annotations[quotaownership.Annotation] != marker("release", 2) {
+		t.Fatal("stale retry regressed live control or quotas")
+	}
+}
+
+func TestQuotaLegacyWireShape(t *testing.T) {
+	o := api.QuotaOwnership{Epoch: "e", KubernetesUid: "uid", Pools: []api.QuotaOwnershipPool{{NodePoolId: "1", NodePoolName: "pool", QueueName: "q"}}}
+	o.SetRevision(0)
+	o.SetSource("kubernetes")
+	o.SetPhase("stable")
+	p := &kai.Project{}
+	if err := quotaownership.Set(p, &o); err != nil {
+		t.Fatal(err)
+	}
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(p.Annotations[quotaownership.Annotation]), &fields); err != nil {
+		t.Fatal(err)
+	}
+	if len(fields) != 3 || fields["revision"] != nil || fields["source"] != nil || fields["phase"] != nil {
+		t.Fatal("legacy marker changed wire shape")
+	}
+}
+
 func TestBackendOwnershipConversion(t *testing.T) {
 	ownership := api.QuotaOwnership{Epoch: "epoch", KubernetesUid: "uid", Pools: []api.QuotaOwnershipPool{{NodePoolId: "1", NodePoolName: "pool", QueueName: "queue"}}}
 	p := api.ProjectSync{Name: "project"}

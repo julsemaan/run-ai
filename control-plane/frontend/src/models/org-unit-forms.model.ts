@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import type { QuotaManaged } from "./quota-management.model";
 import type { IRunaiWizardLayoutStep } from "./runai-wizard-layout.model";
 
 /**
@@ -53,7 +54,8 @@ export interface ISaveOrgUnitPayload<T> {
 
 /**
  * Peer org unit GPU quota change payload*/
-export interface IPeerOrgUnitQuotaChange {
+export interface IPeerOrgUnitQuotaChange extends QuotaManaged {
+  quotaManagementRevision?: number;
   orgUnitId: string;
   nodePoolName: string;
   nodePoolId: string;

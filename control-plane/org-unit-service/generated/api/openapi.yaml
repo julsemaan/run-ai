@@ -2282,6 +2282,121 @@ paths:
         action: update
         resource-id: departmentId
       x-audit: true
+  /api/v1/org-unit/departments/{departmentId}/quota-source:
+    get:
+      operationId: get_department_quota_source
+      parameters:
+      - description: The id of the department.
+        explode: false
+        in: path
+        name: departmentId
+        required: true
+        schema:
+          example: "1"
+          pattern: .*
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuotaManagement'
+          description: Current quota authority and synchronization state
+        "403":
+          content:
+            application/json:
+              example:
+                code: 403
+                message: You do not have sufficient permissions.
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Forbidden
+        "404":
+          content:
+            application/json:
+              example:
+                code: 404
+                message: Resource id not found.
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: The specified resource was not found
+      summary: Get department quota source
+      tags:
+      - Departments
+      x-service: org-unit-service
+      x-authorize:
+        resource-type: department
+        action: read
+        resource-id: departmentId
+    put:
+      operationId: update_department_quota_source
+      parameters:
+      - description: The id of the department.
+        explode: false
+        in: path
+        name: departmentId
+        required: true
+        schema:
+          example: "1"
+          pattern: .*
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuotaSourceUpdateRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuotaManagement'
+          description: Current quota authority and synchronization state
+        "400":
+          content:
+            application/json:
+              example:
+                code: 400
+                message: Required parameter is missing
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Bad request.
+        "403":
+          content:
+            application/json:
+              example:
+                code: 403
+                message: You do not have sufficient permissions.
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Forbidden
+        "404":
+          content:
+            application/json:
+              example:
+                code: 404
+                message: Resource id not found.
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: The specified resource was not found
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Stale revision or conflicting pending transfer
+      summary: Set department quota source for all node pools
+      tags:
+      - Departments
+      x-service: org-unit-service
+      x-authorize:
+        resource-type: department
+        action: update
+        resource-id: departmentId
+      x-audit: true
   /api/v1/org-unit/departments/{departmentId}/resources:
     patch:
       description: "Updates the resources of the node pools in the request. Node pools\
@@ -3464,6 +3579,119 @@ paths:
       x-service: org-unit-service
       x-test-coverage:
       - control-plane/org-unit-service/pkg/test/project_api_test.go
+      x-authorize:
+        resource-type: project
+        action: update
+        resource-id: projectId
+      x-audit: true
+  /api/v1/org-unit/projects/{projectId}/quota-source:
+    get:
+      operationId: get_project_quota_source
+      parameters:
+      - description: The project id
+        example: 575c19e8-c7c3-45b0-8290-2f47397a8383
+        explode: false
+        in: path
+        name: projectId
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuotaManagement'
+          description: Current quota authority and synchronization state
+        "403":
+          content:
+            application/json:
+              example:
+                code: 403
+                message: You do not have sufficient permissions.
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Forbidden
+        "404":
+          content:
+            application/json:
+              example:
+                code: 404
+                message: Resource id not found.
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: The specified resource was not found
+      summary: Get project quota source
+      tags:
+      - Projects
+      x-service: org-unit-service
+      x-authorize:
+        resource-type: project
+        action: read
+        resource-id: projectId
+    put:
+      operationId: update_project_quota_source
+      parameters:
+      - description: The project id
+        example: 575c19e8-c7c3-45b0-8290-2f47397a8383
+        explode: false
+        in: path
+        name: projectId
+        required: true
+        schema:
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuotaSourceUpdateRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuotaManagement'
+          description: Current quota authority and synchronization state
+        "400":
+          content:
+            application/json:
+              example:
+                code: 400
+                message: Required parameter is missing
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Bad request.
+        "403":
+          content:
+            application/json:
+              example:
+                code: 403
+                message: You do not have sufficient permissions.
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Forbidden
+        "404":
+          content:
+            application/json:
+              example:
+                code: 404
+                message: Resource id not found.
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: The specified resource was not found
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Stale revision or conflicting pending transfer
+      summary: Set project quota source for all node pools
+      tags:
+      - Projects
+      x-service: org-unit-service
       x-authorize:
         resource-type: project
         action: update
@@ -8384,6 +8612,63 @@ components:
         - clusterId
         - name
         type: object
+    QuotaManagementSyncStatus:
+      example:
+        phase: pending
+        lastSyncedAt: 2000-01-23T04:56:07.000+00:00
+        message: message
+      properties:
+        phase:
+          enum:
+          - pending
+          - synced
+          - error
+          type: string
+        message:
+          type: string
+        lastSyncedAt:
+          format: date-time
+          nullable: true
+          type: string
+      required:
+      - phase
+      type: object
+    QuotaManagement:
+      example:
+        canEditQuotas: true
+        source: runai
+        requestedSource: runai
+        syncStatus:
+          phase: pending
+          lastSyncedAt: 2000-01-23T04:56:07.000+00:00
+          message: message
+        revision: 0
+      properties:
+        source:
+          enum:
+          - runai
+          - kubernetes
+          type: string
+        requestedSource:
+          enum:
+          - runai
+          - kubernetes
+          type: string
+        revision:
+          format: int64
+          minimum: 0
+          type: integer
+        canEditQuotas:
+          type: boolean
+        syncStatus:
+          $ref: '#/components/schemas/QuotaManagementSyncStatus'
+      required:
+      - canEditQuotas
+      - requestedSource
+      - revision
+      - source
+      - syncStatus
+      type: object
     DepartmentProjectChild:
       description: Department or project child
       example:
@@ -8455,9 +8740,9 @@ components:
       type: object
     TotalResources:
       example:
-        cpuQuota: 6.027456183070403
-        gpuQuota: 0.8008281904610115
-        memoryQuota: 1.4658129805029452
+        cpuQuota: 1.4658129805029452
+        gpuQuota: 6.027456183070403
+        memoryQuota: 5.962133916683182
       properties:
         gpuQuota:
           description: Total gpu quota of the org unit
@@ -8571,6 +8856,8 @@ components:
       allOf:
       - $ref: '#/components/schemas/DataDepartmentFields'
       - properties:
+          quotaManagement:
+            $ref: '#/components/schemas/QuotaManagement'
           id:
             example: "50"
             type: string
@@ -8647,6 +8934,15 @@ components:
             limit: 0
             deserved: 1000
         clusterId: 71f69d83-ba66-4822-adf5-55ce55efd210
+        quotaManagement:
+          canEditQuotas: true
+          source: runai
+          requestedSource: runai
+          syncStatus:
+            phase: pending
+            lastSyncedAt: 2000-01-23T04:56:07.000+00:00
+            message: message
+          revision: 0
         schedulingRules:
           trainingJobTimeLimitSeconds: 100
           interactiveJobTimeLimitSeconds: 100
@@ -8655,9 +8951,9 @@ components:
           interactiveJobPreemptIdleDurationSeconds: 100
         createdAt: 2000-01-23T04:56:07.000+00:00
         totalResources:
-          cpuQuota: 6.027456183070403
-          gpuQuota: 0.8008281904610115
-          memoryQuota: 1.4658129805029452
+          cpuQuota: 1.4658129805029452
+          gpuQuota: 6.027456183070403
+          memoryQuota: 5.962133916683182
         createdBy: createdBy
         children:
         - children:
@@ -8743,6 +9039,7 @@ components:
           limit: 0
           deserved: 1000
           units: Mib
+        quotaManagementRevision: 0
         cpu:
           overQuotaWeight: 2
           limit: 0
@@ -8753,6 +9050,10 @@ components:
           limit: 0
           deserved: 1000
       properties:
+        quotaManagementRevision:
+          format: int64
+          minimum: 0
+          type: integer
         nodePool:
           $ref: '#/components/schemas/Resources_nodePool'
         gpu:
@@ -8810,6 +9111,7 @@ components:
             limit: 0
             deserved: 1000
             units: Mib
+          quotaManagementRevision: 0
           cpu:
             overQuotaWeight: 2
             limit: 0
@@ -8827,6 +9129,7 @@ components:
             limit: 0
             deserved: 1000
             units: Mib
+          quotaManagementRevision: 0
           cpu:
             overQuotaWeight: 2
             limit: 0
@@ -8923,6 +9226,8 @@ components:
       allOf:
       - $ref: '#/components/schemas/DataDepartmentFields'
       - properties:
+          quotaManagement:
+            $ref: '#/components/schemas/QuotaManagement'
           id:
             example: "50"
             type: string
@@ -9006,6 +9311,15 @@ components:
             limit: 0
             deserved: 1000
         clusterId: 71f69d83-ba66-4822-adf5-55ce55efd210
+        quotaManagement:
+          canEditQuotas: true
+          source: runai
+          requestedSource: runai
+          syncStatus:
+            phase: pending
+            lastSyncedAt: 2000-01-23T04:56:07.000+00:00
+            message: message
+          revision: 0
         schedulingRules:
           trainingJobTimeLimitSeconds: 100
           interactiveJobTimeLimitSeconds: 100
@@ -9014,9 +9328,9 @@ components:
           interactiveJobPreemptIdleDurationSeconds: 100
         createdAt: 2000-01-23T04:56:07.000+00:00
         totalResources:
-          cpuQuota: 6.027456183070403
-          gpuQuota: 0.8008281904610115
-          memoryQuota: 1.4658129805029452
+          cpuQuota: 1.4658129805029452
+          gpuQuota: 6.027456183070403
+          memoryQuota: 5.962133916683182
         createdBy: createdBy
         children:
         - children:
@@ -9121,6 +9435,10 @@ components:
       allOf:
       - $ref: '#/components/schemas/DataUpdatableDepartmentFields'
       - properties:
+          quotaManagementRevision:
+            format: int64
+            minimum: 0
+            type: integer
           resources:
             description: Resources assigned to this Organization per Node Pool
             items:
@@ -9133,6 +9451,7 @@ components:
           interactiveJobMaxIdleDurationSeconds: 100
           trainingJobMaxIdleDurationSeconds: 100
           interactiveJobPreemptIdleDurationSeconds: 100
+        quotaManagementRevision: 0
         defaultNodePools:
         - defaultNodePools
         - defaultNodePools
@@ -9149,6 +9468,7 @@ components:
             limit: 0
             deserved: 1000
             units: Mib
+          quotaManagementRevision: 0
           cpu:
             overQuotaWeight: 2
             limit: 0
@@ -9166,6 +9486,7 @@ components:
             limit: 0
             deserved: 1000
             units: Mib
+          quotaManagementRevision: 0
           cpu:
             overQuotaWeight: 2
             limit: 0
@@ -9190,6 +9511,24 @@ components:
           - training
           - training
           - training
+    QuotaSourceUpdateRequest:
+      example:
+        source: runai
+        expectedRevision: 0
+      properties:
+        source:
+          enum:
+          - runai
+          - kubernetes
+          type: string
+        expectedRevision:
+          format: int64
+          minimum: 0
+          type: integer
+      required:
+      - expectedRevision
+      - source
+      type: object
     ResourcesUpdateRequest:
       description: Resources assigned to this Project per Node Pool
       items:
@@ -9282,9 +9621,9 @@ components:
       description: All three numeric leaves are mandatory and must be non-null. Minus
         one means unlimited for deserved or limit. Weight must be nonnegative.
       example:
-        overQuotaWeight: 0.5962133916683182
-        limit: -0.8534187019497055
-        deserved: -0.3972543816929597
+        overQuotaWeight: 0.5637376656633328
+        limit: -0.4037866083316818
+        deserved: -0.8534187019497055
       properties:
         deserved:
           format: double
@@ -9310,17 +9649,17 @@ components:
       example:
         nodePoolId: nodePoolId
         memory:
-          overQuotaWeight: 0.5962133916683182
-          limit: -0.8534187019497055
-          deserved: -0.3972543816929597
+          overQuotaWeight: 0.5637376656633328
+          limit: -0.4037866083316818
+          deserved: -0.8534187019497055
         cpu:
-          overQuotaWeight: 0.5962133916683182
-          limit: -0.8534187019497055
-          deserved: -0.3972543816929597
+          overQuotaWeight: 0.5637376656633328
+          limit: -0.4037866083316818
+          deserved: -0.8534187019497055
         gpu:
-          overQuotaWeight: 0.5962133916683182
-          limit: -0.8534187019497055
-          deserved: -0.3972543816929597
+          overQuotaWeight: 0.5637376656633328
+          limit: -0.4037866083316818
+          deserved: -0.8534187019497055
       properties:
         nodePoolId:
           minLength: 1
@@ -9342,37 +9681,55 @@ components:
         \ CPU is millicores and memory is decimal megabytes. No defaults are applied."
       example:
         generation: 1
+        controlPhase: freeze
+        controlRevision: 0
         pools:
         - nodePoolId: nodePoolId
           memory:
-            overQuotaWeight: 0.5962133916683182
-            limit: -0.8534187019497055
-            deserved: -0.3972543816929597
+            overQuotaWeight: 0.5637376656633328
+            limit: -0.4037866083316818
+            deserved: -0.8534187019497055
           cpu:
-            overQuotaWeight: 0.5962133916683182
-            limit: -0.8534187019497055
-            deserved: -0.3972543816929597
+            overQuotaWeight: 0.5637376656633328
+            limit: -0.4037866083316818
+            deserved: -0.8534187019497055
           gpu:
-            overQuotaWeight: 0.5962133916683182
-            limit: -0.8534187019497055
-            deserved: -0.3972543816929597
+            overQuotaWeight: 0.5637376656633328
+            limit: -0.4037866083316818
+            deserved: -0.8534187019497055
         - nodePoolId: nodePoolId
           memory:
-            overQuotaWeight: 0.5962133916683182
-            limit: -0.8534187019497055
-            deserved: -0.3972543816929597
+            overQuotaWeight: 0.5637376656633328
+            limit: -0.4037866083316818
+            deserved: -0.8534187019497055
           cpu:
-            overQuotaWeight: 0.5962133916683182
-            limit: -0.8534187019497055
-            deserved: -0.3972543816929597
+            overQuotaWeight: 0.5637376656633328
+            limit: -0.4037866083316818
+            deserved: -0.8534187019497055
           gpu:
-            overQuotaWeight: 0.5962133916683182
-            limit: -0.8534187019497055
-            deserved: -0.3972543816929597
+            overQuotaWeight: 0.5637376656633328
+            limit: -0.4037866083316818
+            deserved: -0.8534187019497055
         epoch: epoch
+        source: runai
         kubernetesUid: kubernetesUid
       nullable: true
       properties:
+        controlRevision:
+          format: int64
+          minimum: 0
+          type: integer
+        controlPhase:
+          enum:
+          - freeze
+          - release
+          - stable
+          type: string
+        source:
+          enum:
+          - runai
+          - kubernetes
+          type: string
         epoch:
           minLength: 1
           type: string
@@ -9397,7 +9754,14 @@ components:
     DepartmentStatus:
       example:
         lastUpdatedTime: 2000-01-23T04:56:07.000+00:00
+        kubernetesUid: kubernetesUid
       properties:
+        kubernetesUid:
+          description: "Actual Kubernetes object UID, reported only by authenticated\
+            \ cluster-sync."
+          minLength: 1
+          type: string
+          x-internal: true
         lastUpdatedTime:
           format: date-time
           nullable: true
@@ -9408,38 +9772,42 @@ components:
       example:
         quotaSnapshot:
           generation: 1
+          controlPhase: freeze
+          controlRevision: 0
           pools:
           - nodePoolId: nodePoolId
             memory:
-              overQuotaWeight: 0.5962133916683182
-              limit: -0.8534187019497055
-              deserved: -0.3972543816929597
+              overQuotaWeight: 0.5637376656633328
+              limit: -0.4037866083316818
+              deserved: -0.8534187019497055
             cpu:
-              overQuotaWeight: 0.5962133916683182
-              limit: -0.8534187019497055
-              deserved: -0.3972543816929597
+              overQuotaWeight: 0.5637376656633328
+              limit: -0.4037866083316818
+              deserved: -0.8534187019497055
             gpu:
-              overQuotaWeight: 0.5962133916683182
-              limit: -0.8534187019497055
-              deserved: -0.3972543816929597
+              overQuotaWeight: 0.5637376656633328
+              limit: -0.4037866083316818
+              deserved: -0.8534187019497055
           - nodePoolId: nodePoolId
             memory:
-              overQuotaWeight: 0.5962133916683182
-              limit: -0.8534187019497055
-              deserved: -0.3972543816929597
+              overQuotaWeight: 0.5637376656633328
+              limit: -0.4037866083316818
+              deserved: -0.8534187019497055
             cpu:
-              overQuotaWeight: 0.5962133916683182
-              limit: -0.8534187019497055
-              deserved: -0.3972543816929597
+              overQuotaWeight: 0.5637376656633328
+              limit: -0.4037866083316818
+              deserved: -0.8534187019497055
             gpu:
-              overQuotaWeight: 0.5962133916683182
-              limit: -0.8534187019497055
-              deserved: -0.3972543816929597
+              overQuotaWeight: 0.5637376656633328
+              limit: -0.4037866083316818
+              deserved: -0.8534187019497055
           epoch: epoch
+          source: runai
           kubernetesUid: kubernetesUid
         clusterId: 71f69d83-ba66-4822-adf5-55ce55efd210
         status:
           lastUpdatedTime: 2000-01-23T04:56:07.000+00:00
+          kubernetesUid: kubernetesUid
       properties:
         quotaSnapshot:
           $ref: '#/components/schemas/QuotaSnapshot'
@@ -9545,6 +9913,7 @@ components:
             cpu: 1000
             gpu: 0
         lastUpdatedTime: 2000-01-23T04:56:07.000+00:00
+        kubernetesUid: kubernetesUid
         quotaStatus:
           requested:
             memory: 1000
@@ -9559,6 +9928,12 @@ components:
             cpu: 1000
             gpu: 0
       properties:
+        kubernetesUid:
+          description: "Actual Kubernetes object UID, reported only by authenticated\
+            \ cluster-sync."
+          minLength: 1
+          type: string
+          x-internal: true
         namespace:
           description: the project's namespace
           example: runai-proj1
@@ -9675,6 +10050,8 @@ components:
       allOf:
       - $ref: '#/components/schemas/DataUpdatableFields'
       - properties:
+          quotaManagement:
+            $ref: '#/components/schemas/QuotaManagement'
           id:
             example: "33"
             type: string
@@ -9786,6 +10163,15 @@ components:
             deserved: 1000
         clusterId: 71f69d83-ba66-4822-adf5-55ce55efd210
         requestedNamespace: runai-proj1
+        quotaManagement:
+          canEditQuotas: true
+          source: runai
+          requestedSource: runai
+          syncStatus:
+            phase: pending
+            lastSyncedAt: 2000-01-23T04:56:07.000+00:00
+            message: message
+          revision: 0
         parentId: 53a9228e-a722-420d-a102-9dc90da2efca
         schedulingRules:
           trainingJobTimeLimitSeconds: 100
@@ -9794,9 +10180,9 @@ components:
           trainingJobMaxIdleDurationSeconds: 100
           interactiveJobPreemptIdleDurationSeconds: 100
         totalResources:
-          cpuQuota: 6.027456183070403
-          gpuQuota: 0.8008281904610115
-          memoryQuota: 1.4658129805029452
+          cpuQuota: 1.4658129805029452
+          gpuQuota: 6.027456183070403
+          memoryQuota: 5.962133916683182
         createdAt: 2000-01-23T04:56:07.000+00:00
         effective:
           schedulingRules:
@@ -9887,6 +10273,7 @@ components:
               cpu: 1000
               gpu: 0
           lastUpdatedTime: 2000-01-23T04:56:07.000+00:00
+          kubernetesUid: kubernetesUid
           quotaStatus:
             requested:
               memory: 1000
@@ -9970,6 +10357,7 @@ components:
             limit: 0
             deserved: 1000
             units: Mib
+          quotaManagementRevision: 0
           cpu:
             overQuotaWeight: 2
             limit: 0
@@ -9987,6 +10375,7 @@ components:
             limit: 0
             deserved: 1000
             units: Mib
+          quotaManagementRevision: 0
           cpu:
             overQuotaWeight: 2
             limit: 0
@@ -10059,6 +10448,10 @@ components:
       allOf:
       - $ref: '#/components/schemas/DataUpdatableFields'
       - properties:
+          quotaManagementRevision:
+            format: int64
+            minimum: 0
+            type: integer
           enforceRunaiScheduler:
             description: a flag to enforce that all pods in this namespace will be
               scheduled with runai-scheduler. Supported for cluster v2.21+
@@ -10079,6 +10472,7 @@ components:
           interactiveJobMaxIdleDurationSeconds: 100
           trainingJobMaxIdleDurationSeconds: 100
           interactiveJobPreemptIdleDurationSeconds: 100
+        quotaManagementRevision: 0
         enforceRunaiScheduler: true
         defaultNodePools:
         - defaultNodePools
@@ -10096,6 +10490,7 @@ components:
             limit: 0
             deserved: 1000
             units: Mib
+          quotaManagementRevision: 0
           cpu:
             overQuotaWeight: 2
             limit: 0
@@ -10113,6 +10508,7 @@ components:
             limit: 0
             deserved: 1000
             units: Mib
+          quotaManagementRevision: 0
           cpu:
             overQuotaWeight: 2
             limit: 0
@@ -10142,34 +10538,37 @@ components:
       example:
         quotaSnapshot:
           generation: 1
+          controlPhase: freeze
+          controlRevision: 0
           pools:
           - nodePoolId: nodePoolId
             memory:
-              overQuotaWeight: 0.5962133916683182
-              limit: -0.8534187019497055
-              deserved: -0.3972543816929597
+              overQuotaWeight: 0.5637376656633328
+              limit: -0.4037866083316818
+              deserved: -0.8534187019497055
             cpu:
-              overQuotaWeight: 0.5962133916683182
-              limit: -0.8534187019497055
-              deserved: -0.3972543816929597
+              overQuotaWeight: 0.5637376656633328
+              limit: -0.4037866083316818
+              deserved: -0.8534187019497055
             gpu:
-              overQuotaWeight: 0.5962133916683182
-              limit: -0.8534187019497055
-              deserved: -0.3972543816929597
+              overQuotaWeight: 0.5637376656633328
+              limit: -0.4037866083316818
+              deserved: -0.8534187019497055
           - nodePoolId: nodePoolId
             memory:
-              overQuotaWeight: 0.5962133916683182
-              limit: -0.8534187019497055
-              deserved: -0.3972543816929597
+              overQuotaWeight: 0.5637376656633328
+              limit: -0.4037866083316818
+              deserved: -0.8534187019497055
             cpu:
-              overQuotaWeight: 0.5962133916683182
-              limit: -0.8534187019497055
-              deserved: -0.3972543816929597
+              overQuotaWeight: 0.5637376656633328
+              limit: -0.4037866083316818
+              deserved: -0.8534187019497055
             gpu:
-              overQuotaWeight: 0.5962133916683182
-              limit: -0.8534187019497055
-              deserved: -0.3972543816929597
+              overQuotaWeight: 0.5637376656633328
+              limit: -0.4037866083316818
+              deserved: -0.8534187019497055
           epoch: epoch
+          source: runai
           kubernetesUid: kubernetesUid
         id: "33"
         clusterId: 71f69d83-ba66-4822-adf5-55ce55efd210
@@ -10209,6 +10608,7 @@ components:
               cpu: 1000
               gpu: 0
           lastUpdatedTime: 2000-01-23T04:56:07.000+00:00
+          kubernetesUid: kubernetesUid
           quotaStatus:
             requested:
               memory: 1000
@@ -10305,6 +10705,7 @@ components:
       description: Trusted active Kubernetes quota enrollment. Absent for API-managed
         objects and prepared enrollments.
       example:
+        phase: freeze
         pools:
         - nodePoolId: nodePoolId
           queueName: queueName
@@ -10313,9 +10714,27 @@ components:
           queueName: queueName
           nodePoolName: nodePoolName
         epoch: epoch
+        source: runai
         kubernetesUid: kubernetesUid
+        revision: 0
       nullable: true
       properties:
+        source:
+          description: Target authority. Absent means legacy Kubernetes ownership.
+          enum:
+          - runai
+          - kubernetes
+          type: string
+        phase:
+          enum:
+          - freeze
+          - release
+          - stable
+          type: string
+        revision:
+          format: int64
+          minimum: 0
+          type: integer
         epoch:
           minLength: 1
           type: string
@@ -10379,6 +10798,7 @@ components:
           id: 9f55253e-11ed-47c7-acef-fc4054768dbc
         enforceRunaiScheduler: true
         quotaOwnership:
+          phase: freeze
           pools:
           - nodePoolId: nodePoolId
             queueName: queueName
@@ -10387,7 +10807,9 @@ components:
             queueName: queueName
             nodePoolName: nodePoolName
           epoch: epoch
+          source: runai
           kubernetesUid: kubernetesUid
+          revision: 0
         resources:
         - nodePool:
             name: default
@@ -10545,6 +10967,7 @@ components:
         createdAt: 2000-01-23T04:56:07.000+00:00
         deletedAt: 2000-01-23T04:56:07.000+00:00
         quotaOwnership:
+          phase: freeze
           pools:
           - nodePoolId: nodePoolId
             queueName: queueName
@@ -10553,7 +10976,9 @@ components:
             queueName: queueName
             nodePoolName: nodePoolName
           epoch: epoch
+          source: runai
           kubernetesUid: kubernetesUid
+          revision: 0
         name: organization1
         resources:
         - nodePool:
@@ -10892,8 +11317,19 @@ components:
         id: id
         clusterId: clusterId
         orgUnitId: orgUnitId
+        quotaManagement:
+          canEditQuotas: true
+          source: runai
+          requestedSource: runai
+          syncStatus:
+            phase: pending
+            lastSyncedAt: 2000-01-23T04:56:07.000+00:00
+            message: message
+          revision: 0
         orgUnitName: organization1
       properties:
+        quotaManagement:
+          $ref: '#/components/schemas/QuotaManagement'
         id:
           description: The unique ID of the resources.
           type: string
@@ -10936,6 +11372,10 @@ components:
       type: object
     NodePoolResourcesPatchRequest:
       properties:
+        quotaManagementRevision:
+          format: int64
+          minimum: 0
+          type: integer
         orgUnitId:
           description: The project/department ID.
           type: string
@@ -11397,9 +11837,20 @@ components:
             memory: 1000
             cpu: 1000
             gpu: 0
+        quotaManagement:
+          canEditQuotas: true
+          source: runai
+          requestedSource: runai
+          syncStatus:
+            phase: pending
+            lastSyncedAt: 2000-01-23T04:56:07.000+00:00
+            message: message
+          revision: 0
         parentId: parentId
         orgUnitName: organization1
       properties:
+        quotaManagement:
+          $ref: '#/components/schemas/QuotaManagement'
         id:
           description: The unique ID of the resources.
           type: string
@@ -13256,6 +13707,15 @@ components:
               limit: 0
               deserved: 1000
           clusterId: 71f69d83-ba66-4822-adf5-55ce55efd210
+          quotaManagement:
+            canEditQuotas: true
+            source: runai
+            requestedSource: runai
+            syncStatus:
+              phase: pending
+              lastSyncedAt: 2000-01-23T04:56:07.000+00:00
+              message: message
+            revision: 0
           schedulingRules:
             trainingJobTimeLimitSeconds: 100
             interactiveJobTimeLimitSeconds: 100
@@ -13264,9 +13724,9 @@ components:
             interactiveJobPreemptIdleDurationSeconds: 100
           createdAt: 2000-01-23T04:56:07.000+00:00
           totalResources:
-            cpuQuota: 6.027456183070403
-            gpuQuota: 0.8008281904610115
-            memoryQuota: 1.4658129805029452
+            cpuQuota: 1.4658129805029452
+            gpuQuota: 6.027456183070403
+            memoryQuota: 5.962133916683182
           createdBy: createdBy
           children:
           - children:
@@ -13359,6 +13819,15 @@ components:
               limit: 0
               deserved: 1000
           clusterId: 71f69d83-ba66-4822-adf5-55ce55efd210
+          quotaManagement:
+            canEditQuotas: true
+            source: runai
+            requestedSource: runai
+            syncStatus:
+              phase: pending
+              lastSyncedAt: 2000-01-23T04:56:07.000+00:00
+              message: message
+            revision: 0
           schedulingRules:
             trainingJobTimeLimitSeconds: 100
             interactiveJobTimeLimitSeconds: 100
@@ -13367,9 +13836,9 @@ components:
             interactiveJobPreemptIdleDurationSeconds: 100
           createdAt: 2000-01-23T04:56:07.000+00:00
           totalResources:
-            cpuQuota: 6.027456183070403
-            gpuQuota: 0.8008281904610115
-            memoryQuota: 1.4658129805029452
+            cpuQuota: 1.4658129805029452
+            gpuQuota: 6.027456183070403
+            memoryQuota: 5.962133916683182
           createdBy: createdBy
           children:
           - children:
@@ -13483,6 +13952,15 @@ components:
               deserved: 1000
           clusterId: 71f69d83-ba66-4822-adf5-55ce55efd210
           requestedNamespace: runai-proj1
+          quotaManagement:
+            canEditQuotas: true
+            source: runai
+            requestedSource: runai
+            syncStatus:
+              phase: pending
+              lastSyncedAt: 2000-01-23T04:56:07.000+00:00
+              message: message
+            revision: 0
           parentId: 53a9228e-a722-420d-a102-9dc90da2efca
           schedulingRules:
             trainingJobTimeLimitSeconds: 100
@@ -13491,9 +13969,9 @@ components:
             trainingJobMaxIdleDurationSeconds: 100
             interactiveJobPreemptIdleDurationSeconds: 100
           totalResources:
-            cpuQuota: 6.027456183070403
-            gpuQuota: 0.8008281904610115
-            memoryQuota: 1.4658129805029452
+            cpuQuota: 1.4658129805029452
+            gpuQuota: 6.027456183070403
+            memoryQuota: 5.962133916683182
           createdAt: 2000-01-23T04:56:07.000+00:00
           effective:
             schedulingRules:
@@ -13584,6 +14062,7 @@ components:
                 cpu: 1000
                 gpu: 0
             lastUpdatedTime: 2000-01-23T04:56:07.000+00:00
+            kubernetesUid: kubernetesUid
             quotaStatus:
               requested:
                 memory: 1000
@@ -13646,6 +14125,15 @@ components:
               deserved: 1000
           clusterId: 71f69d83-ba66-4822-adf5-55ce55efd210
           requestedNamespace: runai-proj1
+          quotaManagement:
+            canEditQuotas: true
+            source: runai
+            requestedSource: runai
+            syncStatus:
+              phase: pending
+              lastSyncedAt: 2000-01-23T04:56:07.000+00:00
+              message: message
+            revision: 0
           parentId: 53a9228e-a722-420d-a102-9dc90da2efca
           schedulingRules:
             trainingJobTimeLimitSeconds: 100
@@ -13654,9 +14142,9 @@ components:
             trainingJobMaxIdleDurationSeconds: 100
             interactiveJobPreemptIdleDurationSeconds: 100
           totalResources:
-            cpuQuota: 6.027456183070403
-            gpuQuota: 0.8008281904610115
-            memoryQuota: 1.4658129805029452
+            cpuQuota: 1.4658129805029452
+            gpuQuota: 6.027456183070403
+            memoryQuota: 5.962133916683182
           createdAt: 2000-01-23T04:56:07.000+00:00
           effective:
             schedulingRules:
@@ -13747,6 +14235,7 @@ components:
                 cpu: 1000
                 gpu: 0
             lastUpdatedTime: 2000-01-23T04:56:07.000+00:00
+            kubernetesUid: kubernetesUid
             quotaStatus:
               requested:
                 memory: 1000
@@ -13812,6 +14301,7 @@ components:
             id: 9f55253e-11ed-47c7-acef-fc4054768dbc
           enforceRunaiScheduler: true
           quotaOwnership:
+            phase: freeze
             pools:
             - nodePoolId: nodePoolId
               queueName: queueName
@@ -13820,7 +14310,9 @@ components:
               queueName: queueName
               nodePoolName: nodePoolName
             epoch: epoch
+            source: runai
             kubernetesUid: kubernetesUid
+            revision: 0
           resources:
           - nodePool:
               name: default
@@ -13907,6 +14399,7 @@ components:
             id: 9f55253e-11ed-47c7-acef-fc4054768dbc
           enforceRunaiScheduler: true
           quotaOwnership:
+            phase: freeze
             pools:
             - nodePoolId: nodePoolId
               queueName: queueName
@@ -13915,7 +14408,9 @@ components:
               queueName: queueName
               nodePoolName: nodePoolName
             epoch: epoch
+            source: runai
             kubernetesUid: kubernetesUid
+            revision: 0
           resources:
           - nodePool:
               name: default
@@ -14027,6 +14522,7 @@ components:
         - createdAt: 2000-01-23T04:56:07.000+00:00
           deletedAt: 2000-01-23T04:56:07.000+00:00
           quotaOwnership:
+            phase: freeze
             pools:
             - nodePoolId: nodePoolId
               queueName: queueName
@@ -14035,7 +14531,9 @@ components:
               queueName: queueName
               nodePoolName: nodePoolName
             epoch: epoch
+            source: runai
             kubernetesUid: kubernetesUid
+            revision: 0
           name: organization1
           resources:
           - nodePool:
@@ -14078,6 +14576,7 @@ components:
         - createdAt: 2000-01-23T04:56:07.000+00:00
           deletedAt: 2000-01-23T04:56:07.000+00:00
           quotaOwnership:
+            phase: freeze
             pools:
             - nodePoolId: nodePoolId
               queueName: queueName
@@ -14086,7 +14585,9 @@ components:
               queueName: queueName
               nodePoolName: nodePoolName
             epoch: epoch
+            source: runai
             kubernetesUid: kubernetesUid
+            revision: 0
           name: organization1
           resources:
           - nodePool:
@@ -14217,6 +14718,15 @@ components:
           id: id
           clusterId: clusterId
           orgUnitId: orgUnitId
+          quotaManagement:
+            canEditQuotas: true
+            source: runai
+            requestedSource: runai
+            syncStatus:
+              phase: pending
+              lastSyncedAt: 2000-01-23T04:56:07.000+00:00
+              message: message
+            revision: 0
           orgUnitName: organization1
         - nodePoolId: nodePoolId
           nodePoolName: nodePoolName
@@ -14238,6 +14748,15 @@ components:
           id: id
           clusterId: clusterId
           orgUnitId: orgUnitId
+          quotaManagement:
+            canEditQuotas: true
+            source: runai
+            requestedSource: runai
+            syncStatus:
+              phase: pending
+              lastSyncedAt: 2000-01-23T04:56:07.000+00:00
+              message: message
+            revision: 0
           orgUnitName: organization1
       properties:
         nodePoolResources:
@@ -14287,6 +14806,15 @@ components:
               memory: 1000
               cpu: 1000
               gpu: 0
+          quotaManagement:
+            canEditQuotas: true
+            source: runai
+            requestedSource: runai
+            syncStatus:
+              phase: pending
+              lastSyncedAt: 2000-01-23T04:56:07.000+00:00
+              message: message
+            revision: 0
           parentId: parentId
           orgUnitName: organization1
         - nodePoolId: nodePoolId
@@ -14322,6 +14850,15 @@ components:
               memory: 1000
               cpu: 1000
               gpu: 0
+          quotaManagement:
+            canEditQuotas: true
+            source: runai
+            requestedSource: runai
+            syncStatus:
+              phase: pending
+              lastSyncedAt: 2000-01-23T04:56:07.000+00:00
+              message: message
+            revision: 0
           parentId: parentId
           orgUnitName: organization1
       properties:

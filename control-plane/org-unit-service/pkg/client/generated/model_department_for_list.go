@@ -35,16 +35,17 @@ type DepartmentForList struct {
 	// The unique name of the department within the cluster. Must be a valid Kubernetes name (lowercase, alphanumeric, hyphens allowed).
 	Name string `json:"name"`
 	// The id of the cluster.
-	ClusterId      string                               `json:"clusterId"`
-	OvertimeData   *OvertimeData                        `json:"overtimeData,omitempty"`
-	Id             string                               `json:"id"`
-	CreatedAt      time.Time                            `json:"createdAt"`
-	UpdatedAt      time.Time                            `json:"updatedAt"`
-	CreatedBy      *string                              `json:"createdBy,omitempty"`
-	UpdatedBy      *string                              `json:"updatedBy,omitempty"`
-	Children       []DepartmentProjectChild             `json:"children,omitempty"`
-	Status         NullableDepartmentForListAllOfStatus `json:"status,omitempty"`
-	TotalResources TotalResources                       `json:"totalResources"`
+	ClusterId       string                               `json:"clusterId"`
+	OvertimeData    *OvertimeData                        `json:"overtimeData,omitempty"`
+	QuotaManagement *QuotaManagement                     `json:"quotaManagement,omitempty"`
+	Id              string                               `json:"id"`
+	CreatedAt       time.Time                            `json:"createdAt"`
+	UpdatedAt       time.Time                            `json:"updatedAt"`
+	CreatedBy       *string                              `json:"createdBy,omitempty"`
+	UpdatedBy       *string                              `json:"updatedBy,omitempty"`
+	Children        []DepartmentProjectChild             `json:"children,omitempty"`
+	Status          NullableDepartmentForListAllOfStatus `json:"status,omitempty"`
+	TotalResources  TotalResources                       `json:"totalResources"`
 	// Resources assigned to this Organization per Node Pool
 	Resources []Resources `json:"resources"`
 }
@@ -296,6 +297,38 @@ func (o *DepartmentForList) HasOvertimeData() bool {
 // SetOvertimeData gets a reference to the given OvertimeData and assigns it to the OvertimeData field.
 func (o *DepartmentForList) SetOvertimeData(v OvertimeData) {
 	o.OvertimeData = &v
+}
+
+// GetQuotaManagement returns the QuotaManagement field value if set, zero value otherwise.
+func (o *DepartmentForList) GetQuotaManagement() QuotaManagement {
+	if o == nil || IsNil(o.QuotaManagement) {
+		var ret QuotaManagement
+		return ret
+	}
+	return *o.QuotaManagement
+}
+
+// GetQuotaManagementOk returns a tuple with the QuotaManagement field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *DepartmentForList) GetQuotaManagementOk() (*QuotaManagement, bool) {
+	if o == nil || IsNil(o.QuotaManagement) {
+		return nil, false
+	}
+	return o.QuotaManagement, true
+}
+
+// HasQuotaManagement returns a boolean if a field has been set.
+func (o *DepartmentForList) HasQuotaManagement() bool {
+	if o != nil && !IsNil(o.QuotaManagement) {
+		return true
+	}
+
+	return false
+}
+
+// SetQuotaManagement gets a reference to the given QuotaManagement and assigns it to the QuotaManagement field.
+func (o *DepartmentForList) SetQuotaManagement(v QuotaManagement) {
+	o.QuotaManagement = &v
 }
 
 // GetId returns the Id field value
@@ -584,6 +617,9 @@ func (o DepartmentForList) ToMap() (map[string]interface{}, error) {
 	toSerialize["clusterId"] = o.ClusterId
 	if !IsNil(o.OvertimeData) {
 		toSerialize["overtimeData"] = o.OvertimeData
+	}
+	if !IsNil(o.QuotaManagement) {
+		toSerialize["quotaManagement"] = o.QuotaManagement
 	}
 	toSerialize["id"] = o.Id
 	toSerialize["createdAt"] = o.CreatedAt

@@ -160,6 +160,7 @@ var _ = Describe("Node pool resources DAO SQL", func() {
 			mocker := setupSQLMock()
 			subject := "user@run.ai"
 			mocker.ExpectTransaction().Begin()
+			expectUnmanagedQuotaUpdate(mocker, "department", false)
 			mocker.ExpectExec(sqlPatchResources, float64(2), testResourcesID().String(), testNodePoolID).Returns(1)
 			mocker.ExpectExec(sqlPatchDepartmentMetadata, dbtesting.AnyTime(), subject, testTenantID, testClusterID().String(), "11").Returns(1)
 			mocker.ExpectTransaction().Commit()
@@ -179,6 +180,7 @@ var _ = Describe("Node pool resources DAO SQL", func() {
 		It("returns error", func() {
 			mocker := setupSQLMock()
 			mocker.ExpectTransaction().Begin()
+			expectUnmanagedQuotaUpdate(mocker, "department", false)
 			mocker.ExpectExec(sqlPatchResources).ReturnsError(errors.New("update failed"))
 			mocker.ExpectTransaction().Rollback()
 

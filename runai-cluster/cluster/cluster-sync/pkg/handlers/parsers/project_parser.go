@@ -29,6 +29,7 @@ func ParseKaiProjectToUpdateStatusRequest(project *kaiv1alpha1.Project) org_unit
 		Id:        project.Labels[ProjectIdLabel],
 		ClusterId: config.Config().ClusterUuid,
 		Status: org_unit_openapi.ProjectStatus{
+			KubernetesUid:         ptr.To(string(project.UID)),
 			Namespace:             *org_unit_openapi.NewNullableString(ptr.To(project.Status.Namespace)),
 			Phase:                 convertKaiPhase(project.Status.Phase),
 			PhaseMessage:          *org_unit_openapi.NewNullableString(ptr.To(project.Status.Message)),
@@ -47,7 +48,8 @@ func ParseKaiProjectToDeleteRequest(project *kaiv1alpha1.Project) org_unit_opena
 		Id:        project.Labels[ProjectIdLabel],
 		ClusterId: config.Config().ClusterUuid,
 		Status: org_unit_openapi.ProjectStatus{
-			Phase: ptr.To(org_unit_openapi.PROJECTPHASE_DELETED),
+			KubernetesUid: ptr.To(string(project.UID)),
+			Phase:         ptr.To(org_unit_openapi.PROJECTPHASE_DELETED),
 		},
 	}
 }

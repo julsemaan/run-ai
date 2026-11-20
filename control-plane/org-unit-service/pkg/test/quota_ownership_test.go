@@ -152,7 +152,7 @@ var _ = Describe("Kubernetes quota ownership", func() {
 		}
 	})
 
-	It("publishes only active trusted ownership and refreshes configuration-only enrollments", func() {
+	It("imports prepared protection without following subsequent configuration changes", func() {
 		for _, state := range []string{"prepared", "active"} {
 			setEnrollment(state)
 			response, err := projectService.GetSyncProjects(ctx, cluster, time.Now().Add(time.Hour), 0, 100, true)
@@ -160,21 +160,13 @@ var _ = Describe("Kubernetes quota ownership", func() {
 			Expect(response.Code).To(Equal(http.StatusOK), fmt.Sprint(response.Body))
 			values := response.Body.(api.GetSyncProjects200Response).Projects
 			Expect(values).To(HaveLen(1))
-			if state == "prepared" {
-				Expect(values[0].QuotaOwnership).To(BeNil())
-			} else {
-				Expect(values[0].QuotaOwnership).To(Equal(enrollments[1].Ownership()))
-			}
+			Expect(values[0].QuotaOwnership).To(BeNil())
 			response, err = departmentService.GetSyncDepartments(ctx, cluster, time.Now().Add(time.Hour), 0, 100)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(response.Code).To(Equal(http.StatusOK), fmt.Sprint(response.Body))
 			ds := response.Body.(api.GetSyncDepartments200Response).Departments
 			Expect(ds).To(HaveLen(1))
-			if state == "prepared" {
-				Expect(ds[0].QuotaOwnership).To(BeNil())
-			} else {
-				Expect(ds[0].QuotaOwnership).To(Equal(enrollments[0].Ownership()))
-			}
+			Expect(ds[0].QuotaOwnership).To(BeNil())
 		}
 	})
 
@@ -210,7 +202,7 @@ var _ = Describe("Kubernetes quota ownership", func() {
 		Expect(*resource(readProject().OrgUnitData.Resources, "1").GpuDeserved).To(Equal(1.5))
 	})
 
-	It("rejects stale, conflicting, spoofed, incomplete and prepared snapshots without writes", func() {
+	It("rejects stale, conflicting, spoofed and incomplete snapshots and retains imported protection", func() {
 		for _, kind := range []string{"project", "department"} {
 			good := snapshot(kind, 10, 1.5)
 			Expect(importSnapshot(ctx, kind, good)).To(Succeed())
@@ -225,7 +217,7 @@ var _ = Describe("Kubernetes quota ownership", func() {
 			Expect(importSnapshot(wrongTenant, kind, snapshot(kind, 11, 1.75))).NotTo(Succeed())
 			Expect(importSnapshot(SetContext(TestTenant, TestUser), kind, snapshot(kind, 11, 1.75))).NotTo(Succeed())
 			setEnrollment("prepared")
-			Expect(importSnapshot(ctx, kind, snapshot(kind, 11, 1.75))).NotTo(Succeed())
+			Expect(importSnapshot(ctx, kind, good)).To(Succeed())
 			setEnrollment("active")
 		}
 		bad := snapshot("project", 11, 1.75)
@@ -271,17 +263,25 @@ var _ = Describe("Kubernetes quota ownership", func() {
 		Expect(response.Code).To(Equal(http.StatusOK), fmt.Sprint(response.Body))
 	})
 
-	It("requires a new epoch when UID or pool identities change", func() {
-		Expect(importSnapshot(ctx, "project", snapshot("project", 3, 1.5))).To(Succeed())
+	It("does not let configuration replace an imported UID epoch or pool binding", func() {
+		original := snapshot("project", 3, 1.5)
+		Expect(importSnapshot(ctx, "project", original)).To(Succeed())
 		enrollments[1].KubernetesUid = uuid.NewString()
 		setEnrollment("active")
 		Expect(importSnapshot(ctx, "project", snapshot("project", 4, 1.75))).NotTo(Succeed())
 		enrollments[1].Epoch = uuid.NewString()
 		setEnrollment("active")
-		Expect(importSnapshot(ctx, "project", snapshot("project", 1, 1.75))).To(Succeed())
+		Expect(importSnapshot(ctx, "project", snapshot("project", 1, 1.75))).NotTo(Succeed())
 		enrollments[1].Pools[0].QueueName = "different-queue"
 		setEnrollment("active")
 		Expect(importSnapshot(ctx, "project", snapshot("project", 2, 1.5))).NotTo(Succeed())
+		original.Generation++
+		Expect(importSnapshot(ctx, "project", original)).To(Succeed())
+		c, err := dao.GetQuotaControl(ctx, TestTenant, cluster, "project", readProject().ID)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(c.Epoch).To(Equal(original.Epoch))
+		Expect(c.KubernetesUID).To(Equal(original.KubernetesUid))
+		Expect(c.Pools[0].QueueName).NotTo(Equal("different-queue"))
 	})
 
 	It("refuses active ownership and imports under the strict oversubscription policy", func() {

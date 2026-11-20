@@ -123,6 +123,7 @@ watch(
 );
 
 const onUpdateModelValue = (value: number | string | null) => {
+  if (isDisabledOrReadonly.value) return;
   let emittedValue: number | null;
   if (value === "" || value === null || value === undefined) {
     // When treatMinusOneAsUnlimited is true, empty field means -1 (unlimited)
@@ -142,6 +143,7 @@ const onUpdateModelValue = (value: number | string | null) => {
 };
 
 const onUpdateUnit = (value: string) => {
+  if (isDisabledOrReadonly.value) return;
   internalUnit.value = value;
   emit("update:unit", value);
 };
@@ -198,6 +200,7 @@ const onFocus = () => {
 };
 
 const onBlur = () => {
+  if (isDisabledOrReadonly.value) return;
   isFocused.value = false;
 
   if ((internalValue.value === null || internalValue.value === -1) && props.modelValue !== -1) {

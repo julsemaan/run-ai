@@ -43,6 +43,7 @@ type StepAction = () => void | Promise<void>;
 
 export interface IUnsavedStepGuardHandlers {
   isDirty: DirtyEvaluator;
+  editState?: () => unknown;
   save?: StepAction;
   discard?: StepAction;
 }
@@ -72,6 +73,7 @@ export interface IUnsavedChangesGuard {
   confirmAction(decision: UnsavedGuardDecision): Promise<void>;
   cancelPending(): void;
   isAnyStepDirty: ComputedRef<boolean>;
+  getEditState(): unknown;
   dialog: IUnsavedGuardDialogState;
 }
 
@@ -188,6 +190,7 @@ const createUnsavedChangesGuard = (): IUnsavedChangesGuard => {
     confirmAction,
     cancelPending,
     isAnyStepDirty,
+    getEditState: () => [...stepHandlers].map(([name, handler]) => [name, handler.editState?.()]),
     dialog: {
       isOpen: dialogVisible,
     },

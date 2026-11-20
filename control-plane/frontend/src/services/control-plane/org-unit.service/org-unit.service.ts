@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import type { QuotaManagement, QuotaSource } from "@/models/quota-management.model";
 import type { IDepartmentTable, IDepartmentTableFilterBy } from "@/models/department.model";
 import { DEFAULT_DEPARTMENT_NAME } from "@/models/department.model";
 import type { IFilterBy, IPaginationFilter } from "@/models/filter.model";
@@ -49,6 +50,8 @@ import type { PermittedScopes } from "@/swagger-models/authorization-client";
 import type { OrgUnit } from "@/swagger-models/org-unit-service-client";
 
 export const orgUnitService = {
+  getQuotaSource,
+  updateQuotaSource,
   getProjects,
   getProjectsMetadata,
   listProjectsMetadata,
@@ -95,6 +98,36 @@ export const orgUnitService = {
   getDepartmentMetrics,
   getProjectMetrics,
 };
+
+async function getQuotaSource(kind: "projects" | "departments", id: string): Promise<QuotaManagement> {
+  try {
+    const response =
+      kind === "projects"
+        ? await orgUnitServiceApi.projectsApi.getProjectQuotaSource(id)
+        : await orgUnitServiceApi.departmentsApi.getDepartmentQuotaSource(id);
+    return response.data;
+  } catch (err: unknown) {
+    throw httpService.handleHttpError(err);
+  }
+}
+
+async function updateQuotaSource(
+  kind: "projects" | "departments",
+  id: string,
+  source: QuotaSource,
+  expectedRevision: number,
+): Promise<QuotaManagement> {
+  try {
+    const request = { source, expectedRevision };
+    const response =
+      kind === "projects"
+        ? await orgUnitServiceApi.projectsApi.updateProjectQuotaSource(id, request)
+        : await orgUnitServiceApi.departmentsApi.updateDepartmentQuotaSource(id, request);
+    return response.data;
+  } catch (err: unknown) {
+    throw httpService.handleHttpError(err);
+  }
+}
 
 //******** ProjectsApi ************
 /**

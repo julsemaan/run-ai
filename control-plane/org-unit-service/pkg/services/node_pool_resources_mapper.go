@@ -6,6 +6,7 @@
 package services
 
 import (
+	"context"
 	cluster_openapi "github.com/dsx-ai-factory/run-ai/control-plane/cluster-service/pkg/client/generated"
 	"github.com/dsx-ai-factory/run-ai/control-plane/org-unit-service/generated/pkg/api"
 	"github.com/dsx-ai-factory/run-ai/control-plane/org-unit-service/pkg/database/models"
@@ -53,22 +54,39 @@ func mapModelNodePoolResources(nodePoolResources models.ResourcesPerNodePool, no
 	return resources, nil
 }
 
+func quotaPeerSnapshot(tenant, cluster, kind, objectID, poolID string, existing models.ResourcesPerNodePool) (models.ResourcesPerNodePool, api.QuotaManagement) {
+	id, _ := strconv.ParseInt(objectID, 10, 64)
+	resources, management := QuotaObjectSnapshot(context.Background(), tenant, cluster, kind, id, nil)
+	for _, r := range resources {
+		if r.NodePoolId == poolID {
+			return models.ResourcesPerNodePool{GpuDeserved: r.GpuDeserved, GpuLimit: r.GpuLimit, GpuOverQuotaWeight: r.GpuOverQuotaWeight, CpuDeserved: r.CpuDeserved, CpuLimit: r.CpuLimit, CpuOverQuotaWeight: r.CpuOverQuotaWeight, MemoryDeserved: r.MemoryDeserved, MemoryLimit: r.MemoryLimit, MemoryOverQuotaWeight: r.MemoryOverQuotaWeight, MemoryUnits: r.MemoryUnits}, management
+		}
+	}
+	if id != 0 {
+		management.CanEditQuotas = false
+	}
+	return existing, management
+}
+
 func MapModelProjectNodePoolResourcesToApi(nodePoolResources models.ProjectNodePoolResources, nodePoolsMetadata map[string]cluster_openapi.NodepoolMinimal) *api.ProjectNodePoolResources {
+	var management api.QuotaManagement
+	nodePoolResources.ResourcesPerNodePool, management = quotaPeerSnapshot(nodePoolResources.TenantId, nodePoolResources.ClusterId.String(), "project", nodePoolResources.OrgUnitId, nodePoolResources.NodePoolId, nodePoolResources.ResourcesPerNodePool)
 	if id, err := strconv.ParseInt(nodePoolResources.OrgUnitId, 10, 64); err == nil {
 		nodePoolsMetadata = QuotaNodePoolsMetadata(nodePoolResources.TenantId, nodePoolResources.ClusterId.String(), "project", id, nodePoolsMetadata)
 	}
 	resources, _ := mapModelNodePoolResources(nodePoolResources.ResourcesPerNodePool, nodePoolResources.NodePoolId, nodePoolsMetadata)
 	response := &api.ProjectNodePoolResources{
-		Id:           nodePoolResources.ID.String(),
-		OrgUnitId:    nodePoolResources.OrgUnitId,
-		OrgUnitName:  nodePoolResources.OrgUnitName,
-		ParentId:     nodePoolResources.ParentId,
-		ClusterId:    nodePoolResources.ClusterId.String(),
-		NodePoolId:   nodePoolResources.NodePoolId,
-		NodePoolName: nodePoolResources.NodePoolName,
-		Rank:         nodePoolResources.Rank,
-		Resources:    resources,
-		QuotaStatus:  resourcesStatusToQuotaStatus(nodePoolResources.ResourcesStatus),
+		QuotaManagement: management,
+		Id:              nodePoolResources.ID.String(),
+		OrgUnitId:       nodePoolResources.OrgUnitId,
+		OrgUnitName:     nodePoolResources.OrgUnitName,
+		ParentId:        nodePoolResources.ParentId,
+		ClusterId:       nodePoolResources.ClusterId.String(),
+		NodePoolId:      nodePoolResources.NodePoolId,
+		NodePoolName:    nodePoolResources.NodePoolName,
+		Rank:            nodePoolResources.Rank,
+		Resources:       resources,
+		QuotaStatus:     resourcesStatusToQuotaStatus(nodePoolResources.ResourcesStatus),
 	}
 	return response
 }
@@ -94,19 +112,22 @@ func resourcesStatusToQuotaStatus(status models.ResourcesStatus) api.QuotaStatus
 }
 
 func MapModelDepartmentNodePoolResourcesToApi(nodePoolResources models.DepartmentNodePoolResources, nodePoolsMetadata map[string]cluster_openapi.NodepoolMinimal) *api.DepartmentNodePoolResources {
+	var management api.QuotaManagement
+	nodePoolResources.ResourcesPerNodePool, management = quotaPeerSnapshot(nodePoolResources.TenantId, nodePoolResources.ClusterId.String(), "department", nodePoolResources.OrgUnitId, nodePoolResources.NodePoolId, nodePoolResources.ResourcesPerNodePool)
 	if id, err := strconv.ParseInt(nodePoolResources.OrgUnitId, 10, 64); err == nil {
 		nodePoolsMetadata = QuotaNodePoolsMetadata(nodePoolResources.TenantId, nodePoolResources.ClusterId.String(), "department", id, nodePoolsMetadata)
 	}
 	resources, _ := mapModelNodePoolResources(nodePoolResources.ResourcesPerNodePool, nodePoolResources.NodePoolId, nodePoolsMetadata)
 	response := &api.DepartmentNodePoolResources{
-		Id:           nodePoolResources.ID.String(),
-		OrgUnitId:    nodePoolResources.OrgUnitId,
-		OrgUnitName:  nodePoolResources.OrgUnitName,
-		ClusterId:    nodePoolResources.ClusterId.String(),
-		NodePoolId:   nodePoolResources.NodePoolId,
-		NodePoolName: nodePoolResources.NodePoolName,
-		Rank:         nodePoolResources.Rank,
-		Resources:    resources,
+		QuotaManagement: management,
+		Id:              nodePoolResources.ID.String(),
+		OrgUnitId:       nodePoolResources.OrgUnitId,
+		OrgUnitName:     nodePoolResources.OrgUnitName,
+		ClusterId:       nodePoolResources.ClusterId.String(),
+		NodePoolId:      nodePoolResources.NodePoolId,
+		NodePoolName:    nodePoolResources.NodePoolName,
+		Rank:            nodePoolResources.Rank,
+		Resources:       resources,
 	}
 	return response
 }

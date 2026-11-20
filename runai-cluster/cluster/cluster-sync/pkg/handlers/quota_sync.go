@@ -113,7 +113,7 @@ func recordOrgUnitSync(c client.Client, object client.Object, syncTime metav1.Ti
 	}
 	annotations[parsers.LastSyncTimestampAnnotation] = syncTime.UTC().Format(time.RFC3339)
 	if snapshot != nil {
-		ack, err := json.Marshal(parsers.QuotaAck{Epoch: snapshot.Epoch, KubernetesUID: snapshot.KubernetesUid, Generation: snapshot.Generation})
+		ack, err := json.Marshal(parsers.QuotaAck{Epoch: snapshot.Epoch, KubernetesUID: snapshot.KubernetesUid, Generation: snapshot.Generation, ControlRevision: snapshot.ControlRevision, ControlPhase: snapshot.ControlPhase, Source: snapshot.Source})
 		if err != nil {
 			return err
 		}

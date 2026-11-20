@@ -254,6 +254,46 @@ func (s *ProjectsAPIService) DeleteProject(ctx context.Context, projectId string
 	return Response(http.StatusNotImplemented, nil), errors.New("DeleteProject method not implemented")
 }
 
+// GetProjectQuotaSource - Get project quota source
+func (s *ProjectsAPIService) GetProjectQuotaSource(ctx context.Context, projectId string) (ImplResponse, error) {
+	// TODO - update GetProjectQuotaSource with the required logic for this service method.
+	// Add api_projects_service.go to the .openapi-generator-ignore to avoid overwriting this service implementation when updating open api generation.
+
+	// TODO: Uncomment the next line to return response Response(200, QuotaManagement{}) or use other options such as http.Ok ...
+	// return Response(200, QuotaManagement{}), nil
+
+	// TODO: Uncomment the next line to return response Response(403, Error{}) or use other options such as http.Ok ...
+	// return Response(403, Error{}), nil
+
+	// TODO: Uncomment the next line to return response Response(404, Error{}) or use other options such as http.Ok ...
+	// return Response(404, Error{}), nil
+
+	return Response(http.StatusNotImplemented, nil), errors.New("GetProjectQuotaSource method not implemented")
+}
+
+// UpdateProjectQuotaSource - Set project quota source for all node pools
+func (s *ProjectsAPIService) UpdateProjectQuotaSource(ctx context.Context, projectId string, quotaSourceUpdateRequest QuotaSourceUpdateRequest) (ImplResponse, error) {
+	// TODO - update UpdateProjectQuotaSource with the required logic for this service method.
+	// Add api_projects_service.go to the .openapi-generator-ignore to avoid overwriting this service implementation when updating open api generation.
+
+	// TODO: Uncomment the next line to return response Response(200, QuotaManagement{}) or use other options such as http.Ok ...
+	// return Response(200, QuotaManagement{}), nil
+
+	// TODO: Uncomment the next line to return response Response(400, Error{}) or use other options such as http.Ok ...
+	// return Response(400, Error{}), nil
+
+	// TODO: Uncomment the next line to return response Response(403, Error{}) or use other options such as http.Ok ...
+	// return Response(403, Error{}), nil
+
+	// TODO: Uncomment the next line to return response Response(404, Error{}) or use other options such as http.Ok ...
+	// return Response(404, Error{}), nil
+
+	// TODO: Uncomment the next line to return response Response(409, Error{}) or use other options such as http.Ok ...
+	// return Response(409, Error{}), nil
+
+	return Response(http.StatusNotImplemented, nil), errors.New("UpdateProjectQuotaSource method not implemented")
+}
+
 // UpdateProjectResources - Update project resources
 func (s *ProjectsAPIService) UpdateProjectResources(ctx context.Context, projectId string, resourcesNullable []ResourcesNullable) (ImplResponse, error) {
 	// TODO - update UpdateProjectResources with the required logic for this service method.

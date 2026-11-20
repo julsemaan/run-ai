@@ -6,6 +6,7 @@
 package parsers
 
 import (
+	"encoding/json"
 	"math"
 	"strings"
 	"testing"
@@ -25,6 +26,12 @@ func TestQuotaSnapshot(t *testing.T) {
 	}{
 		{name: "legacy", absent: true},
 		{name: "complete", annotation: ownership},
+		{name: "freeze", annotation: ownership[:len(ownership)-1] + `,"source":"kubernetes","phase":"freeze","revision":1}`},
+		{name: "release", annotation: ownership[:len(ownership)-1] + `,"source":"runai","phase":"release","revision":2}`},
+		{name: "stable Runai", annotation: ownership[:len(ownership)-1] + `,"source":"runai","phase":"stable","revision":3}`},
+		{name: "missing source", annotation: ownership[:len(ownership)-1] + `,"phase":"freeze","revision":1}`, wantError: true},
+		{name: "zero revision", annotation: ownership[:len(ownership)-1] + `,"source":"runai","phase":"freeze","revision":0}`, wantError: true},
+		{name: "wrong phase", annotation: ownership[:len(ownership)-1] + `,"source":"runai","phase":"wrong","revision":1}`, wantError: true},
 		{name: "malformed", annotation: `{`, wantError: true},
 		{name: "case alias", annotation: strings.Replace(ownership, `"epoch"`, `"Epoch"`, 1), wantError: true},
 		{name: "empty pools", annotation: `{"epoch":"e1","kubernetesUid":"uid","pools":[]}`, wantError: true},
@@ -66,6 +73,19 @@ func TestQuotaSnapshot(t *testing.T) {
 			}
 			if !tc.wantError && !tc.absent && (s == nil || s.Generation != 12 || s.Pools[0].NodePoolId != "7") {
 				t.Fatalf("wrong snapshot: %+v", s)
+			}
+			if err == nil && s != nil {
+				encoded, marshalErr := json.Marshal(s)
+				if marshalErr != nil {
+					t.Fatal(marshalErr)
+				}
+				if strings.Contains(tc.annotation, `"revision"`) {
+					if s.GetControlRevision() < 1 || s.GetSource() == "" || s.GetControlPhase() == "" {
+						t.Fatal("missing native fence")
+					}
+				} else if strings.Contains(string(encoded), "controlRevision") || strings.Contains(string(encoded), "controlPhase") || strings.Contains(string(encoded), `"source"`) {
+					t.Fatal("legacy wire shape changed")
+				}
 			}
 			if tc.absent && s != nil {
 				t.Fatal("legacy object enrolled")

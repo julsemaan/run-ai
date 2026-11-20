@@ -13,7 +13,6 @@ import (
 	auth "github.com/dsx-ai-factory/run-ai/control-plane/authorization/pkg/client"
 	clusterapi "github.com/dsx-ai-factory/run-ai/control-plane/cluster-service/pkg/client/generated"
 	"github.com/dsx-ai-factory/run-ai/control-plane/org-unit-service/generated/pkg/api"
-	"github.com/dsx-ai-factory/run-ai/control-plane/org-unit-service/pkg/config"
 	"github.com/dsx-ai-factory/run-ai/control-plane/org-unit-service/pkg/database/dao"
 	"github.com/dsx-ai-factory/run-ai/control-plane/org-unit-service/pkg/database/models"
 	"k8s.io/utils/ptr"
@@ -22,7 +21,7 @@ import (
 // Configuration is not timestamped in the org-unit views. While this scoped PoC
 // is enrolled, return full sync pages so a configuration-only activation is visible.
 func QuotaSyncUpdatedAfter(tenantId, clusterId string, updatedAfter time.Time) (time.Time, error) {
-	entries, err := config.QuotaEnrollments()
+	entries, err := dao.QuotaEnrollments()
 	if err != nil {
 		return updatedAfter, err
 	}
@@ -34,8 +33,22 @@ func QuotaSyncUpdatedAfter(tenantId, clusterId string, updatedAfter time.Time) (
 	return updatedAfter, nil
 }
 
+func ValidateQuotaOwnershipCapabilities(ctx context.Context, ownership *api.QuotaOwnership) error {
+	if ownership == nil {
+		return nil
+	}
+	enabled, err := IsLimitQuotaOverSubscriptionEnabled(ctx)
+	if err != nil {
+		return err
+	}
+	if enabled {
+		return fmt.Errorf("Kubernetes quota ownership requires limitQuotaOverSubscription to be disabled")
+	}
+	return nil
+}
+
 func QuotaOwnership(ctx context.Context, tenantId, clusterId, kind string, id int64) (*api.QuotaOwnership, error) {
-	e, err := config.FindQuotaEnrollment(tenantId, clusterId, kind, id)
+	e, err := dao.FindQuotaEnrollment(tenantId, clusterId, kind, id)
 	if err != nil || e == nil || e.State != "active" {
 		return nil, err
 	}
@@ -46,13 +59,17 @@ func QuotaOwnership(ctx context.Context, tenantId, clusterId, kind string, id in
 	if enabled {
 		return nil, fmt.Errorf("Kubernetes quota ownership requires limitQuotaOverSubscription to be disabled")
 	}
-	return e.Ownership(), nil
+	c, err := dao.GetQuotaControl(ctx, tenantId, clusterId, kind, id)
+	if err != nil || c == nil {
+		return nil, err
+	}
+	return c.Ownership(), nil
 }
 
 // QuotaNodePoolsMetadata prevents API capability flags from hiding or deriving
 // Kubernetes-owned numeric leaves. It never changes the cluster's configuration.
 func QuotaNodePoolsMetadata(tenantId, clusterId, kind string, id int64, metadata map[string]clusterapi.NodepoolMinimal) map[string]clusterapi.NodepoolMinimal {
-	e, err := config.FindQuotaEnrollment(tenantId, clusterId, kind, id)
+	e, err := dao.FindQuotaEnrollment(tenantId, clusterId, kind, id)
 	if err != nil || e == nil || e.State != "active" {
 		return metadata
 	}
@@ -60,7 +77,18 @@ func QuotaNodePoolsMetadata(tenantId, clusterId, kind string, id int64, metadata
 	for id, pool := range metadata {
 		result[id] = pool
 	}
-	for _, pool := range e.Pools {
+	pools := e.Pools
+	c, err := dao.GetQuotaControl(context.Background(), tenantId, clusterId, kind, id)
+	if err != nil {
+		return metadata
+	}
+	if c != nil && c.Revision > 0 {
+		pools = nil
+		for id, pool := range metadata {
+			pools = append(pools, api.QuotaOwnershipPool{NodePoolId: id, NodePoolName: pool.Name})
+		}
+	}
+	for _, pool := range pools {
 		entry, ok := result[pool.NodePoolId]
 		if !ok {
 			continue
@@ -118,7 +146,7 @@ func ImportQuotaSnapshot(ctx context.Context, tenantId, clusterId, kind string, 
 	if err != nil || *ctxTenant != tenantId {
 		return fmt.Errorf("quota snapshot tenant does not match authenticated tenant")
 	}
-	e, err := config.FindQuotaEnrollment(tenantId, clusterId, kind, id)
+	e, err := dao.FindQuotaEnrollment(tenantId, clusterId, kind, id)
 	if err != nil {
 		return err
 	}
@@ -130,6 +158,13 @@ func ImportQuotaSnapshot(ctx context.Context, tenantId, clusterId, kind string, 
 	}
 	if err := ValidateQuotaSnapshotNumbers(snapshot); err != nil {
 		return err
+	}
+	c, err := dao.GetQuotaControl(ctx, tenantId, clusterId, kind, id)
+	if err != nil {
+		return err
+	}
+	if c != nil && c.Revision > 0 && c.Source == "runai" && c.TargetSource == "runai" && c.Phase == "stable" && c.ObservedRevision == c.Revision {
+		return dao.ImportQuotaSnapshot(ctx, tenantId, clusterId, kind, id, snapshot, nil)
 	}
 	if len(snapshot.Pools) != len(e.Pools) {
 		return fmt.Errorf("snapshot must contain exactly the enrolled pool set")

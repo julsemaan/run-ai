@@ -263,6 +263,56 @@ func (c *DepartmentsAPIController) Routes() Routes {
 			),
 			////////////////////////////// RUNAI END (11.5) ///////////////////////////////
 		},
+		"GetDepartmentQuotaSource": Route{
+			strings.ToUpper("Get"),
+			"/api/v1/org-unit/departments/{departmentId}/quota-source",
+			////////////////////////////// RUNAI START (11.4) ///////////////////////////////
+			BuildHandlerChain(
+				func(next http.HandlerFunc) http.HandlerFunc {
+					return c.authorizationClient.AuthorizeMiddleware(
+						next,
+						"department",
+						"read",
+						true,
+						"departmentId",
+					)
+				},
+				func(next http.HandlerFunc) http.HandlerFunc {
+					////////////////////////////// RUNAI END (11.4) ///////////////////////////////
+					return c.GetDepartmentQuotaSource
+					////////////////////////////// RUNAI START (11.5) ///////////////////////////////
+				},
+			),
+			////////////////////////////// RUNAI END (11.5) ///////////////////////////////
+		},
+		"UpdateDepartmentQuotaSource": Route{
+			strings.ToUpper("Put"),
+			"/api/v1/org-unit/departments/{departmentId}/quota-source",
+			////////////////////////////// RUNAI START (11.4) ///////////////////////////////
+			BuildHandlerChain(
+				func(next http.HandlerFunc) http.HandlerFunc {
+					return c.authorizationClient.AuthorizeMiddleware(
+						next,
+						"department",
+						"update",
+						true,
+						"departmentId",
+					)
+				},
+				func(next http.HandlerFunc) http.HandlerFunc {
+					if strings.ToUpper("Put") != "GET" {
+						return audit.Middleware(next)
+					}
+					return nil
+				},
+				func(next http.HandlerFunc) http.HandlerFunc {
+					////////////////////////////// RUNAI END (11.4) ///////////////////////////////
+					return c.UpdateDepartmentQuotaSource
+					////////////////////////////// RUNAI START (11.5) ///////////////////////////////
+				},
+			),
+			////////////////////////////// RUNAI END (11.5) ///////////////////////////////
+		},
 		"UpdateDepartmentResources": Route{
 			strings.ToUpper("Put"),
 			"/api/v1/org-unit/departments/{departmentId}/resources",
@@ -1060,6 +1110,151 @@ func (c *DepartmentsAPIController) DeleteDepartment(w http.ResponseWriter, r *ht
 		return
 	}
 	////////////////////////////// RUNAI START (9.3) ///////////////////////////////
+
+	////////////////////////////// RUNAI END ///////////////////////////////
+
+	// If no error, encode the body and the result code
+	EncodeJSONResponse(result.Body, &result.Code, w)
+
+}
+
+// GetDepartmentQuotaSource - Get department quota source
+func (c *DepartmentsAPIController) GetDepartmentQuotaSource(w http.ResponseWriter, r *http.Request) {
+	departmentIdParam := chi.URLParam(r, "departmentId")
+	if departmentIdParam == "" {
+		c.errorHandler(w, r, &RequiredError{"departmentId"}, nil, nil)
+		return
+	}
+	result, err := c.service.GetDepartmentQuotaSource(r.Context(), departmentIdParam)
+	// If an error occurred, encode the error with the status code
+	if err != nil {
+		c.errorHandler(w, r, err, &result, nil)
+		return
+	}
+	////////////////////////////// RUNAI START (9.3) ///////////////////////////////
+
+	if result.Code == 200 {
+		// generated from status code: 200
+		acceptHeader := r.Header.Get("Accept")
+		acceptTypes := strings.Split(acceptHeader, ",")
+
+		var contentTypeHandler func(interface{}, *int, http.ResponseWriter) error
+
+		for _, acceptType := range acceptTypes {
+			// Trim spaces and handle quality values (e.g., "text/html;q=0.9")
+			acceptType = strings.TrimSpace(strings.Split(acceptType, ";")[0])
+
+			switch acceptType {
+			case "*/*":
+				// fallback to default server defined value
+				contentTypeHandler = nil
+			case "application/json", "application/*":
+				contentTypeHandler = EncodeJSONResponse
+			}
+
+			if contentTypeHandler != nil {
+				break
+			}
+		}
+
+		// If no acceptable content type was found, default to server defined default
+		if contentTypeHandler == nil {
+		}
+
+		// If no default content type was found, default to application/json
+		if contentTypeHandler == nil {
+			contentTypeHandler = EncodeJSONResponse
+		}
+		contentTypeHandler(result.Body, &result.Code, w)
+
+		return
+	}
+
+	////////////////////////////// RUNAI END ///////////////////////////////
+
+	// If no error, encode the body and the result code
+	EncodeJSONResponse(result.Body, &result.Code, w)
+
+}
+
+// UpdateDepartmentQuotaSource - Set department quota source for all node pools
+func (c *DepartmentsAPIController) UpdateDepartmentQuotaSource(w http.ResponseWriter, r *http.Request) {
+	departmentIdParam := chi.URLParam(r, "departmentId")
+	if departmentIdParam == "" {
+		c.errorHandler(w, r, &RequiredError{"departmentId"}, nil, nil)
+		return
+	}
+	var quotaSourceUpdateRequestParam QuotaSourceUpdateRequest
+	//////////////////////////////////// RUNAI START (12) ///////////////////////////////////////////
+	// payloadBody is a per-request local slice, never a shared controller field,
+	// so concurrent requests on the singleton controller cannot race on it.
+	payloadBody, readError := io.ReadAll(r.Body)
+	if readError != nil {
+		// Handle the error
+		http.Error(w, "Failed to read request body", http.StatusServiceUnavailable)
+		return
+	}
+	jsonReader := bytes.NewReader(payloadBody)
+	d := json.NewDecoder(jsonReader)
+	//d := json.NewDecoder(r.Body)
+	//////////////////////////////////// RUNAI END ///////////////////////////////////////////
+	d.DisallowUnknownFields()
+	if err := d.Decode(&quotaSourceUpdateRequestParam); err != nil {
+		c.errorHandler(w, r, &ParsingError{Err: err}, nil, payloadBody)
+		return
+	}
+	if err := AssertQuotaSourceUpdateRequestRequired(quotaSourceUpdateRequestParam); err != nil {
+		c.errorHandler(w, r, err, nil, nil)
+		return
+	}
+	if err := AssertQuotaSourceUpdateRequestConstraints(quotaSourceUpdateRequestParam); err != nil {
+		c.errorHandler(w, r, err, nil, nil)
+		return
+	}
+	result, err := c.service.UpdateDepartmentQuotaSource(r.Context(), departmentIdParam, quotaSourceUpdateRequestParam)
+	// If an error occurred, encode the error with the status code
+	if err != nil {
+		c.errorHandler(w, r, err, &result, nil)
+		return
+	}
+	////////////////////////////// RUNAI START (9.3) ///////////////////////////////
+
+	if result.Code == 200 {
+		// generated from status code: 200
+		acceptHeader := r.Header.Get("Accept")
+		acceptTypes := strings.Split(acceptHeader, ",")
+
+		var contentTypeHandler func(interface{}, *int, http.ResponseWriter) error
+
+		for _, acceptType := range acceptTypes {
+			// Trim spaces and handle quality values (e.g., "text/html;q=0.9")
+			acceptType = strings.TrimSpace(strings.Split(acceptType, ";")[0])
+
+			switch acceptType {
+			case "*/*":
+				// fallback to default server defined value
+				contentTypeHandler = nil
+			case "application/json", "application/*":
+				contentTypeHandler = EncodeJSONResponse
+			}
+
+			if contentTypeHandler != nil {
+				break
+			}
+		}
+
+		// If no acceptable content type was found, default to server defined default
+		if contentTypeHandler == nil {
+		}
+
+		// If no default content type was found, default to application/json
+		if contentTypeHandler == nil {
+			contentTypeHandler = EncodeJSONResponse
+		}
+		contentTypeHandler(result.Body, &result.Code, w)
+
+		return
+	}
 
 	////////////////////////////// RUNAI END ///////////////////////////////
 

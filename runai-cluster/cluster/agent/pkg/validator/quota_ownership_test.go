@@ -214,7 +214,7 @@ func TestOwnershipProtectionAndControllers(t *testing.T) {
 				delete(o["metadata"].(map[string]interface{})["annotations"].(map[string]interface{}), quotaownership.Annotation)
 			})
 			forge.UserInfo.UID = uid
-			if got := pv.Handle(context.Background(), forge).Allowed; got != (uid == "agent") {
+			if got := pv.Handle(context.Background(), forge).Allowed; got {
 				t.Fatalf("ownership modification allowed=%v", got)
 			}
 			for _, operation := range []string{"status", "finalizers", "run.ai/quota-ack", "run.ai/last-sync-timestamp"} {

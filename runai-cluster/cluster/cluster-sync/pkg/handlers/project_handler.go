@@ -119,8 +119,8 @@ func (projectHandler *ProjectHandler) updateProjectStatus(project *kaiv1alpha1.P
 	if res != nil {
 		_ = res.Body.Close()
 	}
-	if snapshot != nil {
-		return quotaHTTPError(project, res, err)
+	if commitErr := quotaHTTPError(project, res, err); commitErr != nil {
+		return commitErr
 	}
 	return projectHandler.backendClient.HandleHttpResponse(res, err, fmt.Sprintf("Updated status of project %s", project.Name))
 }

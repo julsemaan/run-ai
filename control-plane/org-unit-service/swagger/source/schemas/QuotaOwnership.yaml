@@ -3,6 +3,17 @@ nullable: true
 description: Trusted active Kubernetes quota enrollment. Absent for API-managed objects and prepared enrollments.
 required: [epoch, kubernetesUid, pools]
 properties:
+  source:
+    type: string
+    enum: [runai, kubernetes]
+    description: Target authority. Absent means legacy Kubernetes ownership.
+  phase:
+    type: string
+    enum: [freeze, release, stable]
+  revision:
+    type: integer
+    format: int64
+    minimum: 0
   epoch:
     type: string
     minLength: 1

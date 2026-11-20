@@ -13,6 +13,10 @@
 
 package api
 
+import (
+	"errors"
+)
+
 ////////////////////////// RUNAI START (18.1) ////////////////////////////
 import runaihttp "github.com/dsx-ai-factory/run-ai/runai-common-packages/runaihttp"
 
@@ -21,6 +25,11 @@ var dummyResourcesNullable = runaihttp.AssertPattern
 ////////////////////////// RUNAI END ////////////////////////////
 
 type ResourcesNullable struct {
+
+	//////////////////////////////////// RUNAI START (19) ///////////////////////////////////////////
+	//QuotaManagementRevision int64 `json:"quotaManagementRevision,omitempty"`
+	QuotaManagementRevision int64 `json:"quotaManagementRevision,omitempty" gorm:"not null;"`
+	//////////////////////////////////// RUNAI END ///////////////////////////////////////////
 
 	//////////////////////////////////// RUNAI START (19) ///////////////////////////////////////////
 	//NodePool *ResourcesNodePool `json:"nodePool,omitempty"`
@@ -74,6 +83,14 @@ func AssertResourcesNullableRequired(obj ResourcesNullable) error {
 
 // AssertResourcesNullableConstraints checks if the values respects the defined constraints
 func AssertResourcesNullableConstraints(obj ResourcesNullable) error {
+	if obj.QuotaManagementRevision < 0 {
+		return &ParsingError{Param: "QuotaManagementRevision", Err: errors.New(errMsgMinValueConstraint)}
+	}
+	//////////////////////// RUNAI START (18.2) //////////////////////////
+	//////////////////////// RUNAI END //////////////////////////
+	//////////////////////// RUNAI START (2.1) //////////////////////////
+
+	//////////////////////// RUNAI END //////////////////////////
 	//////////////////////// RUNAI START (18.2) //////////////////////////
 	//////////////////////// RUNAI END //////////////////////////
 	//////////////////////// RUNAI START (2.1) //////////////////////////

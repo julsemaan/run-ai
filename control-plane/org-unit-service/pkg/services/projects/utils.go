@@ -356,10 +356,15 @@ func commitProjectPatchesForDepartmentAtomic(
 		if subjectId != nil {
 			staged.dbProject.UpdatedBy = *subjectId
 		}
+		revisions := make([]api.ResourcesNullable, 0, len(staged.patchRequests))
+		for _, r := range staged.patchRequests {
+			revisions = append(revisions, services.ConvertNodePoolResourcesPatchRequest(r))
+		}
+		staged.dbProject.QuotaManagementRevision = services.QuotaResourceRevision(revisions)
 		err := dao.UpdateProjectTx(ctx, tx, staged.dbProject, false, false)
 		if err != nil {
 			tx.Rollback()
-			if err == dao.ErrKubernetesQuota {
+			if err == dao.ErrKubernetesQuota || err == dao.ErrQuotaRevision {
 				return nil, api.NewError(http.StatusConflict, err.Error(), err)
 			}
 			return nil, api.NewError(http.StatusInternalServerError, "Failed to update project", err)

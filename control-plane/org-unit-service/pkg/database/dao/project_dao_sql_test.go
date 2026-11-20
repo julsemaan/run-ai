@@ -519,6 +519,7 @@ var _ = Describe("Project DAO SQL", func() {
 			mocker := setupSQLMock()
 			project := testProject()
 			mocker.ExpectTransaction().Begin()
+			expectUnmanagedQuotaUpdate(mocker, "project", true)
 			mocker.ExpectExec(`UPDATE project SET created_at=?,updated_at=?,created_by=?,updated_by=?,tenant_id=?,cluster_id=?,name=?,description=?,requested_namespace=?,enforce_runai_scheduler=?,parent_id=?,parent_name=?,org_unit_data_id=?,phase=?,phase_message=? WHERE (project.id = ? AND project.tenant_id = ? AND project.name = ?) AND project.deleted_at IS NULL AND id = ?`).ReturnsError(errors.New("update failed"))
 			mocker.ExpectTransaction().Rollback()
 
@@ -530,6 +531,7 @@ var _ = Describe("Project DAO SQL", func() {
 			mocker := setupSQLMock()
 			project := testProject()
 			mocker.ExpectTransaction().Begin()
+			expectUnmanagedQuotaUpdate(mocker, "project", true)
 			mocker.ExpectExec(`UPDATE project SET created_at=?,updated_at=?,created_by=?,updated_by=?,tenant_id=?,cluster_id=?,name=?,description=?,requested_namespace=?,enforce_runai_scheduler=?,parent_id=?,parent_name=?,org_unit_data_id=?,phase=?,phase_message=? WHERE (project.id = ? AND project.tenant_id = ? AND project.name = ?) AND project.deleted_at IS NULL AND id = ?`).Returns(1)
 			mocker.ExpectTransaction().Commit()
 

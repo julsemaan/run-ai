@@ -7,6 +7,7 @@
   <project-edit-form-v2
     v-if="!initialLoading && project"
     :key="formKey"
+    ref="editFormRef"
     :project="project"
     :department="department"
     :is-new-project="isNewProject"
@@ -15,11 +16,15 @@
     @update-scope="updateScope"
     @on-cancel="onCancel"
     @on-save="onSave"
+    :refresh-quota-object="refreshQuotaObject"
+    :invalidate-quota-refresh="invalidateQuotaRefresh"
+    @refresh="refreshQuotaObject"
   />
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from "vue";
+import { getQuotaManagement, quotasLocked } from "@/models/quota-management.model";
 import { useRoute, useRouter } from "vue-router";
 import { useQuasar } from "quasar";
 import { PROJECT_ROUTE_NAMES } from "@/router/project.routes/project.routes.names";
@@ -77,7 +82,35 @@ const clusterId = ref("");
 const nodePoolsMinimal = ref<NodepoolMinimal[]>([]);
 
 // Computed
-const formKey = computed(() => route.query.t?.toString() || "default");
+const editFormRef = ref<InstanceType<typeof ProjectEditFormV2> | null>(null);
+const quotaRefreshKey = ref(0);
+const formKey = computed(() => `${route.query.t?.toString() || "default"}-${quotaRefreshKey.value}`);
+let refreshRequest = 0;
+let disposed = false;
+const invalidateQuotaRefresh = () => {
+  refreshRequest++;
+};
+const refreshRoute = () => JSON.stringify([route.name, route.params, route.query]);
+watch(refreshRoute, invalidateQuotaRefresh, { flush: "sync" });
+const refreshQuotaObject = async (discardUnsaved = false, editState = editFormRef.value?.getEditState()) => {
+  const request = ++refreshRequest;
+  const routeState = refreshRoute();
+  const form = editFormRef.value;
+  const isCurrent = () =>
+    !disposed && request === refreshRequest && routeState === refreshRoute() && form === editFormRef.value;
+  try {
+    const loaded = await orgUnitService.getProject(projectId.value);
+    if (!isCurrent()) return;
+    const parent = loaded.parentId ? await orgUnitService.getDepartment(loaded.parentId) : null;
+    if (!isCurrent() || editState !== form?.getEditState() || (!discardUnsaved && form?.hasUnsavedChanges())) return;
+    if (parent) department.value = parent;
+    rawProjectDefaultNodePools = loaded.defaultNodePools?.length ? [...loaded.defaultNodePools] : null;
+    project.value = initializeProjectNodePools(loaded);
+    quotaRefreshKey.value++;
+  } catch (error) {
+    if (isCurrent()) handleSaveError(error);
+  }
+};
 const isNewProject = computed(() => {
   if (project.value && (project.value as Project)?.id) {
     return false;
@@ -278,7 +311,11 @@ const prepareProjectForSave = (projectData: Project | ProjectCreationRequest): P
   const prepared = deepCopy(projectData) as Project | ProjectCreationRequest;
 
   // Transform resources
-  if (prepared.resources?.length) {
+  if (
+    prepared.resources?.length &&
+    !getQuotaManagement(projectData) &&
+    (isNewProject.value || JSON.stringify(prepared.resources) !== JSON.stringify(project.value?.resources))
+  ) {
     // Default null (unlimited) CPU/memory to 0 when department has a finite quota
     prepared.resources = adjustUnlimitedCpuByDepartment(prepared.resources as Resources[]);
     // Align CPU/Memory limits with GPU over-quota state and reset over-quota weights to deserved
@@ -374,6 +411,15 @@ const onSave = async (payload: ISaveOrgUnitPayload<Project | ProjectCreationRequ
   const { project: projectData, action, onComplete } = payload;
 
   if (!projectData) return;
+  if (
+    project.value &&
+    quotasLocked(project.value) &&
+    (JSON.stringify(projectData.resources) !== JSON.stringify(project.value.resources) ||
+      JSON.stringify(projectData.defaultNodePools) !== JSON.stringify(project.value.defaultNodePools))
+  ) {
+    handleSaveError(new Error("Quota values and node pool membership are locked by the quota source."));
+    return;
+  }
 
   isProjectSubmitting.value = true;
 
@@ -410,10 +456,13 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  disposed = true;
+  invalidateQuotaRefresh();
   appStore.setPageTitleOverride(null);
 });
 
 const clearFormState = async (): Promise<void> => {
+  invalidateQuotaRefresh();
   initialLoading.value = true;
   project.value = null;
   department.value = null;

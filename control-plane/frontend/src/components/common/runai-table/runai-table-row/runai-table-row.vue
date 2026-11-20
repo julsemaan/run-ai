@@ -9,6 +9,7 @@
       <q-checkbox
         size="md"
         :model-value="isSelected"
+        :disable="selectionDisabled"
         @click="checkboxClicked"
         :aria-label="`Select row ${row.name || ''}`"
       />
@@ -119,6 +120,10 @@ export default defineComponent({
       type: String as PropType<string>,
       required: false,
     },
+    selectionDisabled: {
+      type: Boolean,
+      default: false,
+    },
     isSelectable: {
       type: Boolean as PropType<boolean>,
       required: false,
@@ -131,6 +136,7 @@ export default defineComponent({
   },
   methods: {
     checkboxClicked(event: MouseEvent): void {
+      if (this.selectionDisabled) return;
       this.$emit("checkbox-clicked", event);
     },
     rowClicked(event: MouseEvent): void {

@@ -7,6 +7,7 @@
   <department-edit-form-v2
     v-if="!initialLoading && department"
     :key="formKey"
+    ref="editFormRef"
     :department="department"
     :is-new-department="isNewDepartment"
     :is-department-submitting="isDepartmentSubmitting"
@@ -15,12 +16,16 @@
     :node-pool-totals="nodePoolTotals"
     @on-cancel="onCancel"
     @on-save="onSave"
+    :refresh-quota-object="refreshQuotaObject"
+    :invalidate-quota-refresh="invalidateQuotaRefresh"
+    @refresh="refreshQuotaObject"
     @update-scope="updateScope"
   />
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from "vue";
+import { getQuotaManagement, quotasLocked } from "@/models/quota-management.model";
 import { useRoute, useRouter } from "vue-router";
 import { useQuasar } from "quasar";
 import { DEPARTMENT_ROUTE_NAMES } from "@/router/department.routes/department.routes.names";
@@ -76,7 +81,31 @@ const nodePoolsMinimal = ref<NodepoolMinimal[]>([]);
 const nodePoolTotals = ref<INodePoolTotals>({});
 
 // Computed
-const formKey = computed(() => route.query.t?.toString() || "default");
+const editFormRef = ref<InstanceType<typeof DepartmentEditFormV2> | null>(null);
+const quotaRefreshKey = ref(0);
+const formKey = computed(() => `${route.query.t?.toString() || "default"}-${quotaRefreshKey.value}`);
+let refreshRequest = 0;
+let disposed = false;
+const invalidateQuotaRefresh = () => {
+  refreshRequest++;
+};
+const refreshRoute = () => JSON.stringify([route.name, route.params, route.query]);
+watch(refreshRoute, invalidateQuotaRefresh, { flush: "sync" });
+const refreshQuotaObject = async (discardUnsaved = false, editState = editFormRef.value?.getEditState()) => {
+  const request = ++refreshRequest;
+  const routeState = refreshRoute();
+  const form = editFormRef.value;
+  const isCurrent = () =>
+    !disposed && request === refreshRequest && routeState === refreshRoute() && form === editFormRef.value;
+  try {
+    const loaded = await orgUnitService.getDepartment(departmentId.value);
+    if (!isCurrent() || editState !== form?.getEditState() || (!discardUnsaved && form?.hasUnsavedChanges())) return;
+    department.value = initializeDepartmentNodePools(loaded);
+    quotaRefreshKey.value++;
+  } catch (error) {
+    if (isCurrent()) handleSaveError(error);
+  }
+};
 const isNewDepartment = computed(() => {
   if (department.value && (department.value as Department)?.id) {
     return false;
@@ -283,7 +312,11 @@ const prepareDepartmentForSave = (
   const prepared = deepCopy(departmentData) as Department | DepartmentCreationRequest;
 
   // Transform resources
-  if (prepared.resources?.length) {
+  if (
+    prepared.resources?.length &&
+    !getQuotaManagement(departmentData) &&
+    (isNewDepartment.value || JSON.stringify(prepared.resources) !== JSON.stringify(department.value?.resources))
+  ) {
     // Align CPU/Memory limits with GPU over-quota state and reset over-quota weights to deserved
     prepared.resources = orgUnitUtil.alignCpuAndMemoryLimitsByGpu(prepared.resources as Resources[]);
     // Ensure limits are not less than deserved to prevent API validation errors
@@ -362,7 +395,16 @@ const handleSaveError = (error: unknown): void => {
 const onSave = async (payload: ISaveOrgUnitPayload<Department | DepartmentCreationRequest>) => {
   const { department: departmentData, action, onComplete } = payload;
 
-  if (!departmentData) return;
+  if (!departmentData || isReadOnly.value) return;
+  if (
+    department.value &&
+    quotasLocked(department.value) &&
+    (JSON.stringify(departmentData.resources) !== JSON.stringify(department.value.resources) ||
+      JSON.stringify(departmentData.defaultNodePools) !== JSON.stringify(department.value.defaultNodePools))
+  ) {
+    handleSaveError(new Error("Quota values and node pool membership are locked by the quota source."));
+    return;
+  }
 
   isDepartmentSubmitting.value = true;
 
@@ -394,10 +436,13 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  disposed = true;
+  invalidateQuotaRefresh();
   appStore.setPageTitleOverride(null);
 });
 
 const clearFormState = async (): Promise<void> => {
+  invalidateQuotaRefresh();
   initialLoading.value = true;
   department.value = null;
   nodePoolTotals.value = {};

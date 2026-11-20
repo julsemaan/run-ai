@@ -14,6 +14,7 @@ Method | HTTP request | Description
 [**GetDepartmentAncestors**](DepartmentsAPI.md#GetDepartmentAncestors) | **Get** /internal/org-unit/departments/{departmentId}/ancestors | Get department ancestors
 [**GetDepartmentMetrics**](DepartmentsAPI.md#GetDepartmentMetrics) | **Get** /api/v1/org-unit/departments/{departmentId}/metrics | Get department metrics data.
 [**GetDepartmentNodePoolResources**](DepartmentsAPI.md#GetDepartmentNodePoolResources) | **Get** /api/v1/org-unit/departments/node-pool-resources | Get departments node pool resources
+[**GetDepartmentQuotaSource**](DepartmentsAPI.md#GetDepartmentQuotaSource) | **Get** /api/v1/org-unit/departments/{departmentId}/quota-source | Get department quota source
 [**GetDepartments**](DepartmentsAPI.md#GetDepartments) | **Get** /api/v1/org-unit/departments | Get departments
 [**GetDepartmentsDescendants**](DepartmentsAPI.md#GetDepartmentsDescendants) | **Get** /internal/org-unit/departments/descendants | Get department descendants
 [**GetDepartmentsRanking**](DepartmentsAPI.md#GetDepartmentsRanking) | **Get** /api/v1/org-unit/departments/ranking | Get top 15 departments by highest or lowest average resource utilization or allocation
@@ -22,6 +23,7 @@ Method | HTTP request | Description
 [**PatchDepartmentResources**](DepartmentsAPI.md#PatchDepartmentResources) | **Patch** /api/v1/org-unit/departments/{departmentId}/resources | Patch department resources
 [**SumDepartmentNodePoolResources**](DepartmentsAPI.md#SumDepartmentNodePoolResources) | **Get** /api/v1/org-unit/departments/node-pool-resources/sum | sum departments node pool resources
 [**UpdateDepartment**](DepartmentsAPI.md#UpdateDepartment) | **Put** /api/v1/org-unit/departments/{departmentId} | Update department
+[**UpdateDepartmentQuotaSource**](DepartmentsAPI.md#UpdateDepartmentQuotaSource) | **Put** /api/v1/org-unit/departments/{departmentId}/quota-source | Set department quota source for all node pools
 [**UpdateDepartmentResources**](DepartmentsAPI.md#UpdateDepartmentResources) | **Put** /api/v1/org-unit/departments/{departmentId}/resources | Update department resources
 [**UpdateDepartmentStatus**](DepartmentsAPI.md#UpdateDepartmentStatus) | **Put** /api/v1/org-unit/departments/{departmentId}/status | Update Department status from cluster
 
@@ -720,6 +722,74 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
+## GetDepartmentQuotaSource
+
+> QuotaManagement GetDepartmentQuotaSource(ctx, departmentId).Execute()
+
+Get department quota source
+
+### Example
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"os"
+	openapiclient "github.com/dsx-ai-factory/run-ai/control-plane/org-unit-service/pkg/client"
+)
+
+func main() {
+	departmentId := "1" // string | The id of the department.
+
+	configuration := openapiclient.NewConfiguration()
+	apiClient := openapiclient.NewAPIClient(configuration)
+	resp, r, err := apiClient.DepartmentsAPI.GetDepartmentQuotaSource(context.Background(), departmentId).Execute()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error when calling `DepartmentsAPI.GetDepartmentQuotaSource``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
+	}
+	// response from `GetDepartmentQuotaSource`: QuotaManagement
+	fmt.Fprintf(os.Stdout, "Response from `DepartmentsAPI.GetDepartmentQuotaSource`: %v\n", resp)
+}
+```
+
+### Path Parameters
+
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+**ctx** | **context.Context** | context for authentication, logging, cancellation, deadlines, tracing, etc.
+**departmentId** | **string** | The id of the department. | 
+
+### Other Parameters
+
+Other parameters are passed through a pointer to a apiGetDepartmentQuotaSourceRequest struct via the builder pattern
+
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+
+
+### Return type
+
+[**QuotaManagement**](QuotaManagement.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints)
+[[Back to Model list]](../README.md#documentation-for-models)
+[[Back to README]](../README.md)
+
+
 ## GetDepartments
 
 > GetDepartments200Response GetDepartments(ctx).FilterBy(filterBy).SortBy(sortBy).Verbosity(verbosity).SortOrder(sortOrder).Offset(offset).Limit(limit).Execute()
@@ -1272,6 +1342,76 @@ Name | Type | Description  | Notes
 ### Return type
 
 [**Department**](Department.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+- **Content-Type**: application/json
+- **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints)
+[[Back to Model list]](../README.md#documentation-for-models)
+[[Back to README]](../README.md)
+
+
+## UpdateDepartmentQuotaSource
+
+> QuotaManagement UpdateDepartmentQuotaSource(ctx, departmentId).QuotaSourceUpdateRequest(quotaSourceUpdateRequest).Execute()
+
+Set department quota source for all node pools
+
+### Example
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"os"
+	openapiclient "github.com/dsx-ai-factory/run-ai/control-plane/org-unit-service/pkg/client"
+)
+
+func main() {
+	departmentId := "1" // string | The id of the department.
+	quotaSourceUpdateRequest := *openapiclient.NewQuotaSourceUpdateRequest("Source_example", int64(123)) // QuotaSourceUpdateRequest | 
+
+	configuration := openapiclient.NewConfiguration()
+	apiClient := openapiclient.NewAPIClient(configuration)
+	resp, r, err := apiClient.DepartmentsAPI.UpdateDepartmentQuotaSource(context.Background(), departmentId).QuotaSourceUpdateRequest(quotaSourceUpdateRequest).Execute()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error when calling `DepartmentsAPI.UpdateDepartmentQuotaSource``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
+	}
+	// response from `UpdateDepartmentQuotaSource`: QuotaManagement
+	fmt.Fprintf(os.Stdout, "Response from `DepartmentsAPI.UpdateDepartmentQuotaSource`: %v\n", resp)
+}
+```
+
+### Path Parameters
+
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+**ctx** | **context.Context** | context for authentication, logging, cancellation, deadlines, tracing, etc.
+**departmentId** | **string** | The id of the department. | 
+
+### Other Parameters
+
+Other parameters are passed through a pointer to a apiUpdateDepartmentQuotaSourceRequest struct via the builder pattern
+
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+
+ **quotaSourceUpdateRequest** | [**QuotaSourceUpdateRequest**](QuotaSourceUpdateRequest.md) |  | 
+
+### Return type
+
+[**QuotaManagement**](QuotaManagement.md)
 
 ### Authorization
 

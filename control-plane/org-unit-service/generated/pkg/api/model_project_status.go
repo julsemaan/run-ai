@@ -26,6 +26,12 @@ var dummyProjectStatus = runaihttp.AssertPattern
 
 type ProjectStatus struct {
 
+	// Actual Kubernetes object UID, reported only by authenticated cluster-sync.
+	//////////////////////////////////// RUNAI START (19) ///////////////////////////////////////////
+	//KubernetesUid string `json:"kubernetesUid,omitempty"`
+	KubernetesUid string `json:"kubernetesUid,omitempty" gorm:"not null;"`
+	//////////////////////////////////// RUNAI END ///////////////////////////////////////////
+
 	// the project's namespace
 	//////////////////////////////////// RUNAI START (19) ///////////////////////////////////////////
 	//Namespace *string `json:"namespace,omitempty"`
@@ -79,6 +85,14 @@ func AssertProjectStatusRequired(obj ProjectStatus) error {
 
 // AssertProjectStatusConstraints checks if the values respects the defined constraints
 func AssertProjectStatusConstraints(obj ProjectStatus) error {
+	//////////////////////// RUNAI START (18.2) //////////////////////////
+	if minLengthErr := runaihttp.AssertMinLength(obj.KubernetesUid, "KubernetesUid", 1); minLengthErr != nil {
+		return &ParsingError{Param: "KubernetesUid", Err: minLengthErr}
+	}
+	//////////////////////// RUNAI END //////////////////////////
+	//////////////////////// RUNAI START (2.1) //////////////////////////
+
+	//////////////////////// RUNAI END //////////////////////////
 	//////////////////////// RUNAI START (18.2) //////////////////////////
 	//////////////////////// RUNAI END //////////////////////////
 	//////////////////////// RUNAI START (2.1) //////////////////////////

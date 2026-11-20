@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { quotaSourceColumn, quotaSyncColumn } from "@/table-models/quota-management.table-model";
 import type { IDepartmentTable } from "@/models/department.model";
 import { EResourceState, EResourceType } from "@/models/resource.model";
 import {
@@ -54,6 +55,8 @@ export enum EDepartmentColumnLabel {
 }
 
 export const allDepartmentColumnsMap: Record<string, ITableColumn> = {
+  quotaSource: quotaSourceColumn,
+  quotaSync: quotaSyncColumn,
   departmentName: {
     name: DepartmentFilterSortFields.Name,
     label: EDepartmentColumnLabel.Name,
@@ -303,6 +306,8 @@ export const allDepartmentColumnsMap: Record<string, ITableColumn> = {
 export const departmentIndexColumns: Array<ITableColumn> = [
   { ...allDepartmentColumnsMap.departmentName, display: true, mandatory: true },
   { ...allDepartmentColumnsMap.description, display: false },
+  { ...allDepartmentColumnsMap.quotaSource, display: true },
+  { ...allDepartmentColumnsMap.quotaSync, display: true },
   { ...allDepartmentColumnsMap.cluster, display: true },
   { ...allDepartmentColumnsMap.projects, display: true },
   { ...allDepartmentColumnsMap.nodePools, display: true },

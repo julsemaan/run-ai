@@ -199,6 +199,46 @@ func (s *DepartmentsAPIService) DeleteDepartment(ctx context.Context, department
 	return Response(http.StatusNotImplemented, nil), errors.New("DeleteDepartment method not implemented")
 }
 
+// GetDepartmentQuotaSource - Get department quota source
+func (s *DepartmentsAPIService) GetDepartmentQuotaSource(ctx context.Context, departmentId string) (ImplResponse, error) {
+	// TODO - update GetDepartmentQuotaSource with the required logic for this service method.
+	// Add api_departments_service.go to the .openapi-generator-ignore to avoid overwriting this service implementation when updating open api generation.
+
+	// TODO: Uncomment the next line to return response Response(200, QuotaManagement{}) or use other options such as http.Ok ...
+	// return Response(200, QuotaManagement{}), nil
+
+	// TODO: Uncomment the next line to return response Response(403, Error{}) or use other options such as http.Ok ...
+	// return Response(403, Error{}), nil
+
+	// TODO: Uncomment the next line to return response Response(404, Error{}) or use other options such as http.Ok ...
+	// return Response(404, Error{}), nil
+
+	return Response(http.StatusNotImplemented, nil), errors.New("GetDepartmentQuotaSource method not implemented")
+}
+
+// UpdateDepartmentQuotaSource - Set department quota source for all node pools
+func (s *DepartmentsAPIService) UpdateDepartmentQuotaSource(ctx context.Context, departmentId string, quotaSourceUpdateRequest QuotaSourceUpdateRequest) (ImplResponse, error) {
+	// TODO - update UpdateDepartmentQuotaSource with the required logic for this service method.
+	// Add api_departments_service.go to the .openapi-generator-ignore to avoid overwriting this service implementation when updating open api generation.
+
+	// TODO: Uncomment the next line to return response Response(200, QuotaManagement{}) or use other options such as http.Ok ...
+	// return Response(200, QuotaManagement{}), nil
+
+	// TODO: Uncomment the next line to return response Response(400, Error{}) or use other options such as http.Ok ...
+	// return Response(400, Error{}), nil
+
+	// TODO: Uncomment the next line to return response Response(403, Error{}) or use other options such as http.Ok ...
+	// return Response(403, Error{}), nil
+
+	// TODO: Uncomment the next line to return response Response(404, Error{}) or use other options such as http.Ok ...
+	// return Response(404, Error{}), nil
+
+	// TODO: Uncomment the next line to return response Response(409, Error{}) or use other options such as http.Ok ...
+	// return Response(409, Error{}), nil
+
+	return Response(http.StatusNotImplemented, nil), errors.New("UpdateDepartmentQuotaSource method not implemented")
+}
+
 // UpdateDepartmentResources - Update department resources
 func (s *DepartmentsAPIService) UpdateDepartmentResources(ctx context.Context, departmentId string, resourcesNullable []ResourcesNullable) (ImplResponse, error) {
 	// TODO - update UpdateDepartmentResources with the required logic for this service method.

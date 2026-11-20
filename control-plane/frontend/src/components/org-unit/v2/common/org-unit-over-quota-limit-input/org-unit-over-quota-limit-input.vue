@@ -6,6 +6,7 @@
 <template>
   <quota-input
     :model-value="localValue"
+    :disable="readOnly"
     :state="quotaState"
     :message="quotaMessage"
     :label="label"
@@ -22,6 +23,7 @@ import { EQuotaInputState } from "@/models/org-unit.model";
 import { EQuotaEntity } from "@/models/resource.model";
 
 export interface Props {
+  readOnly?: boolean;
   modelValue: number | null;
   deserved: number; // The assigned GPU quota - limit cannot be less than this
   entityType: EQuotaEntity;
@@ -79,6 +81,7 @@ const rules = computed(() => {
 });
 
 const emitValue = (value: number | null) => {
+  if (props.readOnly) return;
   emit("update:model-value", value);
 };
 

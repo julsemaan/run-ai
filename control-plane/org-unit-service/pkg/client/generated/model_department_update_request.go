@@ -30,7 +30,8 @@ type DepartmentUpdateRequest struct {
 	// An ordered list of node pools that defines the default scheduling preference for workloads in this department. The Scheduler will attempt to schedule workloads on node pools in this order. This setting is enforced if no node pool list is defined in the workload policy.
 	DefaultNodePools []string `json:"defaultNodePools,omitempty"`
 	// Deprecated
-	NodeTypes *NodeTypesPerWorkload `json:"nodeTypes,omitempty"`
+	NodeTypes               *NodeTypesPerWorkload `json:"nodeTypes,omitempty"`
+	QuotaManagementRevision *int64                `json:"quotaManagementRevision,omitempty"`
 	// Resources assigned to this Organization per Node Pool
 	Resources []ResourcesNullable `json:"resources"`
 }
@@ -198,6 +199,38 @@ func (o *DepartmentUpdateRequest) SetNodeTypes(v NodeTypesPerWorkload) {
 	o.NodeTypes = &v
 }
 
+// GetQuotaManagementRevision returns the QuotaManagementRevision field value if set, zero value otherwise.
+func (o *DepartmentUpdateRequest) GetQuotaManagementRevision() int64 {
+	if o == nil || IsNil(o.QuotaManagementRevision) {
+		var ret int64
+		return ret
+	}
+	return *o.QuotaManagementRevision
+}
+
+// GetQuotaManagementRevisionOk returns a tuple with the QuotaManagementRevision field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *DepartmentUpdateRequest) GetQuotaManagementRevisionOk() (*int64, bool) {
+	if o == nil || IsNil(o.QuotaManagementRevision) {
+		return nil, false
+	}
+	return o.QuotaManagementRevision, true
+}
+
+// HasQuotaManagementRevision returns a boolean if a field has been set.
+func (o *DepartmentUpdateRequest) HasQuotaManagementRevision() bool {
+	if o != nil && !IsNil(o.QuotaManagementRevision) {
+		return true
+	}
+
+	return false
+}
+
+// SetQuotaManagementRevision gets a reference to the given int64 and assigns it to the QuotaManagementRevision field.
+func (o *DepartmentUpdateRequest) SetQuotaManagementRevision(v int64) {
+	o.QuotaManagementRevision = &v
+}
+
 // GetResources returns the Resources field value
 func (o *DepartmentUpdateRequest) GetResources() []ResourcesNullable {
 	if o == nil {
@@ -243,6 +276,9 @@ func (o DepartmentUpdateRequest) ToMap() (map[string]interface{}, error) {
 	}
 	if !IsNil(o.NodeTypes) {
 		toSerialize["nodeTypes"] = o.NodeTypes
+	}
+	if !IsNil(o.QuotaManagementRevision) {
+		toSerialize["quotaManagementRevision"] = o.QuotaManagementRevision
 	}
 	toSerialize["resources"] = o.Resources
 	return toSerialize, nil

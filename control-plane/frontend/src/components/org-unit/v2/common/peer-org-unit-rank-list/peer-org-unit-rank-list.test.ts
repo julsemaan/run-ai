@@ -203,6 +203,67 @@ describe("PeerOrgUnitRankList", () => {
     mockSumDepartmentNodePoolResources.mockResolvedValue({ totalWeight: 100 });
   });
 
+  describe("quota source fences", () => {
+    it.each(["kubernetes", "pending", "read-only"] as const)(
+      "blocks imperative peer rank/weight changes for %s",
+      async (state) => {
+        const peer = createMockProjectNodePoolResource("current-project", "Current", "Medium");
+        peer.quotaManagement = {
+          source: state === "kubernetes" ? "kubernetes" : "runai",
+          requestedSource: "kubernetes",
+          revision: 7,
+          canEditQuotas: state === "read-only",
+          syncStatus: { phase: state === "pending" ? "pending" : "synced" },
+        };
+        mockCountProjectsNodePoolResources.mockResolvedValue(1);
+        mockGetProjectNodePoolResources.mockResolvedValue({ nodePoolResources: [peer] });
+        const wrapper = await mountComponent({ readOnly: state === "read-only" });
+        const vm = wrapper.vm as unknown as {
+          selectedOrgUnits: ProjectNodePoolResources[];
+          handleMoveToRank: (rank: string) => Promise<void>;
+          handleWeightChanged: (payload: {
+            orgUnitId: string;
+            nodePoolId: string;
+            weight: number;
+            originalWeight: number;
+          }) => void;
+          getPendingOrgUnitChanges: () => Map<string, unknown>;
+        };
+        vm.selectedOrgUnits = [peer];
+        await vm.handleMoveToRank("High");
+        vm.handleWeightChanged({ orgUnitId: peer.orgUnitId, nodePoolId: "np-1", weight: 99, originalWeight: 50 });
+        expect(vm.getPendingOrgUnitChanges().size).toBe(0);
+        wrapper.unmount();
+      },
+    );
+    it("retains the observed peer revision in pending weight changes", async () => {
+      const peer = createMockProjectNodePoolResource("current-project", "Current", "Medium");
+      peer.quotaManagement = {
+        source: "runai",
+        requestedSource: "runai",
+        revision: 42,
+        canEditQuotas: true,
+        syncStatus: { phase: "synced" },
+      };
+      mockCountProjectsNodePoolResources.mockResolvedValue(1);
+      mockGetProjectNodePoolResources.mockResolvedValue({ nodePoolResources: [peer] });
+      const wrapper = await mountComponent();
+      const table = wrapper.findComponent({ name: "RankOrgUnitTable" });
+      table.vm.$emit("weight-changed", {
+        orgUnitId: peer.orgUnitId,
+        nodePoolId: "np-1",
+        weight: 99,
+        originalWeight: 50,
+      });
+      await flushPromises();
+      expect(wrapper.vm.getPendingOrgUnitChanges().get(peer.orgUnitId)).toMatchObject({
+        quotaManagementRevision: 42,
+        newWeight: 99,
+      });
+      wrapper.unmount();
+    });
+  });
+
   describe("Current Entity Pinning", () => {
     it("fetches current entity separately when loading a rank containing it (project)", async () => {
       // Setup: 3 projects in Medium rank, current entity is one of them

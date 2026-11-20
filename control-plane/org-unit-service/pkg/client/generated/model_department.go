@@ -37,6 +37,7 @@ type Department struct {
 	// The id of the cluster.
 	ClusterId                   string                   `json:"clusterId"`
 	OvertimeData                *OvertimeData            `json:"overtimeData,omitempty"`
+	QuotaManagement             *QuotaManagement         `json:"quotaManagement,omitempty"`
 	Id                          string                   `json:"id"`
 	CreatedAt                   time.Time                `json:"createdAt"`
 	UpdatedAt                   time.Time                `json:"updatedAt"`
@@ -290,6 +291,38 @@ func (o *Department) HasOvertimeData() bool {
 // SetOvertimeData gets a reference to the given OvertimeData and assigns it to the OvertimeData field.
 func (o *Department) SetOvertimeData(v OvertimeData) {
 	o.OvertimeData = &v
+}
+
+// GetQuotaManagement returns the QuotaManagement field value if set, zero value otherwise.
+func (o *Department) GetQuotaManagement() QuotaManagement {
+	if o == nil || IsNil(o.QuotaManagement) {
+		var ret QuotaManagement
+		return ret
+	}
+	return *o.QuotaManagement
+}
+
+// GetQuotaManagementOk returns a tuple with the QuotaManagement field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *Department) GetQuotaManagementOk() (*QuotaManagement, bool) {
+	if o == nil || IsNil(o.QuotaManagement) {
+		return nil, false
+	}
+	return o.QuotaManagement, true
+}
+
+// HasQuotaManagement returns a boolean if a field has been set.
+func (o *Department) HasQuotaManagement() bool {
+	if o != nil && !IsNil(o.QuotaManagement) {
+		return true
+	}
+
+	return false
+}
+
+// SetQuotaManagement gets a reference to the given QuotaManagement and assigns it to the QuotaManagement field.
+func (o *Department) SetQuotaManagement(v QuotaManagement) {
+	o.QuotaManagement = &v
 }
 
 // GetId returns the Id field value
@@ -598,6 +631,9 @@ func (o Department) ToMap() (map[string]interface{}, error) {
 	toSerialize["clusterId"] = o.ClusterId
 	if !IsNil(o.OvertimeData) {
 		toSerialize["overtimeData"] = o.OvertimeData
+	}
+	if !IsNil(o.QuotaManagement) {
+		toSerialize["quotaManagement"] = o.QuotaManagement
 	}
 	toSerialize["id"] = o.Id
 	toSerialize["createdAt"] = o.CreatedAt

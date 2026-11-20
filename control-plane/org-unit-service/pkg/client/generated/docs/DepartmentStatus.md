@@ -4,6 +4,7 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
+**KubernetesUid** | Pointer to **string** | Actual Kubernetes object UID, reported only by authenticated cluster-sync. | [optional] 
 **LastUpdatedTime** | Pointer to **NullableTime** |  | [optional] 
 
 ## Methods
@@ -24,6 +25,31 @@ will change when the set of required properties is changed
 NewDepartmentStatusWithDefaults instantiates a new DepartmentStatus object
 This constructor will only assign default values to properties that have it defined,
 but it doesn't guarantee that properties required by API are set
+
+### GetKubernetesUid
+
+`func (o *DepartmentStatus) GetKubernetesUid() string`
+
+GetKubernetesUid returns the KubernetesUid field if non-nil, zero value otherwise.
+
+### GetKubernetesUidOk
+
+`func (o *DepartmentStatus) GetKubernetesUidOk() (*string, bool)`
+
+GetKubernetesUidOk returns a tuple with the KubernetesUid field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetKubernetesUid
+
+`func (o *DepartmentStatus) SetKubernetesUid(v string)`
+
+SetKubernetesUid sets KubernetesUid field to given value.
+
+### HasKubernetesUid
+
+`func (o *DepartmentStatus) HasKubernetesUid() bool`
+
+HasKubernetesUid returns a boolean if a field has been set.
 
 ### GetLastUpdatedTime
 

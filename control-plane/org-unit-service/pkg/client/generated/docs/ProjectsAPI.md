@@ -15,6 +15,7 @@ Method | HTTP request | Description
 [**GetProjectAncestors**](ProjectsAPI.md#GetProjectAncestors) | **Get** /internal/org-unit/projects/{projectId}/ancestors | Get project ancestors
 [**GetProjectMetrics**](ProjectsAPI.md#GetProjectMetrics) | **Get** /api/v1/org-unit/projects/{projectId}/metrics | Get project metrics data.
 [**GetProjectNodePoolResources**](ProjectsAPI.md#GetProjectNodePoolResources) | **Get** /api/v1/org-unit/projects/node-pool-resources | Get projects node pool resources
+[**GetProjectQuotaSource**](ProjectsAPI.md#GetProjectQuotaSource) | **Get** /api/v1/org-unit/projects/{projectId}/quota-source | Get project quota source
 [**GetProjects**](ProjectsAPI.md#GetProjects) | **Get** /api/v1/org-unit/projects | Get projects
 [**GetProjectsMetadata**](ProjectsAPI.md#GetProjectsMetadata) | **Get** /api/v1/org-unit/projects/metadata | Get projects metadata
 [**GetProjectsRanking**](ProjectsAPI.md#GetProjectsRanking) | **Get** /api/v1/org-unit/projects/ranking | Get top 15 projects by highest or lowest average resource utilization, allocation, or allocation ratio
@@ -25,6 +26,7 @@ Method | HTTP request | Description
 [**SumProjectNodePoolResources**](ProjectsAPI.md#SumProjectNodePoolResources) | **Get** /api/v1/org-unit/projects/node-pool-resources/sum | sum projects node pool resources
 [**SyncProjects**](ProjectsAPI.md#SyncProjects) | **Post** /api/v1/org-unit/projects/sync | Sync cluster projects
 [**UpdateProject**](ProjectsAPI.md#UpdateProject) | **Put** /api/v1/org-unit/projects/{projectId} | Update project
+[**UpdateProjectQuotaSource**](ProjectsAPI.md#UpdateProjectQuotaSource) | **Put** /api/v1/org-unit/projects/{projectId}/quota-source | Set project quota source for all node pools
 [**UpdateProjectResources**](ProjectsAPI.md#UpdateProjectResources) | **Put** /api/v1/org-unit/projects/{projectId}/resources | Update project resources
 [**UpdateProjectStatus**](ProjectsAPI.md#UpdateProjectStatus) | **Put** /api/v1/org-unit/projects/status | Update project status from cluster
 
@@ -813,6 +815,74 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
+## GetProjectQuotaSource
+
+> QuotaManagement GetProjectQuotaSource(ctx, projectId).Execute()
+
+Get project quota source
+
+### Example
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"os"
+	openapiclient "github.com/dsx-ai-factory/run-ai/control-plane/org-unit-service/pkg/client"
+)
+
+func main() {
+	projectId := "575c19e8-c7c3-45b0-8290-2f47397a8383" // string | The project id
+
+	configuration := openapiclient.NewConfiguration()
+	apiClient := openapiclient.NewAPIClient(configuration)
+	resp, r, err := apiClient.ProjectsAPI.GetProjectQuotaSource(context.Background(), projectId).Execute()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error when calling `ProjectsAPI.GetProjectQuotaSource``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
+	}
+	// response from `GetProjectQuotaSource`: QuotaManagement
+	fmt.Fprintf(os.Stdout, "Response from `ProjectsAPI.GetProjectQuotaSource`: %v\n", resp)
+}
+```
+
+### Path Parameters
+
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+**ctx** | **context.Context** | context for authentication, logging, cancellation, deadlines, tracing, etc.
+**projectId** | **string** | The project id | 
+
+### Other Parameters
+
+Other parameters are passed through a pointer to a apiGetProjectQuotaSourceRequest struct via the builder pattern
+
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+
+
+### Return type
+
+[**QuotaManagement**](QuotaManagement.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints)
+[[Back to Model list]](../README.md#documentation-for-models)
+[[Back to README]](../README.md)
+
+
 ## GetProjects
 
 > GetProjects200Response GetProjects(ctx).FilterBy(filterBy).SortBy(sortBy).SortOrder(sortOrder).Offset(offset).Limit(limit).Search(search).Execute()
@@ -1509,6 +1579,76 @@ Name | Type | Description  | Notes
 ### Return type
 
 [**Project**](Project.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+- **Content-Type**: application/json
+- **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints)
+[[Back to Model list]](../README.md#documentation-for-models)
+[[Back to README]](../README.md)
+
+
+## UpdateProjectQuotaSource
+
+> QuotaManagement UpdateProjectQuotaSource(ctx, projectId).QuotaSourceUpdateRequest(quotaSourceUpdateRequest).Execute()
+
+Set project quota source for all node pools
+
+### Example
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"os"
+	openapiclient "github.com/dsx-ai-factory/run-ai/control-plane/org-unit-service/pkg/client"
+)
+
+func main() {
+	projectId := "575c19e8-c7c3-45b0-8290-2f47397a8383" // string | The project id
+	quotaSourceUpdateRequest := *openapiclient.NewQuotaSourceUpdateRequest("Source_example", int64(123)) // QuotaSourceUpdateRequest | 
+
+	configuration := openapiclient.NewConfiguration()
+	apiClient := openapiclient.NewAPIClient(configuration)
+	resp, r, err := apiClient.ProjectsAPI.UpdateProjectQuotaSource(context.Background(), projectId).QuotaSourceUpdateRequest(quotaSourceUpdateRequest).Execute()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error when calling `ProjectsAPI.UpdateProjectQuotaSource``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
+	}
+	// response from `UpdateProjectQuotaSource`: QuotaManagement
+	fmt.Fprintf(os.Stdout, "Response from `ProjectsAPI.UpdateProjectQuotaSource`: %v\n", resp)
+}
+```
+
+### Path Parameters
+
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+**ctx** | **context.Context** | context for authentication, logging, cancellation, deadlines, tracing, etc.
+**projectId** | **string** | The project id | 
+
+### Other Parameters
+
+Other parameters are passed through a pointer to a apiUpdateProjectQuotaSourceRequest struct via the builder pattern
+
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+
+ **quotaSourceUpdateRequest** | [**QuotaSourceUpdateRequest**](QuotaSourceUpdateRequest.md) |  | 
+
+### Return type
+
+[**QuotaManagement**](QuotaManagement.md)
 
 ### Authorization
 

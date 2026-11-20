@@ -6,6 +6,7 @@
 <template>
   <org-unit-step-wrapper
     label="GPU over quota"
+    :read-only="readOnly"
     :hide-save-button="isSingleNodePool"
     @save="handleSaveClick"
     @save-and-continue="handleSaveAndContinue"
@@ -19,6 +20,7 @@
       @update:model-value="handleTabChange"
     >
       <org-unit-over-quota-settings
+        :read-only="readOnly"
         v-model:limit="limit"
         v-model:is-over-quota-enabled="isOverQuotaEnabled"
         :deserved="deserved ?? 0"
@@ -36,6 +38,7 @@
 
         <peer-org-unit-rank-list
           aid="peer-org-unit-rank-list"
+          :read-only="readOnly"
           v-if="selectedNodePoolId && peerListParentId"
           ref="peerRankListRef"
           :entity-type="entityType"
@@ -62,6 +65,7 @@ import { useUnsavedChangesGuard } from "@/composables/org-unit/use-unsaved-chang
 import { OrgUnitOverQuotaSettings } from "@/components/org-unit/v2/common/org-unit-over-quota-settings";
 import { OrgUnitLegend } from "@/components/org-unit/v2/common/org-unit-legend";
 import { PeerOrgUnitRankList } from "@/components/org-unit/v2/common/peer-org-unit-rank-list";
+import type { PendingOrgUnitChange } from "@/components/org-unit/v2/common/peer-org-unit-rank-list/peer-org-unit-rank-list.vue";
 import { EStepNames, ORG_UNIT_STACKED_BAR_CHART_COLORS } from "@/models/org-unit-forms.model";
 import { EQuotaEntity } from "@/models/resource.model";
 import { useWizardPreview } from "@/composables/org-unit/use-wizard-preview.composable";
@@ -72,6 +76,7 @@ export interface Props {
   orgUnit: Project | Department; // The current entity being edited
   parentOrgUnit?: Department | null; // Parent department (only for projects)
   clusterId: string;
+  readOnly?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -146,15 +151,7 @@ const isOverQuotaEnabled = ref(false);
 
 // Reference to peer rank list for getting pending changes
 const peerRankListRef = ref<{
-  getPendingOrgUnitChanges: () => Map<
-    string,
-    {
-      originalRank?: string;
-      newRank?: string;
-      originalWeight?: number | null;
-      newWeight?: number;
-    }
-  >;
+  getPendingOrgUnitChanges: () => Map<string, PendingOrgUnitChange>;
   hasPendingChanges: () => boolean;
   clearPendingChanges: () => void;
   refetch: () => Promise<void>;
@@ -253,6 +250,7 @@ const handleTabChange = (nodePoolId: string) => {
 };
 
 const handleToggleChange = (value: boolean) => {
+  if (props.readOnly) return;
   isOverQuotaEnabled.value = value;
   if (value) {
     limit.value = null;
@@ -263,6 +261,7 @@ const handleToggleChange = (value: boolean) => {
 };
 
 const handleLimitChange = (value: number | null) => {
+  if (props.readOnly) return;
   limit.value = value;
 };
 
@@ -291,6 +290,7 @@ const rankLegendItems = computed(() => [
 ]);
 
 const save = (navigateAfterSave = false): Promise<void> => {
+  if (props.readOnly) return Promise.resolve();
   return new Promise((resolve) => {
     const id = selectedNodePoolId.value;
     if (!id) {
@@ -317,6 +317,7 @@ const save = (navigateAfterSave = false): Promise<void> => {
       const pendingChanges = peerRankListRef.value.getPendingOrgUnitChanges();
       for (const [orgUnitId, change] of pendingChanges.entries()) {
         peerOrgUnitChanges.push({
+          ...change,
           orgUnitId,
           nodePoolId: id,
           newRank: change.newRank,
@@ -360,7 +361,8 @@ const save = (navigateAfterSave = false): Promise<void> => {
       nodePoolName,
       limit: limit.value,
       // Omit when feature is off — backend rejects 0 unless it equals deserved
-      overQuotaWeight: isOverQuotaPriorityEnabled.value ? overQuotaWeight.value : undefined,
+      overQuotaWeight:
+        isOverQuotaPriorityEnabled.value || props.orgUnit.quotaManagement ? overQuotaWeight.value : undefined,
       peerOrgUnitChanges: peerOrgUnitChanges.length > 0 ? peerOrgUnitChanges : undefined,
       navigateAfterSave,
       // onComplete is called by parent after API save completes
@@ -394,6 +396,7 @@ const save = (navigateAfterSave = false): Promise<void> => {
 };
 
 const handleCurrentEntityWeightChanged = (payload: { weight: number }) => {
+  if (props.readOnly) return;
   overQuotaWeight.value = payload.weight;
 };
 
@@ -418,6 +421,13 @@ const discardChanges = () => {
 
 const unregisterGuard = unsavedGuard.registerStepGuard(STEP_NAME, {
   isDirty: () => isDirty.value,
+  editState: () => [
+    limit.value,
+    overQuotaWeight.value,
+    isOverQuotaEnabled.value,
+    selectedNodePools.value,
+    [...(peerRankListRef.value?.getPendingOrgUnitChanges() ?? [])],
+  ],
   save,
   discard: discardChanges,
 });

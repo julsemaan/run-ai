@@ -43,6 +43,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
+import { getQuotaManagement, quotasLocked, quotaRevision, type QuotaManagement } from "@/models/quota-management.model";
 import { RunaiTable } from "@/components/common/runai-table";
 import { RunaiTableNoData } from "@/components/common/runai-table/runai-table-no-data";
 
@@ -69,6 +70,7 @@ import { orgUnitService } from "@/services/control-plane/org-unit.service/org-un
 import { EQuotaEntity, RESOURCE_MAX_ALLOWED_INFINITE_VALUE_NUMERIC } from "@/models/resource.model";
 
 export interface Props {
+  readOnly?: boolean;
   entityType: QuotaTableEntityType;
   fetchContext: QuotaTableFetchContext;
   availableQuota: number | null;
@@ -89,6 +91,8 @@ const emit = defineEmits<{
   (
     e: "quota-changed",
     payload: {
+      quotaManagement?: QuotaManagement;
+      quotaManagementRevision?: number;
       entityId: string;
       entityName: string;
       nodePoolName: string;
@@ -243,6 +247,8 @@ const processNodePoolResources = (
       const quotaDistribution = totalQuota > 0 ? ((gpuQuota ?? 0) / totalQuota) * 100 : 0;
 
       return {
+        quotaManagement: getQuotaManagement(resource),
+        readOnly: props.readOnly || quotasLocked(resource),
         id: resource.orgUnitId,
         name: resource.orgUnitName,
         gpuQuota,
@@ -348,7 +354,11 @@ const columnsWithConfig = computed<ITableColumn[]>(() => {
             originalLimit: number | null;
             originalOverQuotaWeight: number | null;
           }) => {
+            const resource = rawNodePoolResources.value.find((row) => row.orgUnitId === payload.projectId);
+            if (props.readOnly || !resource || quotasLocked(resource)) return;
             emit("quota-changed", {
+              ...quotaRevision(resource),
+              quotaManagement: getQuotaManagement(resource),
               entityId: payload.projectId,
               entityName: payload.entityName,
               nodePoolName: payload.nodePoolName,

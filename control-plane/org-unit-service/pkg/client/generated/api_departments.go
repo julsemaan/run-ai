@@ -166,6 +166,19 @@ type DepartmentsAPI interface {
 	GetDepartmentNodePoolResourcesExecute(r ApiGetDepartmentNodePoolResourcesRequest) (*GetDepartmentNodePoolResources200Response, *http.Response, error)
 
 	/*
+		GetDepartmentQuotaSource Get department quota source
+
+		@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+		@param departmentId The id of the department.
+		@return ApiGetDepartmentQuotaSourceRequest
+	*/
+	GetDepartmentQuotaSource(ctx context.Context, departmentId string) ApiGetDepartmentQuotaSourceRequest
+
+	// GetDepartmentQuotaSourceExecute executes the request
+	//  @return QuotaManagement
+	GetDepartmentQuotaSourceExecute(r ApiGetDepartmentQuotaSourceRequest) (*QuotaManagement, *http.Response, error)
+
+	/*
 		GetDepartments Get departments
 
 		list departments
@@ -272,6 +285,19 @@ type DepartmentsAPI interface {
 	// UpdateDepartmentExecute executes the request
 	//  @return Department
 	UpdateDepartmentExecute(r ApiUpdateDepartmentRequest) (*Department, *http.Response, error)
+
+	/*
+		UpdateDepartmentQuotaSource Set department quota source for all node pools
+
+		@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+		@param departmentId The id of the department.
+		@return ApiUpdateDepartmentQuotaSourceRequest
+	*/
+	UpdateDepartmentQuotaSource(ctx context.Context, departmentId string) ApiUpdateDepartmentQuotaSourceRequest
+
+	// UpdateDepartmentQuotaSourceExecute executes the request
+	//  @return QuotaManagement
+	UpdateDepartmentQuotaSourceExecute(r ApiUpdateDepartmentQuotaSourceRequest) (*QuotaManagement, *http.Response, error)
 
 	/*
 		UpdateDepartmentResources Update department resources
@@ -1989,6 +2015,130 @@ func (a *DepartmentsAPIService) GetDepartmentNodePoolResourcesExecute(r ApiGetDe
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
+type ApiGetDepartmentQuotaSourceRequest struct {
+	ctx          context.Context
+	ApiService   DepartmentsAPI
+	departmentId string
+}
+
+func (r ApiGetDepartmentQuotaSourceRequest) Execute() (*QuotaManagement, *http.Response, error) {
+	return r.ApiService.GetDepartmentQuotaSourceExecute(r)
+}
+
+/*
+GetDepartmentQuotaSource Get department quota source
+
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param departmentId The id of the department.
+	@return ApiGetDepartmentQuotaSourceRequest
+*/
+func (a *DepartmentsAPIService) GetDepartmentQuotaSource(ctx context.Context, departmentId string) ApiGetDepartmentQuotaSourceRequest {
+	return ApiGetDepartmentQuotaSourceRequest{
+		ApiService:   a,
+		ctx:          ctx,
+		departmentId: departmentId,
+	}
+}
+
+// Execute executes the request
+//  @return QuotaManagement
+///////// RUNAI (remove isResponseFile filter on pointer)//////////
+func (a *DepartmentsAPIService) GetDepartmentQuotaSourceExecute(r ApiGetDepartmentQuotaSourceRequest) (*QuotaManagement, *http.Response, error) {
+	var (
+		localVarHTTPMethod  = http.MethodGet
+		localVarPostBody    interface{}
+		formFiles           []formFile
+		localVarReturnValue *QuotaManagement
+	)
+	///////////////////////////
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "DepartmentsAPIService.GetDepartmentQuotaSource")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/api/v1/org-unit/departments/{departmentId}/quota-source"
+	localVarPath = strings.Replace(localVarPath, "{"+"departmentId"+"}", url.PathEscape(parameterValueToString(r.departmentId, "departmentId")), -1)
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 403 {
+			var v Error
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
+			return localVarReturnValue, localVarHTTPResponse, newErr
+		}
+		if localVarHTTPResponse.StatusCode == 404 {
+			var v Error
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
 type ApiGetDepartmentsRequest struct {
 	ctx        context.Context
 	ApiService DepartmentsAPI
@@ -3402,6 +3552,163 @@ func (a *DepartmentsAPIService) UpdateDepartmentExecute(r ApiUpdateDepartmentReq
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 503 {
+			var v Error
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
+type ApiUpdateDepartmentQuotaSourceRequest struct {
+	ctx                      context.Context
+	ApiService               DepartmentsAPI
+	departmentId             string
+	quotaSourceUpdateRequest *QuotaSourceUpdateRequest
+}
+
+func (r ApiUpdateDepartmentQuotaSourceRequest) QuotaSourceUpdateRequest(quotaSourceUpdateRequest QuotaSourceUpdateRequest) ApiUpdateDepartmentQuotaSourceRequest {
+	r.quotaSourceUpdateRequest = &quotaSourceUpdateRequest
+	return r
+}
+
+func (r ApiUpdateDepartmentQuotaSourceRequest) Execute() (*QuotaManagement, *http.Response, error) {
+	return r.ApiService.UpdateDepartmentQuotaSourceExecute(r)
+}
+
+/*
+UpdateDepartmentQuotaSource Set department quota source for all node pools
+
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param departmentId The id of the department.
+	@return ApiUpdateDepartmentQuotaSourceRequest
+*/
+func (a *DepartmentsAPIService) UpdateDepartmentQuotaSource(ctx context.Context, departmentId string) ApiUpdateDepartmentQuotaSourceRequest {
+	return ApiUpdateDepartmentQuotaSourceRequest{
+		ApiService:   a,
+		ctx:          ctx,
+		departmentId: departmentId,
+	}
+}
+
+// Execute executes the request
+//  @return QuotaManagement
+///////// RUNAI (remove isResponseFile filter on pointer)//////////
+func (a *DepartmentsAPIService) UpdateDepartmentQuotaSourceExecute(r ApiUpdateDepartmentQuotaSourceRequest) (*QuotaManagement, *http.Response, error) {
+	var (
+		localVarHTTPMethod  = http.MethodPut
+		localVarPostBody    interface{}
+		formFiles           []formFile
+		localVarReturnValue *QuotaManagement
+	)
+	///////////////////////////
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "DepartmentsAPIService.UpdateDepartmentQuotaSource")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/api/v1/org-unit/departments/{departmentId}/quota-source"
+	localVarPath = strings.Replace(localVarPath, "{"+"departmentId"+"}", url.PathEscape(parameterValueToString(r.departmentId, "departmentId")), -1)
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+	if r.quotaSourceUpdateRequest == nil {
+		return localVarReturnValue, nil, reportError("quotaSourceUpdateRequest is required and must be specified")
+	}
+
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{"application/json"}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	// body params
+	localVarPostBody = r.quotaSourceUpdateRequest
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 400 {
+			var v Error
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
+			return localVarReturnValue, localVarHTTPResponse, newErr
+		}
+		if localVarHTTPResponse.StatusCode == 403 {
+			var v Error
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
+			return localVarReturnValue, localVarHTTPResponse, newErr
+		}
+		if localVarHTTPResponse.StatusCode == 404 {
+			var v Error
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
+			return localVarReturnValue, localVarHTTPResponse, newErr
+		}
+		if localVarHTTPResponse.StatusCode == 409 {
 			var v Error
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {

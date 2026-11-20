@@ -10,6 +10,8 @@ required:
   - rank
   - clusterId
 properties:
+  quotaManagement:
+    $ref: '../QuotaManagement.yaml'
   id:
     description: The unique ID of the resources.
     type: string

@@ -11,6 +11,16 @@
     full-width
     class="q-pb-xl"
   >
+    <org-unit-quota-source
+      v-if="!isNewDepartment"
+      :management="quotaSource.management.value"
+      entity-type="department"
+      :name="department.name"
+      :can-update="canUpdate"
+      :busy="quotaSource.busy.value || isDepartmentSubmitting"
+      @change-source="quotaSource.changeSource"
+      @refresh="quotaSource.refresh"
+    />
     <!-- Unsaved Changes Dialog -->
     <unsaved-changes-dialog
       v-model="unsavedDialogModel"
@@ -62,7 +72,7 @@
           :cluster-id="localDepartment.clusterId || ''"
           :node-pool-totals="nodePoolTotals"
           :loading="props.isDepartmentSubmitting"
-          :read-only="props.readOnly"
+          :read-only="quotaReadOnly"
           @save-gpu-quota="handleSaveGpuQuota"
           @close="handleClose"
         />
@@ -71,6 +81,7 @@
         <gpu-over-quota-step
           v-else-if="currentStep?.name === EStepNames.OverQuota"
           ref="gpuOverQuotaStepRef"
+          :read-only="quotaReadOnly"
           :entity-type="EQuotaEntity.department"
           :org-unit="localDepartment as Department"
           :cluster-id="localDepartment.clusterId || ''"
@@ -110,7 +121,7 @@
           :subordinate-resources="(localDepartment as Department).projectsAggregatedResources"
           :node-pool-totals="props.nodePoolTotals"
           :loading="props.isDepartmentSubmitting"
-          :read-only="props.readOnly"
+          :read-only="quotaReadOnly"
           @save-cpu-quota="handleSaveCpuQuota"
           @close="handleClose"
         />
@@ -119,7 +130,7 @@
       <template #content-footer>
         <!-- Footer with action buttons -->
         <org-unit-form-footer
-          v-if="isFirstStep || isLastStep || !isSingleNodePool"
+          v-if="isFirstStep || isLastStep || !isSingleNodePool || (quotaReadOnly && isQuotaStep)"
           entity-type="Department"
           :is-new-entity="isNewDepartment"
           :is-first-step="isFirstStep"
@@ -150,6 +161,9 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from "vue";
+import OrgUnitQuotaSource from "@/components/org-unit/v2/common/org-unit-quota-source/org-unit-quota-source.vue";
+import { useQuotaSource } from "@/composables/org-unit/use-quota-source.composable";
+import { ResourceType, Action } from "@/swagger-models/authorization-client";
 import { RunaiFormWrapper } from "@/components/common/runai-form-wrapper";
 import { RunaiWizardLayout } from "@/components/common/runai-wizard-layout/";
 import { useWizardLayout } from "@/composables/use-wizard-layout.composable";
@@ -214,6 +228,8 @@ const settingStore = useSettingStore();
 
 // Props
 export interface Props {
+  refreshQuotaObject?: (discardUnsaved?: boolean, editState?: string) => Promise<void>;
+  invalidateQuotaRefresh?: () => void;
   department: Department | DepartmentCreationRequest;
   isNewDepartment: boolean;
   isDepartmentSubmitting?: boolean;
@@ -265,6 +281,7 @@ const getInitialActiveStep = (): string | undefined => {
 // Emits
 const emit = defineEmits<{
   (e: "on-cancel"): void;
+  (e: "refresh", discardUnsaved?: boolean): void;
   (e: "on-save", payload: ISaveOrgUnitPayload<Department | DepartmentCreationRequest>): void;
   (e: "update-scope", scope: { clusterId: string }): void;
 }>();
@@ -294,6 +311,23 @@ const isScopeNameDirty = computed(
     localDepartment.value.name !== initialScopeName.value ||
     localDepartment.value.description !== initialScopeDescription.value,
 );
+
+const getEditState = () => JSON.stringify([localDepartment.value, unsavedGuard.getEditState()]);
+const canUpdate = computed(
+  () => !props.readOnly && !!permissionStore.hasPermission(ResourceType.Department, Action.Update),
+);
+const quotaSource = useQuotaSource({
+  kind: "departments",
+  unit: () => props.department,
+  canUpdate: () => canUpdate.value,
+  dirty: () => unsavedGuard.isAnyStepDirty.value || isScopeNameDirty.value,
+  editState: getEditState,
+  invalidateRefresh: () => props.invalidateQuotaRefresh?.(),
+  refresh: (discardUnsaved, editState) =>
+    props.refreshQuotaObject ? props.refreshQuotaObject(discardUnsaved, editState) : emit("refresh", discardUnsaved),
+});
+const quotaReadOnly = computed(() => props.readOnly || (!props.isNewDepartment && quotaSource.locked.value));
+defineExpose({ getEditState, hasUnsavedChanges: () => unsavedGuard.isAnyStepDirty.value || isScopeNameDirty.value });
 
 // Access rules count for the summary component
 const accessRulesCount = ref(0);
@@ -336,6 +370,9 @@ const { steps, currentStep, activeStep, isFirstStep, isLastStep, nextStep, handl
   wizard;
 
 // Computed
+const isQuotaStep = computed(() =>
+  [EStepNames.CPUQuota, EStepNames.GpuQuota, EStepNames.OverQuota].some((name) => name === currentStep.value?.name),
+);
 const accessRulesFormOptions = computed(() => ({
   scopeId: (localDepartment.value as Department).id,
   scopeType: ScopeType.Department,
@@ -421,11 +458,13 @@ const handleSaveCpuQuota = async (payload: {
   memoryUnit: Units;
   navigateAfterSave?: boolean;
 }) => {
+  if (quotaReadOnly.value) return;
   const isValid = await validate();
   if (!isValid) {
     return;
   }
 
+  if (quotaReadOnly.value) return;
   // Find and update the resource for the specified node pool
   localDepartment.value.resources?.forEach((resource) => {
     if (resource.nodePool?.name === payload.nodePoolName) {
@@ -468,11 +507,13 @@ const handleSaveGpuQuota = async (payload: {
   navigateAfterSave?: boolean;
   onComplete?: () => void;
 }) => {
+  if (quotaReadOnly.value) return;
   const isValid = await validate();
   if (!isValid) {
     return;
   }
 
+  if (quotaReadOnly.value) return;
   // Save peer org unit changes first (if any)
   // If this fails, the error propagates and prevents main department update
   if (payload.peerDepartmentChanges && payload.peerDepartmentChanges.length > 0) {
@@ -538,9 +579,11 @@ const handleSaveGpuOverQuota = async (payload: {
   navigateAfterSave?: boolean;
   onComplete?: () => void;
 }) => {
+  if (quotaReadOnly.value) return;
   const isValid = await validate();
   if (!isValid) return;
 
+  if (quotaReadOnly.value) return;
   // Save peer department changes (rank and/or weight) in batch
   // Filter out current department - it will be updated in main save
   if (payload.peerOrgUnitChanges && payload.peerOrgUnitChanges.length > 0) {
@@ -580,7 +623,7 @@ const handleSaveGpuOverQuota = async (payload: {
   });
 
   // Align CPU/Memory limits with GPU over-quota state
-  if (localDepartment.value.resources) {
+  if (localDepartment.value.resources && !(localDepartment.value as Department).quotaManagement) {
     localDepartment.value.resources = orgUnitUtil.alignCpuAndMemoryLimitsByGpu(
       localDepartment.value.resources as Resources[],
     );

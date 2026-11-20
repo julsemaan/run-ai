@@ -31,9 +31,10 @@ type Project struct {
 	// An ordered list of node pools that defines the default scheduling preference for workloads in this project. The Scheduler will attempt to schedule workloads on node pools in this order. This setting is enforced if no node pool list is defined in the workload policy.
 	DefaultNodePools []string `json:"defaultNodePools,omitempty"`
 	// Deprecated
-	NodeTypes *NodeTypesPerWorkload `json:"nodeTypes,omitempty"`
-	Id        string                `json:"id"`
-	Name      string                `json:"name"`
+	NodeTypes       *NodeTypesPerWorkload `json:"nodeTypes,omitempty"`
+	QuotaManagement *QuotaManagement      `json:"quotaManagement,omitempty"`
+	Id              string                `json:"id"`
+	Name            string                `json:"name"`
 	// The id of the cluster.
 	ClusterId string `json:"clusterId"`
 	// department parent uuid
@@ -220,6 +221,38 @@ func (o *Project) HasNodeTypes() bool {
 // Deprecated
 func (o *Project) SetNodeTypes(v NodeTypesPerWorkload) {
 	o.NodeTypes = &v
+}
+
+// GetQuotaManagement returns the QuotaManagement field value if set, zero value otherwise.
+func (o *Project) GetQuotaManagement() QuotaManagement {
+	if o == nil || IsNil(o.QuotaManagement) {
+		var ret QuotaManagement
+		return ret
+	}
+	return *o.QuotaManagement
+}
+
+// GetQuotaManagementOk returns a tuple with the QuotaManagement field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *Project) GetQuotaManagementOk() (*QuotaManagement, bool) {
+	if o == nil || IsNil(o.QuotaManagement) {
+		return nil, false
+	}
+	return o.QuotaManagement, true
+}
+
+// HasQuotaManagement returns a boolean if a field has been set.
+func (o *Project) HasQuotaManagement() bool {
+	if o != nil && !IsNil(o.QuotaManagement) {
+		return true
+	}
+
+	return false
+}
+
+// SetQuotaManagement gets a reference to the given QuotaManagement and assigns it to the QuotaManagement field.
+func (o *Project) SetQuotaManagement(v QuotaManagement) {
+	o.QuotaManagement = &v
 }
 
 // GetId returns the Id field value
@@ -730,6 +763,9 @@ func (o Project) ToMap() (map[string]interface{}, error) {
 	}
 	if !IsNil(o.NodeTypes) {
 		toSerialize["nodeTypes"] = o.NodeTypes
+	}
+	if !IsNil(o.QuotaManagement) {
+		toSerialize["quotaManagement"] = o.QuotaManagement
 	}
 	toSerialize["id"] = o.Id
 	toSerialize["name"] = o.Name

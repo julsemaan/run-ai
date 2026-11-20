@@ -19,6 +19,7 @@ import { ESaveOrgUnitAction } from "@/models/org-unit-forms.model";
 import { requestToLeave } from "@/services/infra/router.service/router.service";
 import { orgUnitUtil } from "@/utils/org-unit.util";
 import { useAppStore } from "@/stores/app.store";
+import { usePermissionStore } from "@/stores/permissions.store";
 
 // ============================================================================
 // Mock Data
@@ -79,6 +80,7 @@ describe("DepartmentEdit", () => {
     mockRoute = createMockRoute(routeOverrides);
 
     const pinia = createTestingPinia({ createSpy: vi.fn });
+    vi.mocked(usePermissionStore(pinia).hasPermission).mockReturnValue(true);
     const clusterStore = useClusterStore(pinia);
     clusterStore.$patch({ clusters: mockClusters });
     clusterStore.$patch({ selectedCluster: mockClusters[0] });
@@ -86,6 +88,7 @@ describe("DepartmentEdit", () => {
     wrapper = mount(DepartmentEdit, {
       global: {
         plugins: [Quasar, pinia],
+        stubs: { OrgUnitQuotaTable: true },
         mocks: {
           $route: mockRoute,
           $router: mockRouter,
@@ -130,6 +133,226 @@ describe("DepartmentEdit", () => {
     if (wrapper) {
       wrapper.unmount();
     }
+  });
+
+  describe("quota source metadata", () => {
+    it("does not overwrite a description edited while a poll-triggered object refresh is in flight", async () => {
+      await mountComponent({ name: DEPARTMENT_ROUTE_NAMES.DEPARTMENT_EDIT, params: { id: DEPARTMENT_ID } });
+      const form = wrapper.findComponent({ name: "DepartmentEditFormV2" });
+      let resolveRefresh!: (department: Department) => void;
+      vi.mocked(orgUnitService.getDepartment).mockReturnValueOnce(
+        new Promise<Department>((resolve) => {
+          resolveRefresh = resolve;
+        }),
+      );
+      form.vm.$emit("refresh");
+      const scope = form.findComponent({ name: "ScopeNameStep" });
+      scope.vm.$emit("update:description", "Unsaved description");
+      await flushPromises();
+      resolveRefresh({ ...mockDepartment, description: "New server description" } as Department);
+      await flushPromises();
+      expect(wrapper.findComponent({ name: "ScopeNameStep" }).props("description")).toBe("Unsaved description");
+    });
+    it.each(["route", "unmount"])("ignores a refresh after %s changes", async (change) => {
+      await mountComponent({ name: DEPARTMENT_ROUTE_NAMES.DEPARTMENT_EDIT, params: { id: DEPARTMENT_ID } });
+      let resolveRefresh!: (department: Department) => void;
+      let rejectRefresh!: (error: Error) => void;
+      vi.mocked(orgUnitService.getDepartment).mockReturnValueOnce(
+        new Promise((resolve, reject) => {
+          resolveRefresh = resolve;
+          rejectRefresh = reject;
+        }),
+      );
+      wrapper.findComponent({ name: "DepartmentEditFormV2" }).vm.$emit("refresh", true);
+      if (change === "unmount") {
+        wrapper.unmount();
+        rejectRefresh(new Error("Late failure"));
+      } else {
+        mockRoute.params.id = "another-department";
+        resolveRefresh({ ...mockDepartment, description: "Stale description" } as Department);
+      }
+      await flushPromises();
+      expect(notifyMock).not.toHaveBeenCalled();
+      if (change === "route")
+        expect(wrapper.findComponent({ name: "ScopeNameStep" }).props("description")).toBe(mockDepartment.description);
+    });
+    it("retains changed peer values even when the form was already dirty before a confirmed GET", async () => {
+      vi.mocked(orgUnitService.sumDepartmentNodePoolResources).mockResolvedValue({ deservedSum: 0, weightsSum: 0 });
+      await mountComponent({
+        name: DEPARTMENT_ROUTE_NAMES.DEPARTMENT_EDIT,
+        params: { id: DEPARTMENT_ID },
+        query: { stepName: "gpu-quota" },
+      });
+      const form = wrapper.findComponent({ name: "DepartmentEditFormV2" });
+      const gpu = form.findComponent({ name: "GpuQuotaStep" });
+      await gpu.vm.$.exposed?.expandDepartmentSection();
+      await flushPromises();
+      const table = gpu.findComponent({ name: "OrgUnitQuotaTable" });
+      const peer = {
+        entityId: "peer",
+        entityName: "Peer",
+        nodePoolId: "pool-1",
+        nodePoolName: "default",
+        originalValue: 1,
+        originalLimit: 3,
+        originalOverQuotaWeight: 1,
+      };
+      table.vm.$emit("quota-changed", { ...peer, gpuQuota: 2 });
+      await flushPromises();
+      let resolveRefresh!: (department: Department) => void;
+      vi.mocked(orgUnitService.getDepartment).mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveRefresh = resolve;
+        }),
+      );
+      form.vm.$emit("refresh", true);
+      table.vm.$emit("quota-changed", { ...peer, gpuQuota: 3 });
+      await flushPromises();
+      resolveRefresh(mockDepartment as Department);
+      await flushPromises();
+      expect(wrapper.findComponent({ name: "OrgUnitQuotaTable" }).props("pendingChanges").get("peer").newValue).toBe(3);
+    });
+    it("ignores an old synced GET resolving after handoff and keeps pending polling", async () => {
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      try {
+        await mountComponent({ name: DEPARTMENT_ROUTE_NAMES.DEPARTMENT_EDIT, params: { id: DEPARTMENT_ID } });
+        const form = wrapper.findComponent({ name: "DepartmentEditFormV2" });
+        let resolveOld!: (department: Department) => void;
+        vi.mocked(orgUnitService.getDepartment).mockReturnValueOnce(
+          new Promise((resolve) => {
+            resolveOld = resolve;
+          }),
+        );
+        form.vm.$emit("refresh", true);
+        const pending = {
+          source: "runai",
+          requestedSource: "kubernetes",
+          revision: 1,
+          canEditQuotas: false,
+          syncStatus: { phase: "pending" },
+        } as const;
+        vi.mocked(orgUnitService.updateQuotaSource).mockResolvedValueOnce(pending);
+        vi.mocked(orgUnitService.getDepartment).mockResolvedValueOnce({
+          ...mockDepartment,
+          quotaManagement: pending,
+        } as Department);
+        vi.mocked(orgUnitService.getQuotaSource).mockResolvedValue(pending);
+        form.findComponent({ name: "OrgUnitQuotaSource" }).vm.$emit("change-source", "kubernetes");
+        await flushPromises();
+        resolveOld(mockDepartment as Department);
+        await flushPromises();
+        const selector = wrapper.findComponent({ name: "OrgUnitQuotaSource" });
+        expect(selector.props("management").syncStatus.phase).toBe("pending");
+        expect(selector.props("management").requestedSource).toBe("kubernetes");
+        await vi.advanceTimersByTimeAsync(3000);
+        expect(orgUnitService.getQuotaSource).toHaveBeenCalled();
+      } finally {
+        wrapper.unmount();
+        vi.useRealTimers();
+      }
+    });
+    it.each(["manual", "handoff"])("discards only the unchanged confirmed edits on %s", async (operation) => {
+      await mountComponent({ name: DEPARTMENT_ROUTE_NAMES.DEPARTMENT_EDIT, params: { id: DEPARTMENT_ID } });
+      const form = wrapper.findComponent({ name: "DepartmentEditFormV2" });
+      form.findComponent({ name: "ScopeNameStep" }).vm.$emit("update:description", "Confirmed dirty description");
+      await flushPromises();
+      vi.mocked(orgUnitService.getDepartment).mockResolvedValueOnce({
+        ...mockDepartment,
+        description: "Authoritative description",
+      } as Department);
+      vi.mocked(orgUnitService.updateQuotaSource).mockResolvedValueOnce({
+        source: "runai",
+        requestedSource: "kubernetes",
+        revision: 1,
+        canEditQuotas: false,
+        syncStatus: { phase: "pending" },
+      });
+      const selector = form.findComponent({ name: "OrgUnitQuotaSource" });
+      if (operation === "manual") selector.vm.$emit("refresh");
+      else selector.vm.$emit("change-source", "kubernetes");
+      await flushPromises();
+      expect(requestToLeave).toHaveBeenCalledOnce();
+      expect(wrapper.findComponent({ name: "ScopeNameStep" }).props("description")).toBe("Authoritative description");
+    });
+    it.each(["manual", "handoff", "handoff PUT"])("retains new edits during confirmed %s refresh", async (operation) => {
+      await mountComponent({ name: DEPARTMENT_ROUTE_NAMES.DEPARTMENT_EDIT, params: { id: DEPARTMENT_ID } });
+      const form = wrapper.findComponent({ name: "DepartmentEditFormV2" });
+      const scope = form.findComponent({ name: "ScopeNameStep" });
+      scope.vm.$emit("update:description", "Previously confirmed dirty description");
+      await flushPromises();
+      let resolveRefresh!: (department: Department) => void;
+      vi.mocked(orgUnitService.getDepartment).mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveRefresh = resolve;
+        }),
+      );
+      let resolvePut!: () => void;
+      if (operation !== "manual") {
+        const pending = {
+          source: "runai",
+          requestedSource: "kubernetes",
+          revision: 1,
+          canEditQuotas: false,
+          syncStatus: { phase: "pending" },
+        } as const;
+        vi.mocked(orgUnitService.updateQuotaSource).mockReturnValueOnce(
+          operation === "handoff PUT"
+            ? new Promise((resolve) => {
+                resolvePut = () => resolve(pending);
+              })
+            : Promise.resolve(pending),
+        );
+        form.findComponent({ name: "OrgUnitQuotaSource" }).vm.$emit("change-source", "kubernetes");
+      } else {
+        form.findComponent({ name: "OrgUnitQuotaSource" }).vm.$emit("refresh");
+      }
+      await flushPromises();
+      expect(form.findComponent({ name: "OrgUnitQuotaSource" }).props("busy")).toBe(true);
+      scope.vm.$emit("update:description", "New description after confirmation");
+      await flushPromises();
+      if (operation === "handoff PUT") {
+        resolvePut();
+        await flushPromises();
+      }
+      expect(orgUnitService.getDepartment).toHaveBeenCalledTimes(2);
+      resolveRefresh({ ...mockDepartment, description: "Server description" } as Department);
+      await flushPromises();
+      expect(wrapper.findComponent({ name: "ScopeNameStep" }).props("description")).toBe(
+        "New description after confirmation",
+      );
+    });
+    it.each(["runai", "kubernetes"] as const)(
+      "preserves exact quotas and revision on a %s description save",
+      async (source) => {
+        const managed = structuredClone(mockDepartment) as Department;
+        managed.quotaManagement = {
+          source,
+          requestedSource: source,
+          revision: 42,
+          canEditQuotas: source === "runai",
+          syncStatus: { phase: "synced" },
+        };
+        managed.resources[0].cpu = { deserved: 125, limit: 337, overQuotaWeight: 19 };
+        managed.resources[0].memory = { deserved: 0.125, units: "Mib", limit: 1.375, overQuotaWeight: 23 };
+        managed.resources[0].gpu = { deserved: 1, limit: 3, overQuotaWeight: 17 };
+        vi.mocked(orgUnitService.getDepartment).mockResolvedValue(managed);
+        await mountComponent({ name: DEPARTMENT_ROUTE_NAMES.DEPARTMENT_EDIT, params: { id: DEPARTMENT_ID } });
+        const form = wrapper.findComponent({ name: "DepartmentEditFormV2" });
+        form.vm.$emit("on-save", {
+          department: { ...form.props("department"), description: "Changed description" },
+          action: ESaveOrgUnitAction.Save,
+        });
+        await flushPromises();
+        expect(orgUnitService.updateDepartment).toHaveBeenCalledWith(
+          DEPARTMENT_ID,
+          expect.objectContaining({
+            description: "Changed description",
+            resources: managed.resources,
+            quotaManagementRevision: 42,
+          }),
+        );
+      },
+    );
   });
 
   // ==========================================================================

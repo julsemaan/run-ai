@@ -4,6 +4,10 @@ allOf:
     required:
       - resources
     properties:
+      quotaManagementRevision:
+        type: integer
+        format: int64
+        minimum: 0
       enforceRunaiScheduler:
         type: boolean
         description: a flag to enforce that all pods in this namespace will be scheduled with runai-scheduler. Supported for cluster v2.21+

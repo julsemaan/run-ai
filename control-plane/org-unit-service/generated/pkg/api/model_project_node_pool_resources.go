@@ -22,6 +22,11 @@ var dummyProjectNodePoolResources = runaihttp.AssertPattern
 
 type ProjectNodePoolResources struct {
 
+	//////////////////////////////////// RUNAI START (19) ///////////////////////////////////////////
+	//QuotaManagement QuotaManagement `json:"quotaManagement,omitempty"`
+	QuotaManagement QuotaManagement `json:"quotaManagement,omitempty" gorm:"serializer:json; type:jsonb;not null;"`
+	//////////////////////////////////// RUNAI END ///////////////////////////////////////////
+
 	// The unique ID of the resources.
 	//////////////////////////////////// RUNAI START (19) ///////////////////////////////////////////
 	//Id string `json:"id"`
@@ -95,6 +100,9 @@ func AssertProjectNodePoolResourcesRequired(obj ProjectNodePoolResources) error 
 		}
 	}
 
+	if err := AssertQuotaManagementRequired(obj.QuotaManagement); err != nil {
+		return err
+	}
 	if err := AssertResourcesPerNodePoolRequired(obj.Resources); err != nil {
 		return err
 	}
@@ -106,6 +114,14 @@ func AssertProjectNodePoolResourcesRequired(obj ProjectNodePoolResources) error 
 
 // AssertProjectNodePoolResourcesConstraints checks if the values respects the defined constraints
 func AssertProjectNodePoolResourcesConstraints(obj ProjectNodePoolResources) error {
+	//////////////////////// RUNAI START (18.2) //////////////////////////
+	//////////////////////// RUNAI END //////////////////////////
+	//////////////////////// RUNAI START (2.1) //////////////////////////
+
+	//////////////////////// RUNAI END //////////////////////////
+	if err := AssertQuotaManagementConstraints(obj.QuotaManagement); err != nil {
+		return err
+	}
 	//////////////////////// RUNAI START (18.2) //////////////////////////
 	//////////////////////// RUNAI END //////////////////////////
 	//////////////////////// RUNAI START (2.1) //////////////////////////

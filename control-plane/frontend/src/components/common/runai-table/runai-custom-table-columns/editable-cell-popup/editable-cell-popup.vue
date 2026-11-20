@@ -36,7 +36,14 @@
         </q-card-section>
 
         <q-card-section class="row justify-end q-py-sm">
-          <q-btn flat color="primary" label="APPLY" @click="handleApplyClick" v-close-popup="!isSubmitDisabled" />
+          <q-btn
+            flat
+            color="primary"
+            label="APPLY"
+            :disable="disabled || isSubmitDisabled"
+            @click="handleApplyClick"
+            v-close-popup="!isSubmitDisabled"
+          />
         </q-card-section>
       </q-card>
     </q-menu>
@@ -92,7 +99,7 @@ const handleMenuHide = () => {
 };
 
 const handleApplyClick = () => {
-  if (props.isSubmitDisabled) return;
+  if (props.disabled || props.isSubmitDisabled) return;
   emit("apply");
   isOpen.value = false;
 };

@@ -11,6 +11,16 @@
     full-width
     class="q-pb-xl"
   >
+    <org-unit-quota-source
+      v-if="!isNewProject"
+      :management="quotaSource.management.value"
+      entity-type="project"
+      :name="project.name"
+      :can-update="canUpdate"
+      :busy="quotaSource.busy.value || isProjectSubmitting"
+      @change-source="quotaSource.changeSource"
+      @refresh="quotaSource.refresh"
+    />
     <!-- Unsaved Changes Dialog -->
     <unsaved-changes-dialog
       v-model="unsavedDialogModel"
@@ -59,6 +69,7 @@
           v-else-if="currentStep?.name === EStepNames.CPUQuota"
           ref="cpuQuotaStepRef"
           :entity-type="EQuotaEntity.project"
+          :read-only="quotaReadOnly"
           :resources="(localProject.resources as Resources[]) || []"
           :default-node-pools="localProject.defaultNodePools ?? undefined"
           :parent-resources="department?.resources"
@@ -71,6 +82,7 @@
         <gpu-quota-step
           v-else-if="currentStep?.name === EStepNames.GpuQuota"
           ref="gpuQuotaStepRef"
+          :read-only="quotaReadOnly"
           :entity-type="EQuotaEntity.project"
           :org-unit="createdLocalProject"
           :parent-org-unit="department"
@@ -83,6 +95,7 @@
         <gpu-over-quota-step
           v-else-if="currentStep?.name === EStepNames.OverQuota"
           ref="gpuOverQuotaStepRef"
+          :read-only="quotaReadOnly"
           :entity-type="EQuotaEntity.project"
           :org-unit="createdLocalProject"
           :parent-org-unit="department"
@@ -117,7 +130,7 @@
       <template #content-footer>
         <!-- Footer with action buttons -->
         <org-unit-form-footer
-          v-if="isFirstStep || isLastStep || !isSingleNodePool"
+          v-if="isFirstStep || isLastStep || !isSingleNodePool || (quotaReadOnly && isQuotaStep)"
           entity-type="Project"
           :is-new-entity="isNewProject"
           :is-first-step="isFirstStep"
@@ -147,6 +160,9 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from "vue";
+import OrgUnitQuotaSource from "@/components/org-unit/v2/common/org-unit-quota-source/org-unit-quota-source.vue";
+import { useQuotaSource } from "@/composables/org-unit/use-quota-source.composable";
+import { ResourceType, Action } from "@/swagger-models/authorization-client";
 import { RunaiFormWrapper } from "@/components/common/runai-form-wrapper";
 import { RunaiWizardLayout } from "@/components/common/runai-wizard-layout/";
 import { useWizardLayout } from "@/composables/use-wizard-layout.composable";
@@ -210,6 +226,8 @@ import { orgUnitUtil } from "@/utils/org-unit.util/org-unit.util";
 
 // Props
 export interface Props {
+  refreshQuotaObject?: (discardUnsaved?: boolean, editState?: string) => Promise<void>;
+  invalidateQuotaRefresh?: () => void;
   project: Project | ProjectCreationRequest;
   department?: Department | null;
   isNewProject: boolean;
@@ -262,6 +280,7 @@ const getInitialActiveStep = (): string | undefined => {
 // Emits
 const emit = defineEmits<{
   (e: "on-cancel"): void;
+  (e: "refresh", discardUnsaved?: boolean): void;
   (e: "update-scope", scope: { clusterId: string; departmentId?: string }): void;
   (e: "on-save", payload: ISaveOrgUnitPayload<Project | ProjectCreationRequest>): void;
 }>();
@@ -293,6 +312,21 @@ const isScopeNameDirty = computed(
     localProject.value.name !== initialScopeName.value ||
     localProject.value.description !== initialScopeDescription.value,
 );
+
+const getEditState = () => JSON.stringify([localProject.value, unsavedGuard.getEditState()]);
+const canUpdate = computed(() => !!permissionStore.hasPermission(ResourceType.Project, Action.Update));
+const quotaSource = useQuotaSource({
+  kind: "projects",
+  unit: () => props.project,
+  canUpdate: () => canUpdate.value,
+  dirty: () => unsavedGuard.isAnyStepDirty.value || isScopeNameDirty.value,
+  editState: getEditState,
+  invalidateRefresh: () => props.invalidateQuotaRefresh?.(),
+  refresh: (discardUnsaved, editState) =>
+    props.refreshQuotaObject ? props.refreshQuotaObject(discardUnsaved, editState) : emit("refresh", discardUnsaved),
+});
+const quotaReadOnly = computed(() => !props.isNewProject && quotaSource.locked.value);
+defineExpose({ getEditState, hasUnsavedChanges: () => unsavedGuard.isAnyStepDirty.value || isScopeNameDirty.value });
 
 // Access rules count for the summary component
 const accessRulesCount = ref(0);
@@ -346,6 +380,9 @@ const wizardSteps = computed<IRunaiWizardLayoutStep[]>(() => {
   });
 });
 
+const isQuotaStep = computed(() =>
+  [EStepNames.CPUQuota, EStepNames.GpuQuota, EStepNames.OverQuota].some((name) => name === currentStep.value?.name),
+);
 const createdLocalProject = computed(() => localProject.value as Project);
 const isOverQuotaPriorityEnabled = computed(() => settingStore.isOverQuotaPriorityEnabled);
 const accessRulesFormOptions = computed(() => ({
@@ -410,6 +447,7 @@ const handleSaveCpuQuota = async (payload: {
   memoryUnit: Units;
   navigateAfterSave?: boolean;
 }) => {
+  if (quotaReadOnly.value) return;
   const isValid = await validate();
 
   if (!isValid) {
@@ -455,11 +493,13 @@ const handleGpuQuotaSave = async (payload: {
   navigateAfterSave?: boolean;
   onComplete?: () => void;
 }) => {
+  if (quotaReadOnly.value) return;
   const isValid = await validate();
   if (!isValid) {
     return;
   }
 
+  if (quotaReadOnly.value) return;
   // Save peer org unit changes first (if any)
   // If this fails, the error propagates and prevents main project update
   if (payload.peerProjectChanges && payload.peerProjectChanges.length > 0) {
@@ -540,11 +580,13 @@ const handleSaveGpuOverQuota = async (payload: {
   navigateAfterSave?: boolean;
   onComplete?: () => void;
 }) => {
+  if (quotaReadOnly.value) return;
   const isValid = await validate();
   if (!isValid) {
     return;
   }
 
+  if (quotaReadOnly.value) return;
   // Save peer org unit changes (rank and/or weight) in a single batch request
   // Filter out current project - it will be updated in the main project save
   // If this fails, the error propagates and prevents main project update
@@ -587,7 +629,7 @@ const handleSaveGpuOverQuota = async (payload: {
   });
 
   // Align CPU/Memory limits with GPU over-quota state (reuse util)
-  if (localProject.value.resources) {
+  if (localProject.value.resources && !(localProject.value as Project).quotaManagement) {
     localProject.value.resources = orgUnitUtil.alignCpuAndMemoryLimitsByGpu(localProject.value.resources as Resources[]);
   }
 

@@ -22,7 +22,11 @@
     >
       <template #selected-rows-actions>
         <span class="move-to-rank-btn-wrapper">
-          <runai-action-button btn-action="moveToRank" @click="openMoveToRankModal" />
+          <runai-action-button
+            v-if="!readOnly && selectedOrgUnits.every((row) => !quotasLocked(row))"
+            btn-action="moveToRank"
+            @click="openMoveToRankModal"
+          />
         </span>
       </template>
     </runai-page-actions>
@@ -41,6 +45,7 @@
         <q-linear-progress animation-speed="100" indeterminate size="xs" v-if="isLoadingOrgUnits" />
         <rank-org-unit-table
           :org-units="getOrgUnitsForRank(row.rank)"
+          :read-only="readOnly"
           :entity-type="entityType"
           :loading="isLoadingOrgUnits && expandedRank === row.rank"
           :node-pool-id="props.nodePoolId"
@@ -77,6 +82,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
+import { quotasLocked, quotaRevision, getQuotaManagement, type QuotaManaged } from "@/models/quota-management.model";
 import { RunaiPageActions } from "@/components/common/runai-page-actions";
 import { RunaiActionButton } from "@/components/common/runai-page-actions/runai-action-button";
 import { RankGroupAccordion } from "./rank-group-accordion";
@@ -107,6 +113,7 @@ import { useQuasar } from "quasar";
 import { useSettingStore } from "@/stores/setting.store";
 
 export interface Props {
+  readOnly?: boolean;
   entityType?: EQuotaEntity;
   parentId?: string; // Parent org unit ID (e.g., Department ID for projects)
   nodePoolId: string; // Selected node pool ID
@@ -218,7 +225,8 @@ const adjustedRankTotalWeights = computed(() => {
 });
 
 // Pending changes (rank and/or weight): Map<orgUnitId, { rank?, weight? }>
-export interface PendingOrgUnitChange {
+export interface PendingOrgUnitChange extends QuotaManaged {
+  quotaManagementRevision?: number;
   originalRank?: string;
   newRank?: string;
   originalWeight?: number | null;
@@ -651,6 +659,7 @@ const resetSelection = () => {
 };
 
 const openMoveToRankModal = () => {
+  if (props.readOnly || selectedOrgUnits.value.some(quotasLocked)) return;
   isMoveToRankModalOpen.value = true;
 };
 
@@ -659,6 +668,7 @@ const closeMoveToRankModal = () => {
 };
 
 const handleMoveToRank = async (newRank: string) => {
+  if (props.readOnly || selectedOrgUnits.value.some(quotasLocked)) return;
   // Add to pending changes for each selected org unit
   selectedOrgUnits.value.forEach((orgUnit) => {
     if (orgUnit.rank) {
@@ -673,6 +683,8 @@ const handleMoveToRank = async (newRank: string) => {
       } else {
         // Otherwise, update or create the pending change
         pendingOrgUnitChanges.value.set(orgUnit.orgUnitId, {
+          quotaManagement: getQuotaManagement(orgUnit),
+          ...quotaRevision(orgUnit),
           ...existingChange,
           originalRank,
           newRank,
@@ -699,6 +711,8 @@ const handleWeightChanged = (payload: {
   weight: number;
   originalWeight: number | null;
 }) => {
+  const orgUnit = allLoadedOrgUnits.value.get(payload.orgUnitId);
+  if (props.readOnly || !orgUnit || quotasLocked(orgUnit)) return;
   const existingChange = pendingOrgUnitChanges.value.get(payload.orgUnitId);
 
   // If there's already a pending change, preserve the original weight
@@ -714,6 +728,8 @@ const handleWeightChanged = (payload: {
     }
     // Otherwise, update or create the pending change
     pendingOrgUnitChanges.value.set(payload.orgUnitId, {
+      quotaManagement: getQuotaManagement(orgUnit),
+      ...quotaRevision(orgUnit),
       ...existingChange,
       originalWeight,
       newWeight: payload.weight,

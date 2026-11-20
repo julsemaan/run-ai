@@ -30,7 +30,8 @@ type ProjectUpdateRequest struct {
 	// An ordered list of node pools that defines the default scheduling preference for workloads in this project. The Scheduler will attempt to schedule workloads on node pools in this order. This setting is enforced if no node pool list is defined in the workload policy.
 	DefaultNodePools []string `json:"defaultNodePools,omitempty"`
 	// Deprecated
-	NodeTypes *NodeTypesPerWorkload `json:"nodeTypes,omitempty"`
+	NodeTypes               *NodeTypesPerWorkload `json:"nodeTypes,omitempty"`
+	QuotaManagementRevision *int64                `json:"quotaManagementRevision,omitempty"`
 	// a flag to enforce that all pods in this namespace will be scheduled with runai-scheduler. Supported for cluster v2.21+
 	EnforceRunaiScheduler NullableBool `json:"enforceRunaiScheduler,omitempty"`
 	// Resources assigned to this Organization per Node Pool
@@ -200,6 +201,38 @@ func (o *ProjectUpdateRequest) SetNodeTypes(v NodeTypesPerWorkload) {
 	o.NodeTypes = &v
 }
 
+// GetQuotaManagementRevision returns the QuotaManagementRevision field value if set, zero value otherwise.
+func (o *ProjectUpdateRequest) GetQuotaManagementRevision() int64 {
+	if o == nil || IsNil(o.QuotaManagementRevision) {
+		var ret int64
+		return ret
+	}
+	return *o.QuotaManagementRevision
+}
+
+// GetQuotaManagementRevisionOk returns a tuple with the QuotaManagementRevision field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *ProjectUpdateRequest) GetQuotaManagementRevisionOk() (*int64, bool) {
+	if o == nil || IsNil(o.QuotaManagementRevision) {
+		return nil, false
+	}
+	return o.QuotaManagementRevision, true
+}
+
+// HasQuotaManagementRevision returns a boolean if a field has been set.
+func (o *ProjectUpdateRequest) HasQuotaManagementRevision() bool {
+	if o != nil && !IsNil(o.QuotaManagementRevision) {
+		return true
+	}
+
+	return false
+}
+
+// SetQuotaManagementRevision gets a reference to the given int64 and assigns it to the QuotaManagementRevision field.
+func (o *ProjectUpdateRequest) SetQuotaManagementRevision(v int64) {
+	o.QuotaManagementRevision = &v
+}
+
 // GetEnforceRunaiScheduler returns the EnforceRunaiScheduler field value if set, zero value otherwise (both if not set or set to explicit null).
 func (o *ProjectUpdateRequest) GetEnforceRunaiScheduler() bool {
 	if o == nil || IsNil(o.EnforceRunaiScheduler.Get()) {
@@ -288,6 +321,9 @@ func (o ProjectUpdateRequest) ToMap() (map[string]interface{}, error) {
 	}
 	if !IsNil(o.NodeTypes) {
 		toSerialize["nodeTypes"] = o.NodeTypes
+	}
+	if !IsNil(o.QuotaManagementRevision) {
+		toSerialize["quotaManagementRevision"] = o.QuotaManagementRevision
 	}
 	if o.EnforceRunaiScheduler.IsSet() {
 		toSerialize["enforceRunaiScheduler"] = o.EnforceRunaiScheduler.Get()

@@ -516,6 +516,9 @@ func (s *ProjectApiService) UpdateProject(ctx context.Context, projectId string,
 		return errResponse, nil
 	}
 
+	if err := services.ValidateQuotaFullUpdate(ctx, project.TenantId, project.ClusterId.String(), "project", project.ID, updateProjectRequest.Resources); err != nil {
+		return services.HandleError(err, http.StatusBadRequest, err.Error()), nil
+	}
 	updated, err := MapUpdateRequestToModel(ctx, updateProjectRequest, project, nodePools, department)
 	if err != nil {
 		errResponse := services.HandleError(err, http.StatusBadRequest, "failed to map request to model")
@@ -625,6 +628,7 @@ func (s *ProjectApiService) UpdateProjectResources(ctx context.Context, projectI
 		return services.HandleApiError(*apiErr), nil
 	}
 
+	project.QuotaManagementRevision = services.QuotaResourceRevision(resources)
 	_, err = dao.UpdateProject(ctx, project, false, false)
 	if err != nil {
 		errResponse := services.HandleDbError(ctx, err, "Failed to update project")
@@ -682,6 +686,12 @@ func (s *ProjectApiService) UpdateProjectStatus(ctx context.Context, projectStat
 		return api.Response(http.StatusBadRequest, fmt.Sprintf("Can not update phase of a deleting project to phase %s", projectStatusUpdateRequest.Status.Phase)), nil
 	}
 
+	if project.ClusterId != clusterUuid {
+		return services.HandleError(dao.ErrQuotaSnapshot, http.StatusForbidden, "Status cluster does not match project"), nil
+	}
+	if err := services.BindQuotaUID(ctx, *tenantId, clusterUuid.String(), "project", projectUid, projectStatusUpdateRequest.Status.KubernetesUid); err != nil {
+		return services.HandleError(err, http.StatusConflict, err.Error()), nil
+	}
 	if projectStatusUpdateRequest.QuotaSnapshot != nil {
 		if project.ClusterId != clusterUuid {
 			return services.HandleError(dao.ErrQuotaSnapshot, http.StatusForbidden, "Snapshot cluster does not match the project"), nil
@@ -894,9 +904,10 @@ func (s *ProjectApiService) patchProjectResources(
 		return nil, "", apiErr
 	}
 
+	project.QuotaManagementRevision = services.QuotaResourceRevision(resources)
 	_, err = dao.UpdateProject(ctx, project, false, false)
 	if err != nil {
-		if errors.Is(err, dao.ErrKubernetesQuota) {
+		if errors.Is(err, dao.ErrKubernetesQuota) || errors.Is(err, dao.ErrQuotaRevision) {
 			return nil, "", api.NewError(http.StatusConflict, err.Error(), err)
 		}
 		return nil, "", api.NewError(http.StatusInternalServerError, "Failed to update project", err)
@@ -1048,8 +1059,18 @@ func (s *ProjectApiService) GetSyncProjects(ctx context.Context, clusterId strin
 
 	apiProjects := make([]api.ProjectSync, len(projects))
 	for index, project := range projects {
+		var ownership *api.QuotaOwnership
+		if !project.DeletedAt.Valid {
+			fresh, marker, snapshotErr := dao.QuotaCommandSnapshot(ctx, *tenantId, clusterId, "project", project.ID)
+			if snapshotErr != nil {
+				return services.HandleError(snapshotErr, http.StatusConflict, snapshotErr.Error()), nil
+			}
+			project.OrgUnitData.Resources = services.MergeQuotaSnapshotResources(project.OrgUnitData.Resources, fresh)
+			ownership = marker
+		}
 		apiProjects[index] = MapModelToSyncResponse(*project, nodePoolsMetadata, accessRulesPerId[strconv.FormatInt(project.ID, 10)])
-		apiProjects[index].QuotaOwnership, err = services.QuotaOwnership(ctx, *tenantId, clusterId, "project", project.ID)
+		apiProjects[index].QuotaOwnership = ownership
+		err = services.ValidateQuotaOwnershipCapabilities(ctx, ownership)
 		if err != nil {
 			return services.HandleError(err, http.StatusConflict, err.Error()), nil
 		}

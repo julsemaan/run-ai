@@ -36,7 +36,7 @@
       <runai-table-header
         :props="props"
         :filter-by="filterBy"
-        :is-selected="selected.length === rows.length && !loading"
+        :is-selected="selected.length === rows.filter(isRowSelectable).length && !loading"
         :is-selectable="!disableSelection"
         :selection="selectionMode"
         @checkbox-clicked="selectAllRows"
@@ -51,6 +51,7 @@
         :name-column-icon="getRowIcon(topRow)"
         :is-selected="isTopRowSelected"
         :is-selectable="!disableSelection"
+        :selection-disabled="!isRowSelectable(topRow)"
         @checkbox-clicked="
           isSingleSelect
             ? onSelect(getRowKey(topRow), topRow, topRowIndex)
@@ -74,6 +75,7 @@
         :row="props.row"
         :name-column-icon="getRowIcon(props.row)"
         :is-selectable="!disableSelection"
+        :selection-disabled="!isRowSelectable(props.row)"
         @custom-cell-event="$emit($event.emitName, props.row)"
         @checkbox-clicked="
           isSingleSelect ? onSelect(props.key, props.row, props.rowIndex) : onMultipleSelect($event, props)
@@ -137,6 +139,10 @@ export default defineComponent({
       type: Array as PropType<any[]>, // eslint-disable-line @typescript-eslint/no-explicit-any
       required: false,
       default: () => [],
+    },
+    isRowSelectable: {
+      type: Function as PropType<(row: any) => boolean>, // eslint-disable-line @typescript-eslint/no-explicit-any
+      default: () => true,
     },
     disableSelection: {
       type: Boolean as PropType<boolean>,
@@ -249,13 +255,13 @@ export default defineComponent({
   methods: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     headerSelectionToggle(selectedRows: readonly any[]): void {
-      this.$emit("update:selected", selectedRows);
+      this.$emit("update:selected", selectedRows.filter(this.isRowSelectable));
     },
     selectAllRows(): void {
-      if (this.selected.length === this.rows.length) {
+      if (this.selected.length === this.rows.filter(this.isRowSelectable).length) {
         this.$emit("update:selected", []);
       } else {
-        this.$emit("update:selected", this.rows);
+        this.$emit("update:selected", this.rows.filter(this.isRowSelectable));
       }
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -274,6 +280,7 @@ export default defineComponent({
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onSelect(key: any, row: any, rowIndex: number): void {
+      if (this.disableSelection || !this.isRowSelectable(row)) return;
       if (this.selected.find((currRow) => this.getRowKey(currRow) === key)) {
         this.lastSelectedIndex = null;
         this.$emit("update:selected", []);
@@ -283,6 +290,7 @@ export default defineComponent({
       }
     },
     onMultipleSelect(event: { shiftKey: boolean; metaKey: boolean; ctrlKey: boolean }, props: RowProps) {
+      if (this.disableSelection || !this.isRowSelectable(props.row)) return;
       // If shift is not pressed, select/unselect the row
       if (!event.shiftKey) {
         if (!props.selected) {
@@ -362,7 +370,7 @@ export default defineComponent({
           this.selected.filter((currRow) => !rowKeysToRemove.includes(this.getRowKey(currRow))),
         );
       } else {
-        this.$emit("update:selected", [...this.selected, ...rowsToAdd]);
+        this.$emit("update:selected", [...this.selected, ...rowsToAdd].filter(this.isRowSelectable));
       }
     },
     onCustomHeaderEvent(event: { emitName: string; value: unknown }) {

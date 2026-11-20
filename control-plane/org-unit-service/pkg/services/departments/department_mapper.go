@@ -44,7 +44,8 @@ func MapUpdateRequestToModel(ctx context.Context, request api.DepartmentUpdateRe
 	}
 
 	update := models.Department{
-		TenantId: department.TenantId,
+		QuotaManagementRevision: request.QuotaManagementRevision,
+		TenantId:                department.TenantId,
 		IntBaseModel: models.IntBaseModel{
 			ID:        department.ID,
 			CreatedBy: department.CreatedBy,
@@ -108,18 +109,21 @@ func MapModelToSyncResponse(department models.Department, nodePoolsMetadata map[
 }
 
 func mapBasicDepartment(department models.Department, nodePools map[string]openapi.NodepoolMinimal) api.Department {
+	var management api.QuotaManagement
+	department.OrgUnitData.Resources, management = services.QuotaObjectSnapshot(context.Background(), department.TenantId, department.ClusterId.String(), "department", department.ID, department.OrgUnitData.Resources)
 	resources := departmentApiResourcesFromModel(department, nodePools)
 	orgUnitData := department.OrgUnitData
 	response := api.Department{
-		Id:          strconv.FormatInt(department.ID, 10),
-		CreatedAt:   department.CreatedAt,
-		UpdatedAt:   department.UpdatedAt,
-		CreatedBy:   department.CreatedBy,
-		UpdatedBy:   department.UpdatedBy,
-		Name:        department.Name,
-		Description: department.Description,
-		ClusterId:   department.ClusterId.String(),
-		Resources:   resources,
+		QuotaManagement: management,
+		Id:              strconv.FormatInt(department.ID, 10),
+		CreatedAt:       department.CreatedAt,
+		UpdatedAt:       department.UpdatedAt,
+		CreatedBy:       department.CreatedBy,
+		UpdatedBy:       department.UpdatedBy,
+		Name:            department.Name,
+		Description:     department.Description,
+		ClusterId:       department.ClusterId.String(),
+		Resources:       resources,
 		TotalResources: api.TotalResources{
 			GpuQuota:    orgUnitData.TotalGpuQuota,
 			CpuQuota:    orgUnitData.TotalCpuQuota,

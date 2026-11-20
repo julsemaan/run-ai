@@ -89,6 +89,7 @@ Class | Method | HTTP request | Description
 *DepartmentsAPI* | [**GetDepartmentAncestors**](docs/DepartmentsAPI.md#getdepartmentancestors) | **Get** /internal/org-unit/departments/{departmentId}/ancestors | Get department ancestors
 *DepartmentsAPI* | [**GetDepartmentMetrics**](docs/DepartmentsAPI.md#getdepartmentmetrics) | **Get** /api/v1/org-unit/departments/{departmentId}/metrics | Get department metrics data.
 *DepartmentsAPI* | [**GetDepartmentNodePoolResources**](docs/DepartmentsAPI.md#getdepartmentnodepoolresources) | **Get** /api/v1/org-unit/departments/node-pool-resources | Get departments node pool resources
+*DepartmentsAPI* | [**GetDepartmentQuotaSource**](docs/DepartmentsAPI.md#getdepartmentquotasource) | **Get** /api/v1/org-unit/departments/{departmentId}/quota-source | Get department quota source
 *DepartmentsAPI* | [**GetDepartments**](docs/DepartmentsAPI.md#getdepartments) | **Get** /api/v1/org-unit/departments | Get departments
 *DepartmentsAPI* | [**GetDepartmentsDescendants**](docs/DepartmentsAPI.md#getdepartmentsdescendants) | **Get** /internal/org-unit/departments/descendants | Get department descendants
 *DepartmentsAPI* | [**GetDepartmentsRanking**](docs/DepartmentsAPI.md#getdepartmentsranking) | **Get** /api/v1/org-unit/departments/ranking | Get top 15 departments by highest or lowest average resource utilization or allocation
@@ -97,6 +98,7 @@ Class | Method | HTTP request | Description
 *DepartmentsAPI* | [**PatchDepartmentResources**](docs/DepartmentsAPI.md#patchdepartmentresources) | **Patch** /api/v1/org-unit/departments/{departmentId}/resources | Patch department resources
 *DepartmentsAPI* | [**SumDepartmentNodePoolResources**](docs/DepartmentsAPI.md#sumdepartmentnodepoolresources) | **Get** /api/v1/org-unit/departments/node-pool-resources/sum | sum departments node pool resources
 *DepartmentsAPI* | [**UpdateDepartment**](docs/DepartmentsAPI.md#updatedepartment) | **Put** /api/v1/org-unit/departments/{departmentId} | Update department
+*DepartmentsAPI* | [**UpdateDepartmentQuotaSource**](docs/DepartmentsAPI.md#updatedepartmentquotasource) | **Put** /api/v1/org-unit/departments/{departmentId}/quota-source | Set department quota source for all node pools
 *DepartmentsAPI* | [**UpdateDepartmentResources**](docs/DepartmentsAPI.md#updatedepartmentresources) | **Put** /api/v1/org-unit/departments/{departmentId}/resources | Update department resources
 *DepartmentsAPI* | [**UpdateDepartmentStatus**](docs/DepartmentsAPI.md#updatedepartmentstatus) | **Put** /api/v1/org-unit/departments/{departmentId}/status | Update Department status from cluster
 *DepartmentsV1API* | [**GetDepartmentMetricsV1**](docs/DepartmentsV1API.md#getdepartmentmetricsv1) | **Get** /v1/k8s/clusters/{clusterUuid}/departments/{departmentId}/metrics | Get metrics for a specific department.
@@ -130,6 +132,7 @@ Class | Method | HTTP request | Description
 *ProjectsAPI* | [**GetProjectAncestors**](docs/ProjectsAPI.md#getprojectancestors) | **Get** /internal/org-unit/projects/{projectId}/ancestors | Get project ancestors
 *ProjectsAPI* | [**GetProjectMetrics**](docs/ProjectsAPI.md#getprojectmetrics) | **Get** /api/v1/org-unit/projects/{projectId}/metrics | Get project metrics data.
 *ProjectsAPI* | [**GetProjectNodePoolResources**](docs/ProjectsAPI.md#getprojectnodepoolresources) | **Get** /api/v1/org-unit/projects/node-pool-resources | Get projects node pool resources
+*ProjectsAPI* | [**GetProjectQuotaSource**](docs/ProjectsAPI.md#getprojectquotasource) | **Get** /api/v1/org-unit/projects/{projectId}/quota-source | Get project quota source
 *ProjectsAPI* | [**GetProjects**](docs/ProjectsAPI.md#getprojects) | **Get** /api/v1/org-unit/projects | Get projects
 *ProjectsAPI* | [**GetProjectsMetadata**](docs/ProjectsAPI.md#getprojectsmetadata) | **Get** /api/v1/org-unit/projects/metadata | Get projects metadata
 *ProjectsAPI* | [**GetProjectsRanking**](docs/ProjectsAPI.md#getprojectsranking) | **Get** /api/v1/org-unit/projects/ranking | Get top 15 projects by highest or lowest average resource utilization, allocation, or allocation ratio
@@ -140,6 +143,7 @@ Class | Method | HTTP request | Description
 *ProjectsAPI* | [**SumProjectNodePoolResources**](docs/ProjectsAPI.md#sumprojectnodepoolresources) | **Get** /api/v1/org-unit/projects/node-pool-resources/sum | sum projects node pool resources
 *ProjectsAPI* | [**SyncProjects**](docs/ProjectsAPI.md#syncprojects) | **Post** /api/v1/org-unit/projects/sync | Sync cluster projects
 *ProjectsAPI* | [**UpdateProject**](docs/ProjectsAPI.md#updateproject) | **Put** /api/v1/org-unit/projects/{projectId} | Update project
+*ProjectsAPI* | [**UpdateProjectQuotaSource**](docs/ProjectsAPI.md#updateprojectquotasource) | **Put** /api/v1/org-unit/projects/{projectId}/quota-source | Set project quota source for all node pools
 *ProjectsAPI* | [**UpdateProjectResources**](docs/ProjectsAPI.md#updateprojectresources) | **Put** /api/v1/org-unit/projects/{projectId}/resources | Update project resources
 *ProjectsAPI* | [**UpdateProjectStatus**](docs/ProjectsAPI.md#updateprojectstatus) | **Put** /api/v1/org-unit/projects/status | Update project status from cluster
 *ProjectsV1API* | [**GetProjectMetricsV1**](docs/ProjectsV1API.md#getprojectmetricsv1) | **Get** /v1/k8s/clusters/{clusterUuid}/projects/{projectId}/metrics | Get metrics data for a specific project.
@@ -321,11 +325,14 @@ Class | Method | HTTP request | Description
  - [ProjectsMetricsV1Response](docs/ProjectsMetricsV1Response.md)
  - [ProjectsMetricsV1ResponseDataInner](docs/ProjectsMetricsV1ResponseDataInner.md)
  - [ProjectsResourcesResetRequest](docs/ProjectsResourcesResetRequest.md)
+ - [QuotaManagement](docs/QuotaManagement.md)
+ - [QuotaManagementSyncStatus](docs/QuotaManagementSyncStatus.md)
  - [QuotaOwnership](docs/QuotaOwnership.md)
  - [QuotaOwnershipPool](docs/QuotaOwnershipPool.md)
  - [QuotaSnapshot](docs/QuotaSnapshot.md)
  - [QuotaSnapshotPool](docs/QuotaSnapshotPool.md)
  - [QuotaSnapshotResource](docs/QuotaSnapshotResource.md)
+ - [QuotaSourceUpdateRequest](docs/QuotaSourceUpdateRequest.md)
  - [QuotaStatus](docs/QuotaStatus.md)
  - [QuotaStatusNodePool](docs/QuotaStatusNodePool.md)
  - [QuotaStatusResource](docs/QuotaStatusResource.md)

@@ -6,6 +6,7 @@
 <template>
   <quota-input
     :model-value="modelValue"
+    :disable="readOnly"
     :state="state"
     :message="message"
     :loading="loading"
@@ -16,7 +17,7 @@
     :placeholder="treatMinusOneAsUnlimited ? 'Unlimited' : undefined"
     :treat-minus-one-as-unlimited="treatMinusOneAsUnlimited"
     min="0"
-    @update:model-value="$emit('update:model-value', $event)"
+    @update:model-value="!readOnly && $emit('update:model-value', $event)"
   />
 </template>
 
@@ -27,6 +28,7 @@ import { EQuotaInputState } from "@/models/org-unit.model";
 import { EQuotaEntity } from "@/models/resource.model";
 
 export interface Props {
+  readOnly?: boolean;
   modelValue: number | null;
   state?: EQuotaInputState;
   message?: string;

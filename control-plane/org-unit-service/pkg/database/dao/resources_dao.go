@@ -70,7 +70,7 @@ func DeleteResources(ctx context.Context, resources []models.Resources) error {
 	tx := runaidb.DB().WithContext(ctx).Begin()
 	committed := false
 	defer orm.FinalizeTransaction(tx, &committed)
-	if err := guardQuotaMembership(tx, resources); err != nil {
+	if err := guardQuotaMembership(tx, resources, true); err != nil {
 		return err
 	}
 	if _, err := tx.Delete(resources); err != nil {
@@ -96,7 +96,7 @@ func AddResources(ctx context.Context, resources []*models.Resources) error {
 	for i, r := range resources {
 		values[i] = *r
 	}
-	if err := guardQuotaMembership(tx, values); err != nil {
+	if err := guardQuotaMembership(tx, values, false); err != nil {
 		return err
 	}
 	if _, err := tx.Create(resources); err != nil {

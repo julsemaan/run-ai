@@ -161,21 +161,8 @@ func TestQuotaAdmissionEnvtest(t *testing.T) {
 							attempt := probe.DeepCopy()
 							attempt.SetResourceVersion(o.GetResourceVersion())
 							err := c.Update(ctx, attempt)
-							if name == constants.RunaiAgentName {
-								if err != nil {
-									t.Fatalf("agent ownership write: %v", err)
-								}
-								if err := admin.Get(ctx, client.ObjectKeyFromObject(o), o); err != nil {
-									t.Fatal(err)
-								}
-								if err := quotaownership.Set(o, &ownership); err != nil {
-									t.Fatal(err)
-								}
-								if err := agent.Update(ctx, o); err != nil {
-									t.Fatal(err)
-								}
-							} else if !apierrors.IsForbidden(err) {
-								t.Fatalf("%s changed ownership: %v", name, err)
+							if !apierrors.IsForbidden(err) {
+								t.Fatalf("%s replaced or removed protected ownership: %v", name, err)
 							}
 						}
 					}
@@ -211,6 +198,47 @@ func TestQuotaAdmissionEnvtest(t *testing.T) {
 				}
 				if err := c.Status().Update(ctx, o); err != nil {
 					t.Fatalf("%s status update: %v", name, err)
+				}
+			}
+			// Both native directions use real admission and resourceVersion CAS.
+			for operation, source := range []string{"runai", "kubernetes"} {
+				for step, phase := range []string{"freeze", "release", "stable"} {
+					if err := admin.Get(ctx, client.ObjectKeyFromObject(o), o); err != nil {
+						t.Fatal(err)
+					}
+					old := o.DeepCopy()
+					ownership.SetSource(source)
+					ownership.SetPhase(phase)
+					ownership.SetRevision(int64(operation*3 + step + 1))
+					ownership.Epoch = source
+					if err := quotaownership.Set(o, &ownership); err != nil {
+						t.Fatal(err)
+					}
+					if err := agent.Update(ctx, o); err != nil {
+						t.Fatalf("%s %s: %v", source, phase, err)
+					}
+					stale := old.DeepCopy()
+					stale.SetResourceVersion(o.GetResourceVersion())
+					if err := agent.Update(ctx, stale); !apierrors.IsForbidden(err) {
+						t.Fatalf("stale marker accepted: %v", err)
+					}
+					for name, writer := range map[string]client.Client{"agent": agent, "editor": editor, "sync": internal[constants.RunaiClusterSyncName]} {
+						probe := o.DeepCopy()
+						gpu := wireQueue(probe.Object["spec"].(map[string]interface{})["queues"].([]interface{}), "queue", "pool")["resources"].(map[string]interface{})["gpu"].(map[string]interface{})
+						gpu["deserved"] = gpu["deserved"].(float64) + 0.01
+						err := writer.Update(ctx, probe)
+						allowed := phase == "stable" && ((source == "runai" && name == "agent") || (source == "kubernetes" && name != "agent"))
+						if allowed {
+							if err != nil {
+								t.Fatalf("stable writer %s: %v", name, err)
+							}
+							if err := admin.Get(ctx, client.ObjectKeyFromObject(o), o); err != nil {
+								t.Fatal(err)
+							}
+						} else if !apierrors.IsForbidden(err) {
+							t.Fatalf("%s changed %s quota: %v", name, phase, err)
+						}
+					}
 				}
 			}
 		})
