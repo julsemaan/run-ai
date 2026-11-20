@@ -247,6 +247,54 @@ describe("ProjectEditFormV2", () => {
   // CPU Quota Step Visibility Tests
   // ==========================================================================
 
+  describe("Quota source step", () => {
+    it("has no quota source step or control during creation", async () => {
+      const wrapper = createWrapper();
+      await nextTick();
+
+      expect(getWizardSteps(wrapper).map((step) => step.name)).not.toContain("quota-source");
+      expect(wrapper.findComponent({ name: "OrgUnitQuotaSource" }).exists()).toBe(false);
+    });
+
+    it("ends with access rules then quota source without showing the control on the scope step", async () => {
+      const wrapper = createWrapper({ props: { isNewProject: false } });
+      await nextTick();
+
+      const stepNames = getWizardSteps(wrapper).map((step) => step.name);
+      expect(stepNames.slice(-2)).toEqual([ETestStepNames.AccessRules, "quota-source"]);
+      expect(wrapper.findComponent(ScopeNameStep).exists()).toBe(true);
+      expect(wrapper.findComponent({ name: "OrgUnitQuotaSource" }).exists()).toBe(false);
+    });
+
+    it("renders quota source inside the wizard and closes without saving the project", async () => {
+      const wrapper = createWrapper({ props: { isNewProject: false } });
+      await nextTick();
+      await navigateToStep(wrapper, "quota-source");
+
+      expect(getWizardLayout(wrapper).props("activeStep")).toBe("quota-source");
+      expect(getWizardLayout(wrapper).findComponent({ name: "OrgUnitQuotaSource" }).exists()).toBe(true);
+      const footer = wrapper.findComponent(OrgUnitFormFooter);
+      expect(footer.props("readOnly")).toBe(true);
+      footer.vm.$emit("close");
+      await flushPromises();
+
+      expect(wrapper.emitted("on-cancel")).toHaveLength(1);
+      expect(wrapper.emitted("on-save")).toBeUndefined();
+    });
+
+    it("adds an enabled quota source step after creation", async () => {
+      const wrapper = createWrapper();
+      await nextTick();
+      expect(getWizardSteps(wrapper).map((step) => step.name)).not.toContain("quota-source");
+
+      await wrapper.setProps({ isNewProject: false });
+
+      expect(getWizardSteps(wrapper).find((step) => step.name === "quota-source")).toMatchObject({
+        disabled: false,
+      });
+    });
+  });
+
   describe("CPU Quota Step Visibility", () => {
     it("includes CPU quota step when at least one node pool has CPU quota enabled", async () => {
       const wrapper = createWrapper({ nodePoolsMinimal: mockCpuEnabledNodePools });

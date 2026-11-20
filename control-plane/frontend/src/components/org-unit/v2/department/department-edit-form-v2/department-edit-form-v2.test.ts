@@ -6,6 +6,7 @@
 import { mount, flushPromises, type VueWrapper } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createTestingPinia } from "@pinia/testing";
+import { usePermissionStore } from "@/stores/permissions.store";
 import { Quasar } from "quasar";
 import { nextTick } from "vue";
 import type { ComponentPublicInstance } from "vue";
@@ -39,6 +40,7 @@ import {
   createMockRouter,
   createMockRoute,
   RunaiFormWrapperStub,
+  createStepClickPayload,
   ETestStepNames,
 } from "./department-edit-form-v2.mock";
 
@@ -112,13 +114,23 @@ describe("DepartmentEditFormV2", () => {
   interface CreateWrapperOptions {
     props?: Record<string, unknown>;
     nodePoolsMinimal?: typeof mockCpuEnabledNodePools;
+    hasPermission?: boolean;
   }
 
   const createWrapper = (options: CreateWrapperOptions = {}) => {
-    const { props = {}, nodePoolsMinimal = mockCpuEnabledNodePools } = options;
+    const { props = {}, nodePoolsMinimal = mockCpuEnabledNodePools, hasPermission = false } = options;
 
     const settingsMap = new Map();
     settingsMap.set(SettingKeys.CPUResourcesQuota, { value: true });
+    const pinia = createTestingPinia({
+      createSpy: vi.fn,
+      initialState: {
+        Setting: {
+          settings: settingsMap,
+        },
+      },
+    });
+    vi.mocked(usePermissionStore(pinia).hasPermission).mockReturnValue(hasPermission);
 
     return mount(DepartmentEditFormV2, {
       props: {
@@ -128,17 +140,7 @@ describe("DepartmentEditFormV2", () => {
         ...props,
       },
       global: {
-        plugins: [
-          Quasar,
-          createTestingPinia({
-            createSpy: vi.fn,
-            initialState: {
-              Setting: {
-                settings: settingsMap,
-              },
-            },
-          }),
-        ],
+        plugins: [Quasar, pinia],
         mocks: {
           $route: mockRoute,
           $router: mockRouter,
@@ -195,6 +197,55 @@ describe("DepartmentEditFormV2", () => {
   // ==========================================================================
   // CPU Quota Step Visibility Tests
   // ==========================================================================
+
+  describe("Quota source step", () => {
+    it("has no quota source step or control during creation", async () => {
+      const wrapper = createWrapper({ hasPermission: true });
+      await nextTick();
+
+      expect(getWizardSteps(wrapper).map((step) => step.name)).not.toContain("quota-source");
+      expect(wrapper.findComponent({ name: "OrgUnitQuotaSource" }).exists()).toBe(false);
+    });
+
+    it("ends with access rules then quota source without showing the control on the scope step", async () => {
+      const wrapper = createWrapper({ hasPermission: true, props: { isNewDepartment: false } });
+      await nextTick();
+
+      const stepNames = getWizardSteps(wrapper).map((step) => step.name);
+      expect(stepNames.slice(-2)).toEqual([ETestStepNames.AccessRules, "quota-source"]);
+      expect(wrapper.findComponent(ScopeNameStep).exists()).toBe(true);
+      expect(wrapper.findComponent({ name: "OrgUnitQuotaSource" }).exists()).toBe(false);
+    });
+
+    it("renders quota source inside the wizard and closes without saving the department", async () => {
+      const wrapper = createWrapper({ hasPermission: true, props: { isNewDepartment: false } });
+      await nextTick();
+      getWizardLayout(wrapper).vm.$emit("step-click", createStepClickPayload("quota-source"));
+      await flushPromises();
+
+      expect(getWizardLayout(wrapper).props("activeStep")).toBe("quota-source");
+      expect(getWizardLayout(wrapper).findComponent({ name: "OrgUnitQuotaSource" }).exists()).toBe(true);
+      const footer = wrapper.findComponent(OrgUnitFormFooter);
+      expect(footer.props("readOnly")).toBe(true);
+      footer.vm.$emit("close");
+      await flushPromises();
+
+      expect(wrapper.emitted("on-cancel")).toHaveLength(1);
+      expect(wrapper.emitted("on-save")).toBeUndefined();
+    });
+
+    it("adds an enabled quota source step after creation", async () => {
+      const wrapper = createWrapper({ hasPermission: true });
+      await nextTick();
+      expect(getWizardSteps(wrapper).map((step) => step.name)).not.toContain("quota-source");
+
+      await wrapper.setProps({ isNewDepartment: false });
+
+      expect(getWizardSteps(wrapper).find((step) => step.name === "quota-source")).toMatchObject({
+        disabled: false,
+      });
+    });
+  });
 
   describe("CPU Quota Step Visibility", () => {
     it("includes CPU quota step when at least one node pool has CPU quota enabled", async () => {

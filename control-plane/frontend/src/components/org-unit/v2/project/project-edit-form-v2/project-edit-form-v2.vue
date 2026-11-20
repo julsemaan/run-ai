@@ -11,16 +11,6 @@
     full-width
     class="q-pb-xl"
   >
-    <org-unit-quota-source
-      v-if="!isNewProject"
-      :management="quotaSource.management.value"
-      entity-type="project"
-      :name="project.name"
-      :can-update="canUpdate"
-      :busy="quotaSource.busy.value || isProjectSubmitting"
-      @change-source="quotaSource.changeSource"
-      @refresh="quotaSource.refresh"
-    />
     <!-- Unsaved Changes Dialog -->
     <unsaved-changes-dialog
       v-model="unsavedDialogModel"
@@ -118,12 +108,22 @@
           @close="handleClose"
         />
 
-        <!-- Step 6: Access Rules -->
+        <!-- Step: Access Rules -->
         <access-rules-step
           v-else-if="currentStep?.name === EStepNames.AccessRules"
           :form-options="accessRulesFormOptions"
           @access-rules-created="handleAccessRulesCreated"
           @access-rule-deleted="handleAccessRuleDeleted"
+        />
+        <org-unit-quota-source
+          v-else-if="!isNewProject && currentStep?.name === EStepNames.QuotaSource"
+          :management="quotaSource.management.value"
+          entity-type="project"
+          :name="project.name"
+          :can-update="canUpdate"
+          :busy="quotaSource.busy.value || isProjectSubmitting"
+          @change-source="quotaSource.changeSource"
+          @refresh="quotaSource.refresh"
         />
       </template>
 
@@ -135,6 +135,7 @@
           :is-new-entity="isNewProject"
           :is-first-step="isFirstStep"
           :is-last-step="isLastStep"
+          :read-only="currentStep?.name === EStepNames.QuotaSource"
           :submitting-action="submittingAction"
           @close="handleClose"
           @next="handleNext"
@@ -199,6 +200,7 @@ import {
   ESaveOrgUnitAction,
   EStepNames,
   PROJECT_FORM_WIZARD_STEPS,
+  QUOTA_SOURCE_WIZARD_STEP,
   type ISaveOrgUnitPayload,
   EOrgUnitFormTooltip,
   type IPeerOrgUnitQuotaChange,
@@ -263,7 +265,7 @@ const permissionStore = usePermissionStore();
 // Build steps array - filters steps based on nodepool capabilities and permissions
 const getInitialSteps = (): IRunaiWizardLayoutStep[] => {
   return deepCopy(
-    filterOrgUnitSteps(PROJECT_FORM_WIZARD_STEPS, {
+    filterOrgUnitSteps([...PROJECT_FORM_WIZARD_STEPS, ...(!props.isNewProject ? [QUOTA_SOURCE_WIZARD_STEP] : [])], {
       nodepoolCapabilities: nodepoolCapabilities.value,
       hasPermission: (r, a) => permissionStore.hasPermission(r, a),
     }),
@@ -865,6 +867,7 @@ const handleExploreDialogStartTour = () => {
 watch(
   () => props.isNewProject,
   (isNew) => {
+    setSteps(getInitialSteps());
     if (!isNew) {
       wizardSteps.value.forEach((step) => {
         wizard.setStepDisabled(step.name, false);

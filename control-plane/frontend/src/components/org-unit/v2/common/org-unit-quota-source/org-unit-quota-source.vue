@@ -3,69 +3,72 @@
   SPDX-License-Identifier: Apache-2.0
 -->
 <template>
-  <section class="q-pa-md" aria-label="Quota management">
-    <div class="row items-center q-gutter-md">
-      <runai-select
-        aid="quota-source-select"
-        class="col-12 col-sm-3"
-        label="Quota source"
-        :model-value="management.source"
-        :options="options"
-        :disable="!canUpdate || busy || management.syncStatus.phase === 'pending'"
-        emit-value
-        @update:model-value="selectSource"
-      />
-      <div role="status" aria-live="polite">
-        <div>
-          Quota sync:
-          <runai-status
-            :options="{
-              status: phaseLabel,
-              displayAnimation: management.syncStatus.phase === 'pending',
-              color:
-                management.syncStatus.phase === 'error'
-                  ? 'negative'
-                  : management.syncStatus.phase === 'pending'
-                    ? 'warning'
-                    : 'success',
-            }"
-          />
-        </div>
-        <div v-if="management.syncStatus.phase === 'pending'">
-          Requested source: {{ sourceLabel(management.requestedSource) }}
-        </div>
-        <div v-if="management.syncStatus.message">{{ management.syncStatus.message }}</div>
-        <div v-if="management.syncStatus.lastSyncedAt">Last synced: {{ management.syncStatus.lastSyncedAt }}</div>
-      </div>
-    </div>
-    <q-btn aid="quota-source-refresh" flat label="Refresh quotas" :disable="busy" @click="emit('refresh')" />
-    <div class="text-caption q-mt-sm">Applies to this {{ entityType }} across all node pools.</div>
-    <div v-if="locked" class="text-caption">
-      Quota values and node pool membership are locked. Wait for pending synchronization to complete, or switch to Run:ai
-      when synchronized.
-    </div>
-    <runai-base-dialog :model-value="target !== null" size="width-sm" @close="target = null">
-      <template #header>Change quota source?</template>
-      <template #body>
-        Change {{ entityType }} "{{ name }}" to {{ target ? sourceLabel(target) : "" }} across all node pools? The latest
-        effective quota values, including CPU, memory and weights, will be preserved. You can switch back after
-        synchronization completes. Unsaved changes must be discarded or saved separately before switching.
-      </template>
-      <template #footer>
-        <q-btn aid="quota-source-cancel" flat label="Cancel" @click="target = null" />
-        <q-btn
-          aid="quota-source-confirm"
-          color="primary"
-          label="Change source"
+  <section aria-label="Quota management">
+    <runai-expansion-item label="Quota source" default-opened prevent-top-padding-when-open disable-closing>
+      <div class="row items-center q-gutter-md">
+        <runai-select
+          aid="quota-source-select"
+          class="col-12 col-sm-3"
+          label="Quota source"
+          :model-value="management.source"
+          :options="options"
           :disable="!canUpdate || busy || management.syncStatus.phase === 'pending'"
-          @click="confirm"
+          emit-value
+          @update:model-value="selectSource"
         />
-      </template>
-    </runai-base-dialog>
+        <div role="status" aria-live="polite">
+          <div>
+            Quota sync:
+            <runai-status
+              :options="{
+                status: phaseLabel,
+                displayAnimation: management.syncStatus.phase === 'pending',
+                color:
+                  management.syncStatus.phase === 'error'
+                    ? 'negative'
+                    : management.syncStatus.phase === 'pending'
+                      ? 'warning'
+                      : 'success',
+              }"
+            />
+          </div>
+          <div v-if="management.syncStatus.phase === 'pending'">
+            Requested source: {{ sourceLabel(management.requestedSource) }}
+          </div>
+          <div v-if="management.syncStatus.message">{{ management.syncStatus.message }}</div>
+          <div v-if="management.syncStatus.lastSyncedAt">Last synced: {{ management.syncStatus.lastSyncedAt }}</div>
+        </div>
+      </div>
+      <q-btn aid="quota-source-refresh" flat label="Refresh quotas" :disable="busy" @click="emit('refresh')" />
+      <div class="text-caption q-mt-sm">Applies to this {{ entityType }} across all node pools.</div>
+      <div v-if="locked" class="text-caption">
+        Quota values and node pool membership are locked. Wait for pending synchronization to complete, or switch to
+        Run:ai when synchronized.
+      </div>
+      <runai-base-dialog :model-value="target !== null" size="width-sm" @close="target = null">
+        <template #header>Change quota source?</template>
+        <template #body>
+          Change {{ entityType }} "{{ name }}" to {{ target ? sourceLabel(target) : "" }} across all node pools? The
+          latest effective quota values, including CPU, memory and weights, will be preserved. You can switch back after
+          synchronization completes. Unsaved changes must be discarded or saved separately before switching.
+        </template>
+        <template #footer>
+          <q-btn aid="quota-source-cancel" flat label="Cancel" @click="target = null" />
+          <q-btn
+            aid="quota-source-confirm"
+            color="primary"
+            label="Change source"
+            :disable="!canUpdate || busy || management.syncStatus.phase === 'pending'"
+            @click="confirm"
+          />
+        </template>
+      </runai-base-dialog>
+    </runai-expansion-item>
   </section>
 </template>
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { RunaiExpansionItem } from "@/components/common/runai-expansion-item";
 import { RunaiStatus } from "@/components/common/runai-status";
 import { RunaiSelect } from "@/components/common/runai-select";
 import { RunaiBaseDialog } from "@/components/common/runai-base-dialog";

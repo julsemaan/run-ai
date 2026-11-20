@@ -71,7 +71,15 @@ export enum EStepNames {
   CPUQuota = "cpu-quota",
   SchedulingRules = "scheduling-rules",
   AccessRules = "access-rules",
+  QuotaSource = "quota-source",
 }
+
+export const QUOTA_SOURCE_WIZARD_STEP: IRunaiWizardLayoutStep = {
+  name: EStepNames.QuotaSource,
+  title: "Quota source",
+  done: false,
+  disabled: false,
+};
 
 export const DEPARTMENT_FORM_WIZARD_STEPS: IRunaiWizardLayoutStep[] = [
   { name: EStepNames.ScopeName, title: "Cluster & name", done: false, disabled: false, editTitle: "Description" },
