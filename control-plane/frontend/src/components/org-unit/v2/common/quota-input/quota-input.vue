@@ -50,6 +50,9 @@
       :class="messageClass"
       v-dompurify-html="message"
     ></div>
+    <div v-if="readOnlyMessage" class="q-mt-xs q-field__messages quota-message text-orange-6">
+      {{ readOnlyMessage }}
+    </div>
   </div>
 </template>
 
@@ -70,6 +73,7 @@ export interface Props {
   unitOptions?: UnitOption[];
   state?: EQuotaInputState;
   message?: string;
+  readOnlyMessage?: string;
   label?: string;
   rules?: ValidationRule[];
   preventNull?: boolean; // If true, null values will be converted to defaultValue

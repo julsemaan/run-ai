@@ -53,6 +53,7 @@
       <org-unit-legend class="q-mb-md" :items="legendItems" />
 
       <gpu-quota-card
+        :read-only-message="readOnlyMessage"
         :read-only="readOnly"
         :org-unit-name="orgUnit.name"
         :gpu-quota="gpuQuota"
@@ -136,6 +137,7 @@ export interface Props {
   nodePoolTotals?: INodePoolTotals;
   loading?: boolean;
   readOnly?: boolean;
+  readOnlyMessage?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {

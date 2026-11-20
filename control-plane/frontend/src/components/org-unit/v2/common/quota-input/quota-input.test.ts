@@ -23,7 +23,7 @@ describe("QuotaInput", () => {
     });
   });
 
-  const mountQuotaInput = (props: Partial<Props> = {}) => {
+  const mountQuotaInput = (props: Partial<Props> & { disable?: boolean } = {}) => {
     return mount(QuotaInput, {
       global: {
         plugins: [Quasar],
@@ -34,6 +34,30 @@ describe("QuotaInput", () => {
       },
     });
   };
+
+  it.each([EQuotaInputState.Error, EQuotaInputState.Warning])(
+    "shows a separate read-only warning below the disabled input without replacing %s validation",
+    (state) => {
+      const readOnlyMessage = "Quotas are managed by Kubernetes.";
+      const wrapper = mountQuotaInput({ modelValue: 10, state, message: "Existing validation", disable: true });
+      return wrapper.setProps({ readOnlyMessage }).then(() => {
+        const messages = wrapper.findAll(".q-field__messages.quota-message");
+        expect(messages.map((message) => message.text())).toEqual(["Existing validation", readOnlyMessage]);
+        expect(messages[1].classes()).toContain("text-orange-6");
+        expect(messages[1].isVisible()).toBe(true);
+        expect(wrapper.find("input").element.disabled).toBe(true);
+        expect(
+          wrapper.find(".quota-input-row").element.compareDocumentPosition(messages[1].element) &
+            Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
+        expect(wrapper.find("input").attributes("readonlymessage")).toBeUndefined();
+      });
+    },
+  );
+
+  it("does not show a read-only warning without a reason", () => {
+    expect(mountQuotaInput().find(".quota-message").exists()).toBe(false);
+  });
 
   it("renders correctly with default props", () => {
     const wrapper = mountQuotaInput({
