@@ -189,7 +189,7 @@ func ImportQuotaSnapshot(ctx context.Context, tenantId, clusterId, kind string, 
 		}
 		requested := api.ResourcesNullable{
 			NodePool: &api.ResourcesNodePool{Id: pool.NodePoolId, Name: pool.NodePoolName},
-			Gpu:      api.ResourcesNullableGpu{Deserved: *values.Gpu.Deserved, Limit: values.Gpu.Limit, OverQuotaWeight: values.Gpu.OverQuotaWeight},
+			Gpu:      api.ResourcesNullableGpu{Deserved: values.Gpu.Deserved, Limit: values.Gpu.Limit, OverQuotaWeight: values.Gpu.OverQuotaWeight},
 			Cpu:      &api.ResourcesCpu{Deserved: values.Cpu.Deserved, Limit: values.Cpu.Limit, OverQuotaWeight: values.Cpu.OverQuotaWeight},
 			Memory:   &api.ResourcesMemory{Deserved: values.Memory.Deserved, Limit: values.Memory.Limit, OverQuotaWeight: values.Memory.OverQuotaWeight, Units: api.UNITS_MB},
 		}

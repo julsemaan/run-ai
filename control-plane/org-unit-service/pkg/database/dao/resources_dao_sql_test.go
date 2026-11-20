@@ -173,8 +173,11 @@ var _ = Describe("Resources DAO SQL", func() {
 		})
 		It("limits to default", func() {
 			mocker := setupSQLMock()
+			mocker.ExpectTransaction().Begin()
+			expectQuotaResetLocks(mocker, "project", false)
 			mocker.ExpectExec(`UPDATE resources SET gpu_limit = NULL, cpu_limit = NULL, memory_limit = NULL, updated_at=now() FROM project WHERE project.org_unit_data_id = resources.org_unit_data_id AND ((gpu_limit <> -1 OR cpu_limit <> -1 OR memory_limit <> -1) AND resources.node_pool_id IN (?)) AND project.tenant_id = ? AND project.cluster_id = ? AND project.deleted_at is NULL and resources.deleted_at is NULL;`).Returns(1)
 
+			mocker.ExpectTransaction().Commit()
 			err := ResetResources(context.Background(), testTenantID, testClusterID().String(), "", []string{testNodePoolID}, api.RESOURCESRESETACTION_LIMITS_TO_DEFAULT, true)
 			Expect(err).NotTo(HaveOccurred())
 		})

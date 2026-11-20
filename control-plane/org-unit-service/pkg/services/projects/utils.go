@@ -358,7 +358,7 @@ func commitProjectPatchesForDepartmentAtomic(
 		}
 		revisions := make([]api.ResourcesNullable, 0, len(staged.patchRequests))
 		for _, r := range staged.patchRequests {
-			revisions = append(revisions, services.ConvertNodePoolResourcesPatchRequest(r))
+			revisions = append(revisions, api.ResourcesNullable{QuotaManagementRevision: r.QuotaManagementRevision})
 		}
 		staged.dbProject.QuotaManagementRevision = services.QuotaResourceRevision(revisions)
 		err := dao.UpdateProjectTx(ctx, tx, staged.dbProject, false, false)
