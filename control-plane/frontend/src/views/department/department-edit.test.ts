@@ -6,6 +6,7 @@
 import { describe, vi, it, expect, afterEach, beforeEach } from "vitest";
 import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import { Quasar } from "quasar";
+import { reactive } from "vue";
 import DepartmentEdit from "@/views/department/department-edit.vue";
 import { orgUnitService } from "@/services/control-plane/org-unit.service/org-unit.service";
 import { clusterService } from "@/services/control-plane/cluster.service/cluster.service";
@@ -51,15 +52,16 @@ const mockRouter = {
   back: vi.fn(),
 };
 
-const createMockRoute = (overrides = {}) => ({
-  name: DEPARTMENT_ROUTE_NAMES.DEPARTMENT_NEW,
-  params: { id: "" },
-  query: { clusterId: "test-cluster-id" },
-  meta: {
-    backPageName: DEPARTMENT_ROUTE_NAMES.DEPARTMENT_INDEX,
-  },
-  ...overrides,
-});
+const createMockRoute = (overrides = {}) =>
+  reactive({
+    name: DEPARTMENT_ROUTE_NAMES.DEPARTMENT_NEW,
+    params: { id: "" },
+    query: { clusterId: "test-cluster-id" },
+    meta: {
+      backPageName: DEPARTMENT_ROUTE_NAMES.DEPARTMENT_INDEX,
+    },
+    ...overrides,
+  });
 
 let mockRoute = createMockRoute();
 
@@ -88,7 +90,7 @@ describe("DepartmentEdit", () => {
     wrapper = mount(DepartmentEdit, {
       global: {
         plugins: [Quasar, pinia],
-        stubs: { OrgUnitQuotaTable: true },
+        stubs: { OrgUnitQuotaTable: true, AccessRulesStep: true },
         mocks: {
           $route: mockRoute,
           $router: mockRouter,
@@ -133,6 +135,165 @@ describe("DepartmentEdit", () => {
     if (wrapper) {
       wrapper.unmount();
     }
+  });
+
+  const navigateTo = async (name: string) => {
+    const wizard = wrapper.findComponent({ name: "RunaiWizardLayout" });
+    const step = wizard.props("steps").find((step: { name: string }) => step.name === name);
+    wizard.vm.$emit("step-click", { step, name });
+    await flushPromises();
+  };
+
+  describe("quota refresh section preservation", () => {
+    it.each([
+      ["runai", "kubernetes", "synced"],
+      ["kubernetes", "runai", "synced"],
+      ["runai", "kubernetes", "error"],
+      ["kubernetes", "runai", "error"],
+    ] as const)("keeps quota source through %s to %s ending %s", async (source, requestedSource, phase) => {
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      try {
+        const initial = {
+          source,
+          requestedSource: source,
+          revision: 1,
+          canEditQuotas: source === "runai",
+          syncStatus: { phase: "synced" as const },
+        };
+        vi.mocked(orgUnitService.getDepartment).mockResolvedValue({
+          ...mockDepartment,
+          quotaManagement: initial,
+        } as Department);
+        await mountComponent({ name: DEPARTMENT_ROUTE_NAMES.DEPARTMENT_EDIT, params: { id: DEPARTMENT_ID } });
+        await navigateTo("quota-source");
+        const pending = {
+          ...initial,
+          requestedSource,
+          revision: 2,
+          canEditQuotas: false,
+          syncStatus: { phase: "pending" as const },
+        };
+        const terminal = { ...pending, source: phase === "synced" ? requestedSource : source, syncStatus: { phase } };
+        vi.mocked(orgUnitService.updateQuotaSource).mockResolvedValueOnce(pending);
+        let resolveImmediate!: (department: Department) => void;
+        vi.mocked(orgUnitService.getDepartment).mockReturnValueOnce(
+          new Promise((resolve) => {
+            resolveImmediate = resolve;
+          }),
+        );
+        wrapper.findComponent({ name: "OrgUnitQuotaSource" }).vm.$emit("change-source", requestedSource);
+        await flushPromises();
+        expect(wrapper.findComponent({ name: "RunaiWizardLayout" }).props("activeStep")).toBe("quota-source");
+        expect(wrapper.findComponent({ name: "OrgUnitQuotaSource" }).props("management").syncStatus.phase).toBe(
+          "pending",
+        );
+        vi.mocked(orgUnitService.getQuotaSource).mockResolvedValueOnce(terminal);
+        resolveImmediate({ ...mockDepartment, quotaManagement: pending } as Department);
+        await flushPromises();
+        expect(wrapper.findComponent({ name: "RunaiWizardLayout" }).props("activeStep")).toBe("quota-source");
+        let resolveFinal!: (department: Department) => void;
+        vi.mocked(orgUnitService.getDepartment).mockReturnValueOnce(
+          new Promise((resolve) => {
+            resolveFinal = resolve;
+          }),
+        );
+        await vi.advanceTimersByTimeAsync(3000);
+        await flushPromises();
+        expect(wrapper.findComponent({ name: "RunaiWizardLayout" }).props("activeStep")).toBe("quota-source");
+        resolveFinal({ ...mockDepartment, quotaManagement: terminal } as Department);
+        await flushPromises();
+        expect(wrapper.findComponent({ name: "RunaiWizardLayout" }).props("activeStep")).toBe("quota-source");
+        expect(wrapper.findComponent({ name: "OrgUnitQuotaSource" }).props("management").syncStatus.phase).toBe(phase);
+      } finally {
+        wrapper.unmount();
+        vi.useRealTimers();
+      }
+    });
+
+    it.each(["immediate", "final"])("respects navigation during the %s handoff GET", async (stage) => {
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      try {
+        await mountComponent({ name: DEPARTMENT_ROUTE_NAMES.DEPARTMENT_EDIT, params: { id: DEPARTMENT_ID } });
+        await navigateTo("quota-source");
+        const pending = {
+          source: "runai",
+          requestedSource: "kubernetes",
+          revision: 1,
+          canEditQuotas: false,
+          syncStatus: { phase: "pending" },
+        } as const;
+        const synced = { ...pending, source: "kubernetes", syncStatus: { phase: "synced" } } as const;
+        vi.mocked(orgUnitService.updateQuotaSource).mockResolvedValueOnce(pending);
+        vi.mocked(orgUnitService.getQuotaSource).mockResolvedValueOnce(synced);
+        let resolveRefresh!: (department: Department) => void;
+        if (stage === "final") {
+          vi.mocked(orgUnitService.getDepartment).mockResolvedValueOnce({
+            ...mockDepartment,
+            quotaManagement: pending,
+          } as Department);
+        }
+        vi.mocked(orgUnitService.getDepartment).mockReturnValueOnce(
+          new Promise((resolve) => {
+            resolveRefresh = resolve;
+          }),
+        );
+        wrapper.findComponent({ name: "OrgUnitQuotaSource" }).vm.$emit("change-source", "kubernetes");
+        await flushPromises();
+        if (stage === "final") {
+          await vi.advanceTimersByTimeAsync(3000);
+          await flushPromises();
+        }
+        await navigateTo("access-rules");
+        resolveRefresh({ ...mockDepartment, quotaManagement: stage === "final" ? synced : pending } as Department);
+        await flushPromises();
+        expect(wrapper.findComponent({ name: "RunaiWizardLayout" }).props("activeStep")).toBe("access-rules");
+      } finally {
+        wrapper.unmount();
+        vi.useRealTimers();
+      }
+    });
+
+    it.each([false, true])(
+      "preserves the commit-time section during manual refresh, navigate away %s",
+      async (navigateAway) => {
+        await mountComponent({
+          name: DEPARTMENT_ROUTE_NAMES.DEPARTMENT_EDIT,
+          params: { id: DEPARTMENT_ID },
+          query: { stepName: "scope-name" },
+        });
+        await navigateTo("quota-source");
+        let resolveRefresh!: (department: Department) => void;
+        vi.mocked(orgUnitService.getDepartment).mockReturnValueOnce(
+          new Promise((resolve) => {
+            resolveRefresh = resolve;
+          }),
+        );
+        wrapper.findComponent({ name: "OrgUnitQuotaSource" }).vm.$emit("refresh");
+        await flushPromises();
+        if (navigateAway) await navigateTo("access-rules");
+        resolveRefresh(mockDepartment as Department);
+        await flushPromises();
+        expect(wrapper.findComponent({ name: "RunaiWizardLayout" }).props("activeStep")).toBe(
+          navigateAway ? "access-rules" : "quota-source",
+        );
+      },
+    );
+
+    it.each(["tour", "route"])("clears refresh section on a %s reset", async (reset) => {
+      await mountComponent({ name: DEPARTMENT_ROUTE_NAMES.DEPARTMENT_EDIT, params: { id: DEPARTMENT_ID } });
+      await navigateTo("quota-source");
+      wrapper.findComponent({ name: "OrgUnitQuotaSource" }).vm.$emit("refresh");
+      await flushPromises();
+      expect(wrapper.findComponent({ name: "RunaiWizardLayout" }).props("activeStep")).toBe("quota-source");
+      if (reset === "route") {
+        mockRoute.params.id = "another-department";
+        await flushPromises();
+        expect(wrapper.findComponent({ name: "DepartmentEditFormV2" }).props("initialStep")).toBeUndefined();
+      }
+      Object.assign(mockRoute.query, { t: "restart", stepName: "scope-name" });
+      await flushPromises();
+      expect(wrapper.findComponent({ name: "RunaiWizardLayout" }).props("activeStep")).toBe("scope-name");
+    });
   });
 
   describe("quota source metadata", () => {
@@ -237,6 +398,7 @@ describe("DepartmentEdit", () => {
           quotaManagement: pending,
         } as Department);
         vi.mocked(orgUnitService.getQuotaSource).mockResolvedValue(pending);
+        await navigateTo("quota-source");
         form.findComponent({ name: "OrgUnitQuotaSource" }).vm.$emit("change-source", "kubernetes");
         await flushPromises();
         resolveOld(mockDepartment as Department);
@@ -267,11 +429,13 @@ describe("DepartmentEdit", () => {
         canEditQuotas: false,
         syncStatus: { phase: "pending" },
       });
+      await navigateTo("quota-source");
       const selector = form.findComponent({ name: "OrgUnitQuotaSource" });
       if (operation === "manual") selector.vm.$emit("refresh");
       else selector.vm.$emit("change-source", "kubernetes");
       await flushPromises();
       expect(requestToLeave).toHaveBeenCalledOnce();
+      await navigateTo("scope-name");
       expect(wrapper.findComponent({ name: "ScopeNameStep" }).props("description")).toBe("Authoritative description");
     });
     it.each(["manual", "handoff", "handoff PUT"])("retains new edits during confirmed %s refresh", async (operation) => {
@@ -286,6 +450,7 @@ describe("DepartmentEdit", () => {
           resolveRefresh = resolve;
         }),
       );
+      await navigateTo("quota-source");
       let resolvePut!: () => void;
       if (operation !== "manual") {
         const pending = {
@@ -308,7 +473,10 @@ describe("DepartmentEdit", () => {
       }
       await flushPromises();
       expect(form.findComponent({ name: "OrgUnitQuotaSource" }).props("busy")).toBe(true);
-      scope.vm.$emit("update:description", "New description after confirmation");
+      await navigateTo("scope-name");
+      wrapper
+        .findComponent({ name: "ScopeNameStep" })
+        .vm.$emit("update:description", "New description after confirmation");
       await flushPromises();
       if (operation === "handoff PUT") {
         resolvePut();

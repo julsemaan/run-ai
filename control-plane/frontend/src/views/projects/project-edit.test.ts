@@ -6,6 +6,7 @@
 import { describe, vi, it, expect, afterEach, beforeEach } from "vitest";
 import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import { Quasar } from "quasar";
+import { reactive } from "vue";
 import ProjectEdit from "@/views/projects/project-edit.vue";
 import { orgUnitService } from "@/services/control-plane/org-unit.service/org-unit.service";
 import { clusterService } from "@/services/control-plane/cluster.service/cluster.service";
@@ -57,15 +58,16 @@ const mockRouter = {
   back: vi.fn(),
 };
 
-const createMockRoute = (overrides = {}) => ({
-  name: PROJECT_ROUTE_NAMES.PROJECT_NEW,
-  params: { id: "" },
-  query: { clusterId: "test-cluster-id" },
-  meta: {
-    backPageName: PROJECT_ROUTE_NAMES.PROJECT_INDEX,
-  },
-  ...overrides,
-});
+const createMockRoute = (overrides = {}) =>
+  reactive({
+    name: PROJECT_ROUTE_NAMES.PROJECT_NEW,
+    params: { id: "" },
+    query: { clusterId: "test-cluster-id" },
+    meta: {
+      backPageName: PROJECT_ROUTE_NAMES.PROJECT_INDEX,
+    },
+    ...overrides,
+  });
 
 let mockRoute = createMockRoute();
 
@@ -94,7 +96,7 @@ describe("ProjectEdit", () => {
     wrapper = mount(ProjectEdit, {
       global: {
         plugins: [Quasar, pinia],
-        stubs: { OrgUnitQuotaTable: true },
+        stubs: { OrgUnitQuotaTable: true, AccessRulesStep: true },
         mocks: {
           $route: mockRoute,
           $router: mockRouter,
@@ -131,6 +133,162 @@ describe("ProjectEdit", () => {
     if (wrapper) {
       wrapper.unmount();
     }
+  });
+
+  const navigateTo = async (name: string) => {
+    const wizard = wrapper.findComponent({ name: "RunaiWizardLayout" });
+    const step = wizard.props("steps").find((step: { name: string }) => step.name === name);
+    wizard.vm.$emit("step-click", { step, name });
+    await flushPromises();
+  };
+
+  describe("quota refresh section preservation", () => {
+    it.each([
+      ["runai", "kubernetes", "synced"],
+      ["kubernetes", "runai", "synced"],
+      ["runai", "kubernetes", "error"],
+      ["kubernetes", "runai", "error"],
+    ] as const)("keeps quota source through %s to %s ending %s", async (source, requestedSource, phase) => {
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      try {
+        const initial = {
+          source,
+          requestedSource: source,
+          revision: 1,
+          canEditQuotas: source === "runai",
+          syncStatus: { phase: "synced" as const },
+        };
+        vi.mocked(orgUnitService.getProject).mockResolvedValue({ ...mockProject, quotaManagement: initial } as Project);
+        await mountComponent({ name: PROJECT_ROUTE_NAMES.PROJECT_EDIT, params: { id: PROJECT_ID } });
+        await navigateTo("quota-source");
+        const pending = {
+          ...initial,
+          requestedSource,
+          revision: 2,
+          canEditQuotas: false,
+          syncStatus: { phase: "pending" as const },
+        };
+        const terminal = { ...pending, source: phase === "synced" ? requestedSource : source, syncStatus: { phase } };
+        vi.mocked(orgUnitService.updateQuotaSource).mockResolvedValueOnce(pending);
+        let resolveImmediate!: (project: Project) => void;
+        vi.mocked(orgUnitService.getProject).mockReturnValueOnce(
+          new Promise((resolve) => {
+            resolveImmediate = resolve;
+          }),
+        );
+        wrapper.findComponent({ name: "OrgUnitQuotaSource" }).vm.$emit("change-source", requestedSource);
+        await flushPromises();
+        expect(wrapper.findComponent({ name: "RunaiWizardLayout" }).props("activeStep")).toBe("quota-source");
+        expect(wrapper.findComponent({ name: "OrgUnitQuotaSource" }).props("management").syncStatus.phase).toBe(
+          "pending",
+        );
+        vi.mocked(orgUnitService.getQuotaSource).mockResolvedValueOnce(terminal);
+        resolveImmediate({ ...mockProject, quotaManagement: pending } as Project);
+        await flushPromises();
+        expect(wrapper.findComponent({ name: "RunaiWizardLayout" }).props("activeStep")).toBe("quota-source");
+        let resolveFinal!: (project: Project) => void;
+        vi.mocked(orgUnitService.getProject).mockReturnValueOnce(
+          new Promise((resolve) => {
+            resolveFinal = resolve;
+          }),
+        );
+        await vi.advanceTimersByTimeAsync(3000);
+        await flushPromises();
+        expect(wrapper.findComponent({ name: "RunaiWizardLayout" }).props("activeStep")).toBe("quota-source");
+        resolveFinal({ ...mockProject, quotaManagement: terminal } as Project);
+        await flushPromises();
+        expect(wrapper.findComponent({ name: "RunaiWizardLayout" }).props("activeStep")).toBe("quota-source");
+        expect(wrapper.findComponent({ name: "OrgUnitQuotaSource" }).props("management").syncStatus.phase).toBe(phase);
+      } finally {
+        wrapper.unmount();
+        vi.useRealTimers();
+      }
+    });
+
+    it.each(["immediate", "final"])("respects navigation during the %s handoff GET", async (stage) => {
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      try {
+        await mountComponent({ name: PROJECT_ROUTE_NAMES.PROJECT_EDIT, params: { id: PROJECT_ID } });
+        await navigateTo("quota-source");
+        const pending = {
+          source: "runai",
+          requestedSource: "kubernetes",
+          revision: 1,
+          canEditQuotas: false,
+          syncStatus: { phase: "pending" },
+        } as const;
+        const synced = { ...pending, source: "kubernetes", syncStatus: { phase: "synced" } } as const;
+        vi.mocked(orgUnitService.updateQuotaSource).mockResolvedValueOnce(pending);
+        vi.mocked(orgUnitService.getQuotaSource).mockResolvedValueOnce(synced);
+        let resolveRefresh!: (project: Project) => void;
+        if (stage === "final") {
+          vi.mocked(orgUnitService.getProject).mockResolvedValueOnce({
+            ...mockProject,
+            quotaManagement: pending,
+          } as Project);
+        }
+        vi.mocked(orgUnitService.getProject).mockReturnValueOnce(
+          new Promise((resolve) => {
+            resolveRefresh = resolve;
+          }),
+        );
+        wrapper.findComponent({ name: "OrgUnitQuotaSource" }).vm.$emit("change-source", "kubernetes");
+        await flushPromises();
+        if (stage === "final") {
+          await vi.advanceTimersByTimeAsync(3000);
+          await flushPromises();
+        }
+        await navigateTo("access-rules");
+        resolveRefresh({ ...mockProject, quotaManagement: stage === "final" ? synced : pending } as Project);
+        await flushPromises();
+        expect(wrapper.findComponent({ name: "RunaiWizardLayout" }).props("activeStep")).toBe("access-rules");
+      } finally {
+        wrapper.unmount();
+        vi.useRealTimers();
+      }
+    });
+
+    it.each([false, true])(
+      "preserves the commit-time section during manual refresh, navigate away %s",
+      async (navigateAway) => {
+        await mountComponent({
+          name: PROJECT_ROUTE_NAMES.PROJECT_EDIT,
+          params: { id: PROJECT_ID },
+          query: { stepName: "scope-name" },
+        });
+        await navigateTo("quota-source");
+        let resolveRefresh!: (project: Project) => void;
+        vi.mocked(orgUnitService.getProject).mockReturnValueOnce(
+          new Promise((resolve) => {
+            resolveRefresh = resolve;
+          }),
+        );
+        wrapper.findComponent({ name: "OrgUnitQuotaSource" }).vm.$emit("refresh");
+        await flushPromises();
+        if (navigateAway) await navigateTo("access-rules");
+        resolveRefresh(mockProject as Project);
+        await flushPromises();
+        expect(wrapper.findComponent({ name: "RunaiWizardLayout" }).props("activeStep")).toBe(
+          navigateAway ? "access-rules" : "quota-source",
+        );
+      },
+    );
+
+    it.each(["tour", "route"])("clears refresh section on a %s reset", async (reset) => {
+      await mountComponent({ name: PROJECT_ROUTE_NAMES.PROJECT_EDIT, params: { id: PROJECT_ID } });
+      await navigateTo("quota-source");
+      wrapper.findComponent({ name: "OrgUnitQuotaSource" }).vm.$emit("refresh");
+      await flushPromises();
+      expect(wrapper.findComponent({ name: "RunaiWizardLayout" }).props("activeStep")).toBe("quota-source");
+      if (reset === "route") {
+        mockRoute.params.id = "another-project";
+        await flushPromises();
+        expect(wrapper.findComponent({ name: "ProjectEditFormV2" }).props("initialStep")).toBeUndefined();
+      }
+      Object.assign(mockRoute.query, { t: "restart", stepName: "scope-name" });
+      await flushPromises();
+      expect(wrapper.findComponent({ name: "RunaiWizardLayout" }).props("activeStep")).toBe("scope-name");
+    });
   });
 
   describe("quota source metadata", () => {
@@ -234,6 +392,7 @@ describe("ProjectEdit", () => {
           quotaManagement: pending,
         } as Project);
         vi.mocked(orgUnitService.getQuotaSource).mockResolvedValue(pending);
+        await navigateTo("quota-source");
         form.findComponent({ name: "OrgUnitQuotaSource" }).vm.$emit("change-source", "kubernetes");
         await flushPromises();
         resolveOld(mockProject as Project);
@@ -264,11 +423,13 @@ describe("ProjectEdit", () => {
         canEditQuotas: false,
         syncStatus: { phase: "pending" },
       });
+      await navigateTo("quota-source");
       const selector = form.findComponent({ name: "OrgUnitQuotaSource" });
       if (operation === "manual") selector.vm.$emit("refresh");
       else selector.vm.$emit("change-source", "kubernetes");
       await flushPromises();
       expect(requestToLeave).toHaveBeenCalledOnce();
+      await navigateTo("scope-name");
       expect(wrapper.findComponent({ name: "ScopeNameStep" }).props("description")).toBe("Authoritative description");
     });
     it.each(["manual", "handoff", "handoff PUT"])("retains new edits during confirmed %s refresh", async (operation) => {
@@ -283,6 +444,7 @@ describe("ProjectEdit", () => {
           resolveRefresh = resolve;
         }),
       );
+      await navigateTo("quota-source");
       let resolvePut!: () => void;
       if (operation !== "manual") {
         const pending = {
@@ -305,7 +467,10 @@ describe("ProjectEdit", () => {
       }
       await flushPromises();
       expect(form.findComponent({ name: "OrgUnitQuotaSource" }).props("busy")).toBe(true);
-      scope.vm.$emit("update:description", "New description after confirmation");
+      await navigateTo("scope-name");
+      wrapper
+        .findComponent({ name: "ScopeNameStep" })
+        .vm.$emit("update:description", "New description after confirmation");
       await flushPromises();
       if (operation === "handoff PUT") {
         resolvePut();

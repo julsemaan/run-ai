@@ -7,6 +7,7 @@
   <project-edit-form-v2
     v-if="!initialLoading && project"
     :key="formKey"
+    :initial-step="quotaRefreshStep"
     ref="editFormRef"
     :project="project"
     :department="department"
@@ -84,6 +85,7 @@ const nodePoolsMinimal = ref<NodepoolMinimal[]>([]);
 // Computed
 const editFormRef = ref<InstanceType<typeof ProjectEditFormV2> | null>(null);
 const quotaRefreshKey = ref(0);
+const quotaRefreshStep = ref<string>();
 const formKey = computed(() => `${route.query.t?.toString() || "default"}-${quotaRefreshKey.value}`);
 let refreshRequest = 0;
 let disposed = false;
@@ -91,7 +93,14 @@ const invalidateQuotaRefresh = () => {
   refreshRequest++;
 };
 const refreshRoute = () => JSON.stringify([route.name, route.params, route.query]);
-watch(refreshRoute, invalidateQuotaRefresh, { flush: "sync" });
+watch(
+  refreshRoute,
+  () => {
+    invalidateQuotaRefresh();
+    quotaRefreshStep.value = undefined;
+  },
+  { flush: "sync" },
+);
 const refreshQuotaObject = async (discardUnsaved = false, editState = editFormRef.value?.getEditState()) => {
   const request = ++refreshRequest;
   const routeState = refreshRoute();
@@ -103,6 +112,7 @@ const refreshQuotaObject = async (discardUnsaved = false, editState = editFormRe
     if (!isCurrent()) return;
     const parent = loaded.parentId ? await orgUnitService.getDepartment(loaded.parentId) : null;
     if (!isCurrent() || editState !== form?.getEditState() || (!discardUnsaved && form?.hasUnsavedChanges())) return;
+    quotaRefreshStep.value = form?.getActiveStep();
     if (parent) department.value = parent;
     rawProjectDefaultNodePools = loaded.defaultNodePools?.length ? [...loaded.defaultNodePools] : null;
     project.value = initializeProjectNodePools(loaded);
@@ -463,6 +473,7 @@ onUnmounted(() => {
 
 const clearFormState = async (): Promise<void> => {
   invalidateQuotaRefresh();
+  quotaRefreshStep.value = undefined;
   initialLoading.value = true;
   project.value = null;
   department.value = null;
